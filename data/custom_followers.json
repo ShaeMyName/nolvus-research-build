@@ -69,6 +69,14 @@
    "plugin": "Skyrim.esm",
    "form": "0x05C84C",
    "reason": "cf_dismissed"
+  },
+  {
+   "kind": "global_eq",
+   "label": "harness IEB_TestCFRefuse",
+   "plugin": "ErrandBridgeTest.esp",
+   "form": "0x000800",
+   "value": 1,
+   "reason": "cf_test_refuse"
   }
  ],
  "common_refuse_verified": true,

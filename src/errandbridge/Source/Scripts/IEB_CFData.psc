@@ -160,6 +160,9 @@ String Function RefuseReason(Int i, Actor a) Global
     If IEB_CFLib.InFac(a, 0x0005C84C, "Skyrim.esm")
         Return "cf_dismissed"
     EndIf
+    If IEB_CFLib.Glob(0x00000800, "ErrandBridgeTest.esp") == 1.0
+        Return "cf_test_refuse"
+    EndIf
     If i == 0   ; Inigo
         If IEB_CFLib.FacRank(a, 0x000A0957, "Inigo.esp") != 1
             Return "cf_inigo_summon"

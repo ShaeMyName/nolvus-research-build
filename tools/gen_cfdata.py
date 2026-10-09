@@ -28,6 +28,12 @@ def fix(o):
 
 
 fix(d)
+# Test hook (spec §15.3.1, harness E): while ErrandBridgeTest.esp's IEB_TestCFRefuse (0x800) is 1, every registry entry
+# refuses. IEB_CFLib.Glob returns -99999 when the plugin is absent, so the term is always false in Lucienne's profile.
+TEST_TERM = {"kind": "global_eq", "label": "harness IEB_TestCFRefuse", "plugin": "ErrandBridgeTest.esp",
+             "form": "0x000800", "value": 1, "reason": "cf_test_refuse"}
+if not any(t.get("reason") == "cf_test_refuse" for t in d["common_refuse"]):
+    d["common_refuse"].append(TEST_TERM)
 json.dump(d, open(OUT_JSON, "w", encoding="utf-8", newline="\n"), indent=1)
 
 
