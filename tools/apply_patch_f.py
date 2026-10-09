@@ -691,6 +691,41 @@ Function IEB_IntimacyOnLoad()
     Diag(LOG_INFO(), "Intimacy profiles mirrored after load: " + mirrored)
 EndFunction
 """)
+elif G == "intimacy-switch":   # [ADDED in build, Shae 2026-10-09] runtime kill switch, default off
+    edit(B, [
+        ("""Function IEB_QueueIntimacy(Actor akActor)
+    If !_ready || !IEB_IntimacyWanted(akActor)
+""",
+         """Function IEB_QueueIntimacy(Actor akActor)
+    If !_ready || !IEB_IntimacyOn() || !IEB_IntimacyWanted(akActor)
+"""),
+        ("""    If _pendingIntimacy != None
+        Return
+    EndIf
+    While StorageUtil.FormListCount(None, "IEB_IntimacyQueue") > 0
+""",
+         """    If _pendingIntimacy != None || !IEB_IntimacyOn()
+        Return
+    EndIf
+    While StorageUtil.FormListCount(None, "IEB_IntimacyQueue") > 0
+"""),
+        ("""    { Sweep catch-up: queue at most 1 enrolled, romance-applicable adult without a profile per pass. }
+    If _pendingIntimacy != None || StorageUtil.FormListCount(None, "IEB_IntimacyQueue") > 0
+""",
+         """    { Sweep catch-up: queue at most 1 enrolled, romance-applicable adult without a profile per pass. }
+    If !IEB_IntimacyOn() || _pendingIntimacy != None || StorageUtil.FormListCount(None, "IEB_IntimacyQueue") > 0
+"""),
+    ])
+    append(B, """
+Bool Function IEB_IntimacyOn() Global
+    { Patch (Shae 2026-10-09): runtime kill switch for intimacy-profile AUTHORING. StorageUtil int
+      IEB_IntimacyEnabled on the player, default 0 (off). No script property. The list-A soak runs with it at 0;
+      setting it to 1 is a mid-save step after IP-1..IP-7 pass. The load-time mirror of profiles already on disk
+      and the rank-sync hook are not affected. }
+    Return StorageUtil.GetIntValue(Game.GetPlayer(), "IEB_IntimacyEnabled", 0) == 1
+EndFunction
+""")
+
 else:
     raise SystemExit("unknown group " + G)
 print("applied", G)
