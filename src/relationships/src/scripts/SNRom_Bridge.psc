@@ -241,6 +241,7 @@ Function Bootstrap(Bool abForce = False)
     EndIf
 
     _ready = True
+    IEB_IntimacyOnLoad()   ; Patch (IEB §11.13.4)
     ; THE POINTS ARE OURS. A save that has not been brought over yet is, once,
     ; on its own stack: from Romantasy if it is installed, from nothing if it
     ; is not. Until someone is reached, PointsOf reads Romantasy's number for
@@ -445,6 +446,7 @@ Function BeginSpark(Actor akActor, String asReason)
 
     Ledger(akActor, "enroll", "", 25, 1, asReason)
     IEB_WriteRomTrack(akActor)   ; Patch (IEB §11.14.1)
+    IEB_QueueIntimacy(akActor)   ; Patch (IEB §11.13.4): only if already authored (checked inside)
 
     ; Enrollment is what makes a person's character matter, so enrollment is
     ; what authors it. Async - the callback lands whenever the LLM answers;
@@ -556,6 +558,7 @@ Function SweepFollowers()
     PurgeNonPersons()
     IEB_ChildSweep()   ; Patch R7 (IEB §11.10.2)
     IEB_MarasCatchUp()   ; Patch M4' (IEB §11.12.3)
+    IEB_IntimacyCatchUp()   ; Patch (IEB §11.13.4)
 
     ; ALWAYS log the counts. The first version of this function was silent, ran
     ; twice on a load, found nothing, and left no way to tell whether the scan
@@ -7632,6 +7635,7 @@ Function ApplySpark(Actor akActor, String asMoment)
 
     Ledger(akActor, "spark", "", 25, 1, asMoment)
     IEB_WriteRomTrack(akActor)   ; Patch (IEB §11.14.1)
+    IEB_QueueIntimacy(akActor)   ; Patch (IEB §11.13.4): first spark without a profile
     Diag(LOG_INFO(), "SPARK: " + akActor.GetDisplayName() + " crossed into romance - " + asMoment)
 EndFunction
 
@@ -7670,6 +7674,7 @@ EndFunction
 ; authoring prompt's job, not this one's.
 ; ===========================================================================
 
+Actor  _pendingIntimacy   ; Patch (IEB §11.13.4): in-flight intimacy authoring, never shares _pendingActor
 Actor  _driftActor
 String _driftName
 Int    _driftField
@@ -8257,6 +8262,7 @@ Function DispositionAuthored(String asResponse, Int aiSuccess)
 
     Diag(LOG_INFO(), "Disposition authored for " + asked)
     LogDisposition(asked, aiSuccess, asResponse, "applied")
+    IEB_QueueIntimacy(who)   ; Patch (IEB §11.13.4): adult, romance-applicable, not NEVER (checked inside)
 EndFunction
 
 Function ApplyProse(Actor akActor, String asResponse, String asName)
@@ -8803,4 +8809,133 @@ Function IEB_WriteRomTrack(Actor akActor)
         EndIf
     EndIf
     StorageUtil.SetIntValue(akActor, "IEB_RomTrack", t)
+EndFunction
+
+; ===========================================================================
+; IEB private patch (component F): intimacy profiles (spec §11.13.4)
+; Static per NPC; adults only; own queue and in-flight slot. The text is NEVER logged:
+; only its length and success. Not pushed to the dashboard.
+; ===========================================================================
+
+Bool Function IEB_IntimacyWanted(Actor akActor)
+    { An adult, enrolled, already-authored NPC whose romance applies to this player, whose intimacy is not
+      NEVER, and who has no profile yet (or is forced). }
+    If akActor == None || akActor.IsChild() || akActor.IsDead() || !IsEnrolled(akActor)
+        Return False
+    EndIf
+    If StorageUtil.GetIntValue(akActor, "SNRom_DispositionAuthored", 0) != 1
+        Return False
+    EndIf
+    If SNRom_Decorators.RomanceApplicability(akActor) != 0
+        Return False
+    EndIf
+    If StorageUtil.GetIntValue(akActor, "SNRom_PhysMinTier", 4) < 0
+        Return False
+    EndIf
+    If StorageUtil.GetIntValue(akActor, "IEB_ForceIntimacyAuthor", 0) == 1
+        Return True
+    EndIf
+    Return StoreGetText(akActor, "Intimacy") == ""
+EndFunction
+
+Function IEB_QueueIntimacy(Actor akActor)
+    If !_ready || !IEB_IntimacyWanted(akActor)
+        Return
+    EndIf
+    StorageUtil.FormListAdd(None, "IEB_IntimacyQueue", akActor, False)
+    IEB_PumpIntimacy()
+EndFunction
+
+Function IEB_PumpIntimacy()
+    { One call in flight at a time. Re-checks IsChild and every condition on dequeue. }
+    If _pendingIntimacy != None
+        Return
+    EndIf
+    While StorageUtil.FormListCount(None, "IEB_IntimacyQueue") > 0
+        Actor next = StorageUtil.FormListGet(None, "IEB_IntimacyQueue", 0) as Actor
+        StorageUtil.FormListRemoveAt(None, "IEB_IntimacyQueue", 0)
+        If next != None && !next.IsChild() && IEB_IntimacyWanted(next)
+            IEB_SendIntimacy(next)
+            Return
+        EndIf
+    EndWhile
+EndFunction
+
+Function IEB_SendIntimacy(Actor akActor)
+    Int minTier = StorageUtil.GetIntValue(akActor, "SNRom_PhysMinTier", 4)
+    String ctx = "{\"npc_name\":\"" + SNRom_Decorators.JsonEscape(akActor.GetDisplayName()) + "\"" + \
+        ",\"npc_formid\":" + akActor.GetFormID() + \
+        ",\"disp_orientation\":\"" + SNRom_Decorators.OrientationWord(akActor) + "\"" + \
+        ",\"disp_intimacy\":\"" + SNRom_Decorators.IntimacyWordFromTier(minTier) + "\"" + \
+        ",\"disp_ardor\":\"" + SNRom_Decorators.ArdorWord(StorageUtil.GetIntValue(akActor, "SNRom_Ardor", 2)) + "\"" + \
+        ",\"disp_exclusivity\":" + StorageUtil.GetIntValue(akActor, "SNRom_Exclusivity", 50) + \
+        ",\"disp_why\":\"" + SNRom_Decorators.JsonEscape(StoreGetText(akActor, "Why")) + "\"" + \
+        ",\"disp_limit\":\"" + SNRom_Decorators.JsonEscape(StoreGetText(akActor, "Limit")) + "\"}"
+    _pendingIntimacy = akActor
+    Int rc = SkyrimNetApi.SendCustomPromptToLLM("ieb_intimacy_author", "ieb_intimacy_author", ctx, \
+        Self, "SNRom_Bridge", "IEB_OnIntimacyAuthored")
+    Diag(LOG_INFO(), "Intimacy profile requested for " + akActor.GetDisplayName() + " (rc=" + rc + ")")
+    If rc != 1
+        _pendingIntimacy = None
+    EndIf
+EndFunction
+
+Event IEB_OnIntimacyAuthored(String asResponse, Int aiSuccess)
+    Actor who = _pendingIntimacy
+    _pendingIntimacy = None
+    Int len = StringUtil.GetLength(asResponse)
+    If who == None
+        Return
+    EndIf
+    If aiSuccess != 1 || len < 200 || who.IsChild()
+        Diag(LOG_WARN(), "Intimacy profile for " + who.GetDisplayName() + " not stored (success=" + aiSuccess + ", length " + len + ")")
+    Else
+        StoreSetText(who, "Intimacy", asResponse)
+        StorageUtil.SetStringValue(who, "IEB_IntimacyProfile", asResponse)
+        StorageUtil.UnsetIntValue(who, "IEB_ForceIntimacyAuthor")
+        Diag(LOG_INFO(), "Intimacy profile stored for " + who.GetDisplayName() + " (length " + len + ")")
+    EndIf
+    IEB_PumpIntimacy()
+EndEvent
+
+Function IEB_IntimacyCatchUp()
+    { Sweep catch-up: queue at most 1 enrolled, romance-applicable adult without a profile per pass. }
+    If _pendingIntimacy != None || StorageUtil.FormListCount(None, "IEB_IntimacyQueue") > 0
+        Return
+    EndIf
+    Int total = StorageUtil.FormListCount(None, "SNRom_Roster")
+    Int i = 0
+    While i < total
+        Actor a = StorageUtil.FormListGet(None, "SNRom_Roster", i) as Actor
+        If a != None && IEB_IntimacyWanted(a)
+            IEB_QueueIntimacy(a)
+            Return
+        EndIf
+        i += 1
+    EndWhile
+EndFunction
+
+Function IEB_IntimacyOnLoad()
+    { After every load: a callback never survives a load, so the in-flight slot is cleared, and the
+      durable copy is mirrored into the StorageUtil string the 0335 submodule renders. }
+    _pendingIntimacy = None
+    Int mirrored = 0
+    Int total = StorageUtil.FormListCount(None, "SNRom_Roster")
+    Int i = 0
+    While i < total
+        Actor a = StorageUtil.FormListGet(None, "SNRom_Roster", i) as Actor
+        If a != None
+            If a.IsChild()
+                StorageUtil.UnsetStringValue(a, "IEB_IntimacyProfile")
+            Else
+                String t = StoreGetText(a, "Intimacy")
+                If t != ""
+                    StorageUtil.SetStringValue(a, "IEB_IntimacyProfile", t)
+                    mirrored += 1
+                EndIf
+            EndIf
+        EndIf
+        i += 1
+    EndWhile
+    Diag(LOG_INFO(), "Intimacy profiles mirrored after load: " + mirrored)
 EndFunction

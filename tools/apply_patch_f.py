@@ -550,12 +550,10 @@ EndFunction
 """),
         # load: mirror the durable copy into the render string; a callback never survives a load
         ("""    _ready = True
-    _importing = False
-""",
+    ; THE POINTS ARE OURS.""",
          """    _ready = True
-    _importing = False
     IEB_IntimacyOnLoad()   ; Patch (IEB §11.13.4)
-"""),
+    ; THE POINTS ARE OURS."""),
     ])
     edit(B, [(
 """Actor  _driftActor
