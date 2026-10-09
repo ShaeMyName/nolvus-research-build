@@ -1,0 +1,1372 @@
+{
+  "schema": "errandbridge.custom_followers/draft-1",
+  "generated": "2026-10-09",
+  "source": "BRIDGE_SPEC_V2.md 6.5 (APPROVED S-34, S-35; stage windows CORRECTED 2026-10-08) + investigation/round9 reports",
+  "formid_convention": "file-local low 24 bits; resolve with Game.GetFormFromFile(id, plugin)",
+  "semantics": {
+    "recruited": "list AND-combined; {'any': [...]} = OR",
+    "refuse": "list OR-combined (any true -> refuse, reason = term.reason); a term's 'and' list must also hold; checked at take AND every upkeep tick (CF_REFUSE_MIDTASK)",
+    "per_npc_refuse_plus_common": "effective refuse = common_refuse OR npc.refuse",
+    "quest_stage_range": "min/max inclusive; max null = unbounded; 'running': true also requires IsRunning()",
+    "quest_stage_in": "GetStage() in stages; 'running': true also requires IsRunning()",
+    "faction_rank_ne/gt": "GetFactionRank on the actor",
+    "wfp": "actor value WaitingForPlayer",
+    "script_bool": "cast the quest to the named script and read the bool property",
+    "native_call": "DLL/Papyrus API call, not a FormID test",
+    "park": "wfp: WFP=1 | wfp+global: gwait=1 then WFP=1 | none"
+  },
+  "classify": {
+    "double_managed_nff": {
+      "kind": "nff_seated",
+      "label": "row 1a: registry NPC also NFF-seated",
+      "reason": "double_managed"
+    },
+    "off_switch": {
+      "global": "IEB_CFEnabled (bridge's own plugin)",
+      "reason": "cf_disabled"
+    }
+  },
+  "common_refuse": [
+    {
+      "label": "MARAS housed tenant",
+      "reason": "cf_maras_housed",
+      "any": [
+        {
+          "kind": "in_faction",
+          "label": "MARAS housed faction",
+          "plugin": "TT_MARAS.esp",
+          "form": "0x00006C"
+        },
+        {
+          "kind": "native_call",
+          "label": "MARAS tenant house set",
+          "api": "MARAS.GetTenantHouse",
+          "args": [
+            "actor"
+          ],
+          "test": "not_none"
+        }
+      ]
+    },
+    {
+      "kind": "current_scene",
+      "label": "in a scene",
+      "reason": "cf_scene"
+    },
+    {
+      "kind": "on_mount",
+      "label": "on a mount",
+      "reason": "cf_mounted"
+    },
+    {
+      "kind": "in_combat",
+      "label": "in combat",
+      "reason": "cf_combat"
+    },
+    {
+      "kind": "in_faction",
+      "label": "DismissedFollowerFaction",
+      "plugin": "Skyrim.esm",
+      "form": "0x05C84C",
+      "reason": "cf_dismissed"
+    }
+  ],
+  "common_refuse_verified": true,
+  "common_refuse_problems": [],
+  "npcs": [
+    {
+      "name": "Inigo",
+      "plugin": "Inigo.esp",
+      "base": "0x000D62",
+      "ref": "0x008AE9",
+      "recruited": [
+        {
+          "kind": "teammate",
+          "label": "teammate flag"
+        },
+        {
+          "kind": "wfp_eq",
+          "label": "following (WFP 0)",
+          "value": 0
+        }
+      ],
+      "park": "none",
+      "refuse": [
+        {
+          "kind": "faction_rank_ne",
+          "label": "summon faction",
+          "plugin": "Inigo.esp",
+          "form": "0x0A0957",
+          "value": 1,
+          "reason": "cf_inigo_summon"
+        },
+        {
+          "kind": "faction_rank_gt",
+          "label": "ride-with-player faction",
+          "plugin": "Inigo.esp",
+          "form": "0x04EA5F",
+          "value": 0,
+          "reason": "cf_inigo_ride"
+        }
+      ],
+      "topics": [
+        {
+          "plugin": "Inigo.esp",
+          "form": "0x04EA51",
+          "role": "follow",
+          "source": "report"
+        },
+        {
+          "plugin": "Inigo.esp",
+          "form": "0x00184D",
+          "role": "follow",
+          "source": "report"
+        },
+        {
+          "plugin": "Inigo.esp",
+          "form": "0x04EA58",
+          "role": "wait",
+          "source": "report"
+        },
+        {
+          "plugin": "Inigo.esp",
+          "form": "0x04EA4B",
+          "role": "dismiss",
+          "source": "report"
+        },
+        {
+          "plugin": "Inigo.esp",
+          "form": "0x04EFC8",
+          "role": "recruit",
+          "source": "report"
+        },
+        {
+          "plugin": "Inigo.esp",
+          "form": "0x009B3C",
+          "role": "recruit",
+          "source": "report"
+        }
+      ],
+      "verified": true,
+      "problems": []
+    },
+    {
+      "name": "Lucien",
+      "plugin": "Lucien.esp",
+      "base": "0x005900",
+      "ref": "0x00591F",
+      "recruited": [
+        {
+          "kind": "in_faction",
+          "label": "CurrentFollowerFaction",
+          "plugin": "Skyrim.esm",
+          "form": "0x05C84E"
+        },
+        {
+          "kind": "global_eq",
+          "label": "recruited global",
+          "plugin": "Lucien.esp",
+          "form": "0x4A2D8B",
+          "value": 1
+        },
+        {
+          "kind": "not_in_faction",
+          "label": "not DismissedFollowerFaction",
+          "plugin": "Skyrim.esm",
+          "form": "0x05C84C"
+        }
+      ],
+      "park": "wfp",
+      "refuse": [
+        {
+          "kind": "quest_stage_in",
+          "label": "P1 hold stages",
+          "plugin": "Lucien.esp",
+          "quest": "0x2B13ED",
+          "stages": [
+            92,
+            95,
+            100,
+            113,
+            115,
+            360
+          ],
+          "reason": "cf_lucien_p1"
+        },
+        {
+          "kind": "quest_stage_range",
+          "label": "P1 window 700-799",
+          "plugin": "Lucien.esp",
+          "quest": "0x2B13ED",
+          "min": 700,
+          "max": 799,
+          "reason": "cf_lucien_p1"
+        },
+        {
+          "label": "L1 location",
+          "reason": "cf_lucien_l1",
+          "any": [
+            {
+              "kind": "in_location",
+              "label": "actor in L1",
+              "plugin": "Lucien.esp",
+              "form": "0x2B1404",
+              "subject": "actor"
+            },
+            {
+              "kind": "in_location",
+              "label": "player in L1",
+              "plugin": "Lucien.esp",
+              "form": "0x2B1404",
+              "subject": "player"
+            }
+          ]
+        },
+        {
+          "kind": "quest_stage_range",
+          "label": "P2 started",
+          "plugin": "Lucien.esp",
+          "quest": "0x62424C",
+          "min": 1,
+          "max": null,
+          "and": [
+            {
+              "kind": "quest_stage_not_done",
+              "label": "P2 stage 210 not done",
+              "plugin": "Lucien.esp",
+              "quest": "0x62424C",
+              "stage": 210
+            }
+          ],
+          "reason": "cf_lucien_p2"
+        },
+        {
+          "kind": "quest_stage_range",
+          "label": "P3 window 10-14",
+          "plugin": "Lucien.esp",
+          "quest": "0x1171E9",
+          "min": 10,
+          "max": 14,
+          "reason": "cf_lucien_p3"
+        }
+      ],
+      "topics": [
+        {
+          "plugin": "Lucien.esp",
+          "form": "0x00592E",
+          "role": "follow",
+          "source": "report"
+        },
+        {
+          "plugin": "Lucien.esp",
+          "form": "0x00592B",
+          "role": "wait",
+          "source": "report"
+        },
+        {
+          "plugin": "Lucien.esp",
+          "form": "0x005924",
+          "role": "dismiss",
+          "source": "derived: parent DIAL of INFO 0x005925"
+        },
+        {
+          "plugin": "Lucien.esp",
+          "form": "0x005922",
+          "role": "dismiss",
+          "source": "derived: parent DIAL of INFO 0x005926"
+        },
+        {
+          "plugin": "Lucien.esp",
+          "form": "0x00FB4E",
+          "role": "recruit",
+          "source": "derived: parent DIAL of INFO 0x00FB4F"
+        }
+      ],
+      "verified": true,
+      "problems": []
+    },
+    {
+      "name": "Remiel",
+      "plugin": "HLIORemi.esp",
+      "addon": "HLIIRemiLOTD.esp",
+      "base": "0x005900",
+      "ref": "0x033226",
+      "recruited": [
+        {
+          "kind": "alias_holds",
+          "label": "follower quest alias 0",
+          "plugin": "HLIORemi.esp",
+          "quest": "0x014C11",
+          "alias": 0
+        },
+        {
+          "kind": "global_eq",
+          "label": "recruited global",
+          "plugin": "HLIORemi.esp",
+          "form": "0x014C10",
+          "value": 1
+        }
+      ],
+      "park": "wfp",
+      "refuse": [
+        {
+          "kind": "in_faction",
+          "label": "stationed: relax faction",
+          "plugin": "HLIORemi.esp",
+          "form": "0x1AA1F8",
+          "reason": "cf_remiel_stationed"
+        },
+        {
+          "kind": "in_faction",
+          "label": "stationed: home faction",
+          "plugin": "HLIORemi.esp",
+          "form": "0x4D0119",
+          "reason": "cf_remiel_stationed"
+        },
+        {
+          "kind": "in_faction",
+          "label": "stationed: LOTD home faction",
+          "plugin": "HLIIRemiLOTD.esp",
+          "form": "0x000815",
+          "reason": "cf_remiel_stationed"
+        },
+        {
+          "kind": "global_in",
+          "label": "stationed: LOTD stay global",
+          "plugin": "HLIIRemiLOTD.esp",
+          "form": "0x000A38",
+          "values": [
+            1,
+            2
+          ],
+          "reason": "cf_remiel_stationed"
+        },
+        {
+          "kind": "global_eq",
+          "label": "stationed: LOTD stay global 2",
+          "plugin": "HLIIRemiLOTD.esp",
+          "form": "0x000A39",
+          "value": 1,
+          "reason": "cf_remiel_stationed"
+        },
+        {
+          "kind": "global_eq",
+          "label": "stationed: LOTD stay global 3",
+          "plugin": "HLIIRemiLOTD.esp",
+          "form": "0x000A3A",
+          "value": 1,
+          "reason": "cf_remiel_stationed"
+        },
+        {
+          "kind": "global_eq",
+          "label": "stationed: LOTD stay global 4",
+          "plugin": "HLIIRemiLOTD.esp",
+          "form": "0x000BFA",
+          "value": 1,
+          "reason": "cf_remiel_stationed"
+        },
+        {
+          "kind": "global_eq",
+          "label": "stationed: hold global",
+          "plugin": "HLIORemi.esp",
+          "form": "0x763FEE",
+          "value": 1,
+          "reason": "cf_remiel_stationed"
+        },
+        {
+          "kind": "global_eq",
+          "label": "stationed: force-greet global 1",
+          "plugin": "HLIORemi.esp",
+          "form": "0x9318A7",
+          "value": 1,
+          "reason": "cf_remiel_stationed"
+        },
+        {
+          "kind": "global_eq",
+          "label": "stationed: force-greet global 2",
+          "plugin": "HLIORemi.esp",
+          "form": "0x940BF0",
+          "value": 1,
+          "reason": "cf_remiel_stationed"
+        },
+        {
+          "kind": "global_eq",
+          "label": "stationed: P4 global",
+          "plugin": "HLIORemi.esp",
+          "form": "0x903F7F",
+          "value": 1,
+          "reason": "cf_remiel_stationed"
+        },
+        {
+          "kind": "quest_stage_range",
+          "label": "P1 window 170-219",
+          "plugin": "HLIORemi.esp",
+          "quest": "0x46FA55",
+          "min": 170,
+          "max": 219,
+          "running": true,
+          "reason": "cf_remiel_p1"
+        },
+        {
+          "kind": "quest_stage_in",
+          "label": "P2 stages 10/20",
+          "plugin": "HLIORemi.esp",
+          "quest": "0x76E49B",
+          "stages": [
+            10,
+            20
+          ],
+          "reason": "cf_remiel_p2"
+        }
+      ],
+      "topics": [
+        {
+          "plugin": "HLIORemi.esp",
+          "form": "0x02E119",
+          "role": "wait+follow",
+          "source": "derived: parent DIAL of INFO 0x02E11A, 0x43CEBE, 0x02E11B"
+        },
+        {
+          "plugin": "HLIORemi.esp",
+          "form": "0x02E123",
+          "role": "dismiss",
+          "source": "derived: parent DIAL of INFO 0x02E124, 0x43CEB6, 0x43CEB7, 0x43CEB8"
+        },
+        {
+          "plugin": "HLIORemi.esp",
+          "form": "0x02E116",
+          "role": "recruit",
+          "source": "derived: parent DIAL of INFO 0x1308EB"
+        }
+      ],
+      "verified": true,
+      "problems": []
+    },
+    {
+      "name": "Katana",
+      "plugin": "Katana.esp",
+      "base": "0x005900",
+      "ref": "0x005902",
+      "recruited": [
+        {
+          "kind": "global_eq",
+          "label": "recruited global",
+          "plugin": "Katana.esp",
+          "form": "0x617D76",
+          "value": 1
+        },
+        {
+          "kind": "not_in_faction",
+          "label": "not DismissedFollowerFaction",
+          "plugin": "Skyrim.esm",
+          "form": "0x05C84C"
+        }
+      ],
+      "park": "wfp+global",
+      "gwait": {
+        "plugin": "Katana.esp",
+        "form": "0x63127E"
+      },
+      "refuse": [
+        {
+          "label": "P1 whole",
+          "reason": "cf_katana_p1",
+          "any": [
+            {
+              "kind": "quest_running",
+              "label": "D1 running",
+              "plugin": "Katana.esp",
+              "quest": "0x8CDE76"
+            },
+            {
+              "kind": "quest_running",
+              "label": "P1 running",
+              "plugin": "Katana.esp",
+              "quest": "0x8E1B19",
+              "and": [
+                {
+                  "kind": "global_eq",
+                  "label": "P1 done global == 0",
+                  "plugin": "Katana.esp",
+                  "form": "0x422E21",
+                  "value": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "label": "roam mode",
+          "reason": "cf_katana_roam",
+          "any": [
+            {
+              "kind": "global_eq",
+              "label": "roam global",
+              "plugin": "Katana.esp",
+              "form": "0x4D41D2",
+              "value": 1
+            },
+            {
+              "kind": "quest_running",
+              "label": "roam helper quest running",
+              "plugin": "Katana.esp",
+              "quest": "0x10E543"
+            }
+          ]
+        },
+        {
+          "label": "Q7 away",
+          "reason": "cf_katana_q7",
+          "any": [
+            {
+              "kind": "global_eq",
+              "label": "Q7 active global",
+              "plugin": "Katana.esp",
+              "form": "0xF13CD7",
+              "value": 1
+            },
+            {
+              "kind": "quest_stage_in",
+              "label": "Q7 stages 10/20",
+              "plugin": "Katana.esp",
+              "quest": "0xF13CD8",
+              "stages": [
+                10,
+                20
+              ],
+              "running": true
+            }
+          ]
+        },
+        {
+          "kind": "quest_stage_range",
+          "label": "Q3 window 40-189",
+          "plugin": "Katana.esp",
+          "quest": "0x8BB421",
+          "min": 40,
+          "max": 189,
+          "reason": "cf_q3"
+        },
+        {
+          "kind": "quest_running",
+          "label": "Q2 running",
+          "plugin": "Katana.esp",
+          "quest": "0x8BB420",
+          "and": [
+            {
+              "kind": "global_eq",
+              "label": "Q2 done global == 0",
+              "plugin": "Katana.esp",
+              "form": "0x0A5EEC",
+              "value": 0
+            }
+          ],
+          "reason": "cf_q2"
+        },
+        {
+          "kind": "in_cell",
+          "label": "mod interior cell",
+          "plugin": "Katana.esp",
+          "form": "0x84BAFB",
+          "subject": "actor",
+          "reason": "cf_mod_cell"
+        }
+      ],
+      "topics": [
+        {
+          "plugin": "Katana.esp",
+          "form": "0x5EF55D",
+          "role": "wait",
+          "source": "derived: parent DIAL of INFO 0x62C17A"
+        },
+        {
+          "plugin": "Katana.esp",
+          "form": "0x5EF557",
+          "role": "follow",
+          "source": "derived: parent DIAL of INFO 0x5EF558"
+        },
+        {
+          "plugin": "Katana.esp",
+          "form": "0x5EA44E",
+          "role": "dismiss",
+          "source": "derived: parent DIAL of INFO 0x5EA44F"
+        },
+        {
+          "plugin": "Katana.esp",
+          "form": "0x5EF552",
+          "role": "recruit",
+          "source": "derived: parent DIAL of INFO 0x5EF553"
+        }
+      ],
+      "verified": true,
+      "problems": []
+    },
+    {
+      "name": "Megara",
+      "plugin": "Katana.esp",
+      "base": "0x8E6C1E",
+      "ref": "0x8EBD22",
+      "recruited": [
+        {
+          "kind": "global_eq",
+          "label": "recruited global",
+          "plugin": "Katana.esp",
+          "form": "0x1C34FC",
+          "value": 1
+        }
+      ],
+      "park": "wfp+global",
+      "gwait": {
+        "plugin": "Katana.esp",
+        "form": "0x1C85FD"
+      },
+      "refuse": [
+        {
+          "label": "Q3 window",
+          "reason": "cf_q3",
+          "any": [
+            {
+              "kind": "quest_stage_in",
+              "label": "Q3 stage 20",
+              "plugin": "Katana.esp",
+              "quest": "0x8BB421",
+              "stages": [
+                20
+              ]
+            },
+            {
+              "kind": "quest_stage_range",
+              "label": "Q3 window 40-189",
+              "plugin": "Katana.esp",
+              "quest": "0x8BB421",
+              "min": 40,
+              "max": 189
+            }
+          ]
+        },
+        {
+          "kind": "quest_running",
+          "label": "Q2 running",
+          "plugin": "Katana.esp",
+          "quest": "0x8BB420",
+          "and": [
+            {
+              "kind": "global_eq",
+              "label": "Q2 done global == 0",
+              "plugin": "Katana.esp",
+              "form": "0x0A5EEC",
+              "value": 0
+            }
+          ],
+          "reason": "cf_q2"
+        },
+        {
+          "kind": "in_cell",
+          "label": "mod interior cell",
+          "plugin": "Katana.esp",
+          "form": "0x84BAFB",
+          "subject": "actor",
+          "reason": "cf_mod_cell"
+        }
+      ],
+      "topics": [
+        {
+          "plugin": "Katana.esp",
+          "form": "0x1C8608",
+          "role": "wait",
+          "source": "derived: parent DIAL of INFO 0x1C8609"
+        },
+        {
+          "plugin": "Katana.esp",
+          "form": "0x1C8602",
+          "role": "follow",
+          "source": "derived: parent DIAL of INFO 0x1C8603"
+        },
+        {
+          "plugin": "Katana.esp",
+          "form": "0x1C860B",
+          "role": "dismiss",
+          "source": "derived: parent DIAL of INFO 0x1C860C"
+        },
+        {
+          "plugin": "Katana.esp",
+          "form": "0x1C85FF",
+          "role": "recruit",
+          "source": "derived: parent DIAL of INFO 0x1C8600"
+        }
+      ],
+      "verified": true,
+      "problems": []
+    },
+    {
+      "name": "Shale",
+      "plugin": "Katana.esp",
+      "base": "0x8283EB",
+      "ref": "0x8376F9",
+      "recruited": [
+        {
+          "kind": "global_eq",
+          "label": "recruited global",
+          "plugin": "Katana.esp",
+          "form": "0xCC4B3D",
+          "value": 1
+        }
+      ],
+      "park": "wfp+global",
+      "gwait": {
+        "plugin": "Katana.esp",
+        "form": "0x0B520C"
+      },
+      "refuse": [
+        {
+          "kind": "quest_stage_range",
+          "label": "Q3 window 40-189",
+          "plugin": "Katana.esp",
+          "quest": "0x8BB421",
+          "min": 40,
+          "max": 189,
+          "reason": "cf_q3"
+        },
+        {
+          "kind": "quest_running",
+          "label": "Q2 running",
+          "plugin": "Katana.esp",
+          "quest": "0x8BB420",
+          "and": [
+            {
+              "kind": "global_eq",
+              "label": "Q2 done global == 0",
+              "plugin": "Katana.esp",
+              "form": "0x0A5EEC",
+              "value": 0
+            }
+          ],
+          "reason": "cf_q2"
+        },
+        {
+          "kind": "in_cell",
+          "label": "mod interior cell",
+          "plugin": "Katana.esp",
+          "form": "0x84BAFB",
+          "subject": "actor",
+          "reason": "cf_mod_cell"
+        }
+      ],
+      "topics": [
+        {
+          "plugin": "Katana.esp",
+          "form": "0xFEF857",
+          "role": "wait",
+          "source": "derived: parent DIAL of INFO 0x22BEF0"
+        },
+        {
+          "plugin": "Katana.esp",
+          "form": "0xFEF84F",
+          "role": "follow",
+          "source": "derived: parent DIAL of INFO 0x22BEDE"
+        },
+        {
+          "plugin": "Katana.esp",
+          "form": "0xFEF853",
+          "role": "dismiss",
+          "source": "derived: parent DIAL of INFO 0x22BEE6"
+        },
+        {
+          "plugin": "Katana.esp",
+          "form": "0xFEF84D",
+          "role": "recruit",
+          "source": "derived: parent DIAL of INFO 0x22BED8"
+        }
+      ],
+      "verified": true,
+      "problems": []
+    },
+    {
+      "name": "Auri",
+      "plugin": "018Auri.esp",
+      "base": "0x000D63",
+      "ref": "0x3139C8",
+      "recruited": [
+        {
+          "kind": "alias_holds",
+          "label": "controller alias 0",
+          "plugin": "018Auri.esp",
+          "quest": "0x508FC2",
+          "alias": 0
+        },
+        {
+          "kind": "global_eq",
+          "label": "recruited global",
+          "plugin": "018Auri.esp",
+          "form": "0x508FC3",
+          "value": 1
+        }
+      ],
+      "park": "wfp",
+      "refuse": [
+        {
+          "kind": "quest_stage_in",
+          "label": "P1 stage 60",
+          "plugin": "018Auri.esp",
+          "quest": "0x03E4B1",
+          "stages": [
+            60
+          ],
+          "reason": "cf_auri_p1"
+        },
+        {
+          "kind": "scene_playing",
+          "label": "P1 travel scene",
+          "plugin": "018Auri.esp",
+          "form": "0x0528E1",
+          "reason": "cf_auri_p1"
+        }
+      ],
+      "topics": [
+        {
+          "plugin": "018Auri.esp",
+          "form": "0x50E0C6",
+          "role": "recruit",
+          "source": "report"
+        },
+        {
+          "plugin": "018Auri.esp",
+          "form": "0x50E0C8",
+          "role": "follow+wait",
+          "source": "report"
+        },
+        {
+          "plugin": "018Auri.esp",
+          "form": "0x50E0CA",
+          "role": "rest",
+          "source": "report"
+        },
+        {
+          "plugin": "018Auri.esp",
+          "form": "0x50E0D0",
+          "role": "dismiss",
+          "source": "report"
+        }
+      ],
+      "verified": true,
+      "problems": [],
+      "notes": [
+        "ref not given in spec/reports; found the single ACHR of the base in 018Auri.esp (persistent=True)"
+      ]
+    },
+    {
+      "name": "Gelebor",
+      "plugin": "Dawnguard.esm",
+      "recruiter": "Relationship Dialogue Overhaul.esp",
+      "base": "0x00A877",
+      "ref": "0x00A878",
+      "recruited": [
+        {
+          "kind": "alias_holds",
+          "label": "RDO follower alias 0",
+          "plugin": "Relationship Dialogue Overhaul.esp",
+          "quest": "0x69CFA7",
+          "alias": 0
+        },
+        {
+          "kind": "teammate",
+          "label": "teammate flag"
+        }
+      ],
+      "park": "wfp",
+      "refuse": [
+        {
+          "kind": "quest_running",
+          "label": "DG8 running (defensive)",
+          "plugin": "Dawnguard.esm",
+          "quest": "0x002853",
+          "reason": "cf_gelebor_q7"
+        },
+        {
+          "label": "SA roster (double_managed)",
+          "reason": "double_managed",
+          "any": [
+            {
+              "kind": "in_faction",
+              "label": "SA follower faction",
+              "plugin": "SeverActions.esp",
+              "form": "0x0EB708",
+              "note": "FormID resolved by EditorID lookup in SeverActions.esp (spec/report give no FormID)"
+            },
+            {
+              "kind": "native_call",
+              "label": "SA ever-follower",
+              "api": "SeverActionsNative.Native_WasEverFollower",
+              "args": [
+                "actor"
+              ],
+              "test": "true",
+              "and": [
+                {
+                  "kind": "not_in_faction",
+                  "label": "not dismissed",
+                  "plugin": "Skyrim.esm",
+                  "form": "0x05C84C"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "topics": [],
+      "topic_quests": [
+        {
+          "plugin": "Relationship Dialogue Overhaul.esp",
+          "quest": "0x69CFA7",
+          "note": "whole quest blacklisted (S-33)"
+        }
+      ],
+      "verified": false,
+      "problems": [
+        "ref 0x00A878 is not flagged persistent"
+      ]
+    },
+    {
+      "name": "Isran",
+      "plugin": "Dawnguard.esm",
+      "recruiter": "Relationship Dialogue Overhaul.esp",
+      "base": "0x00336A",
+      "ref": "0x003478",
+      "recruited": [
+        {
+          "kind": "alias_holds",
+          "label": "RDO follower alias 0",
+          "plugin": "Relationship Dialogue Overhaul.esp",
+          "quest": "0x69CFA8",
+          "alias": 0
+        },
+        {
+          "kind": "teammate",
+          "label": "teammate flag"
+        }
+      ],
+      "park": "wfp",
+      "refuse": [
+        {
+          "kind": "quest_stage_range",
+          "label": "DG1 running, stage < 180 (defensive)",
+          "plugin": "Dawnguard.esm",
+          "quest": "0x00D06C",
+          "min": 0,
+          "max": 179,
+          "running": true,
+          "reason": "cf_isran_q1"
+        },
+        {
+          "kind": "quest_running",
+          "label": "DG2 running (defensive)",
+          "plugin": "Dawnguard.esm",
+          "quest": "0x002F65",
+          "reason": "cf_isran_q2"
+        },
+        {
+          "kind": "quest_running",
+          "label": "DG3 running (defensive)",
+          "plugin": "Dawnguard.esm",
+          "quest": "0x0098CB",
+          "reason": "cf_isran_q3"
+        },
+        {
+          "kind": "quest_running",
+          "label": "DG4 running (defensive)",
+          "plugin": "Dawnguard.esm",
+          "quest": "0x004E24",
+          "reason": "cf_isran_q4"
+        },
+        {
+          "kind": "quest_running",
+          "label": "DG10 running (defensive)",
+          "plugin": "Dawnguard.esm",
+          "quest": "0x007C25",
+          "reason": "cf_isran_q8"
+        },
+        {
+          "kind": "quest_running",
+          "label": "DG14 running (defensive)",
+          "plugin": "Dawnguard.esm",
+          "quest": "0x019938",
+          "reason": "cf_isran_r10"
+        },
+        {
+          "label": "SA roster (double_managed)",
+          "reason": "double_managed",
+          "any": [
+            {
+              "kind": "in_faction",
+              "label": "SA follower faction",
+              "plugin": "SeverActions.esp",
+              "form": "0x0EB708",
+              "note": "FormID resolved by EditorID lookup in SeverActions.esp (spec/report give no FormID)"
+            },
+            {
+              "kind": "native_call",
+              "label": "SA ever-follower",
+              "api": "SeverActionsNative.Native_WasEverFollower",
+              "args": [
+                "actor"
+              ],
+              "test": "true",
+              "and": [
+                {
+                  "kind": "not_in_faction",
+                  "label": "not dismissed",
+                  "plugin": "Skyrim.esm",
+                  "form": "0x05C84C"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "topics": [],
+      "topic_quests": [
+        {
+          "plugin": "Relationship Dialogue Overhaul.esp",
+          "quest": "0x69CFA8",
+          "note": "whole quest blacklisted (S-33)"
+        }
+      ],
+      "verified": true,
+      "problems": []
+    },
+    {
+      "name": "Valerica",
+      "plugin": "Dawnguard.esm",
+      "recruiter": "Relationship Dialogue Overhaul.esp",
+      "base": "0x003B8B",
+      "ref": "0x003B8E",
+      "recruited": [
+        {
+          "kind": "alias_holds",
+          "label": "RDO follower alias 0",
+          "plugin": "Relationship Dialogue Overhaul.esp",
+          "quest": "0x02E152",
+          "alias": 0
+        },
+        {
+          "kind": "teammate",
+          "label": "teammate flag"
+        }
+      ],
+      "park": "wfp",
+      "refuse": [
+        {
+          "kind": "quest_running",
+          "label": "DG6 running (defensive)",
+          "plugin": "Dawnguard.esm",
+          "quest": "0x002850",
+          "reason": "cf_valerica_q5"
+        },
+        {
+          "kind": "global_ne",
+          "label": "G1 != 2 (defensive)",
+          "plugin": "Dawnguard.esm",
+          "form": "0x015A22",
+          "value": 2,
+          "reason": "cf_valerica_move"
+        },
+        {
+          "label": "SA roster (double_managed)",
+          "reason": "double_managed",
+          "any": [
+            {
+              "kind": "in_faction",
+              "label": "SA follower faction",
+              "plugin": "SeverActions.esp",
+              "form": "0x0EB708",
+              "note": "FormID resolved by EditorID lookup in SeverActions.esp (spec/report give no FormID)"
+            },
+            {
+              "kind": "native_call",
+              "label": "SA ever-follower",
+              "api": "SeverActionsNative.Native_WasEverFollower",
+              "args": [
+                "actor"
+              ],
+              "test": "true",
+              "and": [
+                {
+                  "kind": "not_in_faction",
+                  "label": "not dismissed",
+                  "plugin": "Skyrim.esm",
+                  "form": "0x05C84C"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "topics": [],
+      "topic_quests": [
+        {
+          "plugin": "Relationship Dialogue Overhaul.esp",
+          "quest": "0x02E152",
+          "note": "whole quest blacklisted (S-33)"
+        }
+      ],
+      "verified": false,
+      "problems": [
+        "ref 0x003B8E is not flagged persistent"
+      ]
+    },
+    {
+      "name": "Serana",
+      "plugin": "Dawnguard.esm",
+      "base": "0x002B6C",
+      "ref": "0x002B74",
+      "recruited": [
+        {
+          "kind": "script_bool",
+          "label": "C1 following",
+          "plugin": "Dawnguard.esm",
+          "quest": "0x002B6E",
+          "script": "DLC1_NPCMentalModelScript",
+          "property": "IsFollowing",
+          "value": true
+        },
+        {
+          "kind": "script_bool",
+          "label": "C1 not dismissed",
+          "plugin": "Dawnguard.esm",
+          "quest": "0x002B6E",
+          "script": "DLC1_NPCMentalModelScript",
+          "property": "IsDismissed",
+          "value": false
+        },
+        {
+          "kind": "teammate",
+          "label": "teammate flag"
+        }
+      ],
+      "park": "wfp",
+      "refuse": [
+        {
+          "kind": "script_bool",
+          "label": "C1 unwilling to wait",
+          "plugin": "Dawnguard.esm",
+          "quest": "0x002B6E",
+          "script": "DLC1_NPCMentalModelScript",
+          "property": "IsWillingToWait",
+          "value": false,
+          "reason": "cf_serana_unwilling"
+        },
+        {
+          "kind": "script_bool",
+          "label": "C1 locked in",
+          "plugin": "Dawnguard.esm",
+          "quest": "0x002B6E",
+          "script": "DLC1_NPCMentalModelScript",
+          "property": "LockedIn",
+          "value": true,
+          "reason": "cf_serana_locked"
+        },
+        {
+          "kind": "script_bool",
+          "label": "C1 simple follow",
+          "plugin": "Dawnguard.esm",
+          "quest": "0x002B6E",
+          "script": "DLC1_NPCMentalModelScript",
+          "property": "SimpleFollow",
+          "value": true,
+          "reason": "cf_serana_simple"
+        },
+        {
+          "kind": "script_bool",
+          "label": "C1 follow topic off",
+          "plugin": "Dawnguard.esm",
+          "quest": "0x002B6E",
+          "script": "DLC1_NPCMentalModelScript",
+          "property": "TurnOffComeWithMe",
+          "value": true,
+          "reason": "cf_serana_nocome"
+        },
+        {
+          "label": "own wait",
+          "reason": "cf_serana_waiting",
+          "any": [
+            {
+              "kind": "script_bool",
+              "label": "C1 waiting",
+              "plugin": "Dawnguard.esm",
+              "quest": "0x002B6E",
+              "script": "DLC1_NPCMentalModelScript",
+              "property": "IsWaiting",
+              "value": true
+            },
+            {
+              "kind": "wfp_ne",
+              "label": "WFP != 0",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "kind": "script_bool",
+          "label": "questline incomplete (S-35 a)",
+          "plugin": "Dawnguard.esm",
+          "quest": "0x002B6E",
+          "script": "DLC1_NPCMentalModelScript",
+          "property": "QuestLineCompleted",
+          "value": false,
+          "reason": "cf_serana_questline"
+        },
+        {
+          "kind": "quest_stage_range",
+          "label": "Q-C running, stage < 100",
+          "plugin": "Dawnguard.esm",
+          "quest": "0x005044",
+          "min": 0,
+          "max": 99,
+          "running": true,
+          "reason": "cf_serana_qc"
+        },
+        {
+          "kind": "quest_running",
+          "label": "vanilla wedding quest running",
+          "plugin": "Skyrim.esm",
+          "quest": "0x07404E",
+          "and": [
+            {
+              "kind": "native_call",
+              "label": "MARAS status engaged",
+              "api": "MARAS.IsNPCStatus",
+              "args": [
+                "actor",
+                "engaged"
+              ],
+              "test": "true"
+            }
+          ],
+          "reason": "cf_wedding_pending"
+        }
+      ],
+      "test_vectors_only": {
+        "note": "spec 6.5: per-quest windows kept only as CF-21 test vectors; NOT used for refusal",
+        "terms": [
+          {
+            "kind": "quest_running",
+            "label": "Q-S2 running",
+            "plugin": "Dawnguard.esm",
+            "quest": "0x002F65"
+          },
+          {
+            "kind": "quest_running",
+            "label": "Q-S4 running",
+            "plugin": "Dawnguard.esm",
+            "quest": "0x00284F"
+          },
+          {
+            "kind": "quest_running",
+            "label": "Q-S5 running",
+            "plugin": "Dawnguard.esm",
+            "quest": "0x002850"
+          },
+          {
+            "kind": "quest_running",
+            "label": "Q-S6 running",
+            "plugin": "Dawnguard.esm",
+            "quest": "0x002852"
+          },
+          {
+            "kind": "quest_running",
+            "label": "Q-S7 running",
+            "plugin": "Dawnguard.esm",
+            "quest": "0x002853"
+          },
+          {
+            "kind": "quest_running",
+            "label": "Q-S8 running",
+            "plugin": "Dawnguard.esm",
+            "quest": "0x007C25"
+          },
+          {
+            "kind": "quest_stage_range",
+            "label": "Q-S3a running, stage >= 80",
+            "plugin": "Dawnguard.esm",
+            "quest": "0x004C3D",
+            "min": 80,
+            "max": null,
+            "running": true
+          },
+          {
+            "kind": "quest_stage_range",
+            "label": "Q-S3b running, stage >= 80",
+            "plugin": "Dawnguard.esm",
+            "quest": "0x0098CB",
+            "min": 80,
+            "max": null,
+            "running": true
+          },
+          {
+            "kind": "quest_running",
+            "label": "Q-S1 running (defensive)",
+            "plugin": "Dawnguard.esm",
+            "quest": "0x00352A"
+          },
+          {
+            "kind": "quest_running",
+            "label": "Q-T running (defensive)",
+            "plugin": "Dawnguard.esm",
+            "quest": "0x006BDA"
+          },
+          {
+            "kind": "quest_stage_in",
+            "label": "Q-H stage 70 (defensive)",
+            "plugin": "Dawnguard.esm",
+            "quest": "0x004E24",
+            "stages": [
+              70
+            ],
+            "running": true
+          }
+        ]
+      },
+      "topics": [
+        {
+          "plugin": "Dawnguard.esm",
+          "form": "0x01508C",
+          "role": "follow",
+          "source": "report"
+        },
+        {
+          "plugin": "Dawnguard.esm",
+          "form": "0x01508D",
+          "role": "wait",
+          "source": "report"
+        },
+        {
+          "plugin": "Dawnguard.esm",
+          "form": "0x01508B",
+          "role": "dismiss",
+          "source": "report"
+        },
+        {
+          "plugin": "nwsFollowerFramework.esp",
+          "form": "0x016EAF",
+          "role": "nff_import",
+          "source": "report"
+        },
+        {
+          "plugin": "nwsFollowerFramework.esp",
+          "form": "0x11FFAC",
+          "role": "nff_export",
+          "source": "report"
+        }
+      ],
+      "topic_quests": [
+        {
+          "plugin": "Dawnguard.esm",
+          "quest": "0x002B6E",
+          "note": "whole controller quest blacklisted (spec 6.5)"
+        }
+      ],
+      "verified": true,
+      "problems": []
+    }
+  ]
+}
