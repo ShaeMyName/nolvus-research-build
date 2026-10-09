@@ -1,6 +1,6 @@
 .info
   .source "C:\nolvus-research\build\src\intelengine\Source\Scripts\IntelEngine_Battle.psc"
-  .compileTime 1791570832 ;2026-10-09 14:33:52
+  .compileTime 1791572584 ;2026-10-09 15:03:04
   .user "sharp"
   .computer "EMISSARY"
 .endInfo
@@ -3602,50 +3602,50 @@
             ; line 1341
             return None 
             jmp _label22
-            ; line 1344
+            ; line 1345
           _label22:
             propget StoryEngine ::Core_var ::temp5 
-            callmethod IEB_StoryBlocked ::temp5 ::temp1 assTarget 2 ;2 variable args
+            callmethod IEB_AssassinationBlocked ::temp5 ::temp1 assTarget ;1 variable args
             jmpf ::temp1 _label23
-            ; line 1345
+            ; line 1346
             strcat ::temp9 "Battle: assassination target " leaderName 
             strcat ::temp9 ::temp9 " is committed to a quest -- aborting" 
             callmethod DebugMsg ::Core_var ::nonevar ::temp9 ;1 variable args
-            ; line 1346
-            callmethod DisableNoWait assassin ::nonevar False ;1 variable args
             ; line 1347
-            callmethod Delete assassin ::nonevar ;0 variable args
+            callmethod DisableNoWait assassin ::nonevar False ;1 variable args
             ; line 1348
-            assign ::ManifestActive_var False 
+            callmethod Delete assassin ::nonevar ;0 variable args
             ; line 1349
+            assign ::ManifestActive_var False 
+            ; line 1350
             return None 
             jmp _label23
-            ; line 1352
+            ; line 1353
           _label23:
             assign ::ManifestLeaderTarget_var assTarget 
-            ; line 1355
+            ; line 1356
             callmethod FindFreeAgentSlot ::Core_var ::temp6 ;0 variable args
             assign slot ::temp6 
-            ; line 1356
+            ; line 1357
             cmp_lt ::temp1 slot 0 
             jmpf ::temp1 _label24
-            ; line 1357
-            callmethod DebugMsg ::Core_var ::nonevar "Battle: No free task slot for assassin — aborting" ;1 variable args
             ; line 1358
-            callmethod DisableNoWait assassin ::nonevar False ;1 variable args
+            callmethod DebugMsg ::Core_var ::nonevar "Battle: No free task slot for assassin — aborting" ;1 variable args
             ; line 1359
-            callmethod Delete assassin ::nonevar ;0 variable args
+            callmethod DisableNoWait assassin ::nonevar False ;1 variable args
             ; line 1360
-            assign ::ManifestActive_var False 
+            callmethod Delete assassin ::nonevar ;0 variable args
             ; line 1361
+            assign ::ManifestActive_var False 
+            ; line 1362
             return None 
             jmp _label24
-            ; line 1365
+            ; line 1366
           _label24:
             array_setelement ::ManifestActors_var 0 assassin 
-            ; line 1366
+            ; line 1367
             assign ::ManifestCount_var 1 
-            ; line 1369
+            ; line 1370
             callmethod IsPlayerInExterior self ::temp1 ;0 variable args
             assign ::temp1 ::temp1 
             jmpf ::temp1 _label25
@@ -3655,46 +3655,46 @@
             assign ::temp1 ::temp1 
           _label25:
             jmpf ::temp1 _label26
-            ; line 1370
+            ; line 1371
             callmethod GetAngleZ assTarget ::temp11 ;0 variable args
             fadd ::temp11 ::temp11 180.0 
             callstatic utility RandomFloat ::temp0 -30.0 30.0 ;2 variable args
             fadd ::temp0 ::temp11 ::temp0 
             assign ::mangled_angle_0 ::temp0 
-            ; line 1371
+            ; line 1372
             callstatic math sin ::temp0 ::mangled_angle_0 ;1 variable args
             fmul ::temp0 ::temp0 500.0 
             assign ::mangled_offsetX_1 ::temp0 
-            ; line 1372
+            ; line 1373
             callstatic math cos ::temp0 ::mangled_angle_0 ;1 variable args
             fmul ::temp0 ::temp0 500.0 
             assign ::mangled_offsetY_1 ::temp0 
-            ; line 1373
+            ; line 1374
             cast ::temp10 assTarget 
             callmethod MoveTo assassin ::nonevar ::temp10 ::mangled_offsetX_1 ::mangled_offsetY_1 0.0 True ;5 variable args
             jmp _label26
-            ; line 1377
+            ; line 1378
           _label26:
             callmethod AllocateSlot ::Core_var ::nonevar slot assassin "assassination" leaderName 0 ;5 variable args
-            ; line 1381
+            ; line 1382
             cast ::temp12 assassin 
             cast ::temp10 assTarget 
             cast ::temp13 ::temp10 
             callstatic storageUtil SetFormValue ::temp13 ::temp12 "Intel_DestMarker" ::temp13 ;3 variable args
-            ; line 1382
+            ; line 1383
             cast ::temp10 assassin 
             cast ::temp14 assTarget 
             propget IntelEngine_TravelTarget ::Core_var ::temp15 
             callstatic pO3_SKSEFunctions SetLinkedRef ::nonevar ::temp10 ::temp14 ::temp15 ;3 variable args
-            ; line 1383
+            ; line 1384
             propget TravelPackage_Walk ::Core_var ::temp16 
             propget PRIORITY_TRAVEL ::Core_var ::temp6 
             callstatic actorUtil AddPackageOverride ::nonevar assassin ::temp16 ::temp6 1 ;4 variable args
-            ; line 1384
-            callstatic utility Wait ::nonevar 0.100000001 ;1 variable args
             ; line 1385
+            callstatic utility Wait ::nonevar 0.100000001 ;1 variable args
+            ; line 1386
             callmethod EvaluatePackage assassin ::nonevar ;0 variable args
-            ; line 1387
+            ; line 1388
             callmethod GetDisplayName assassin ::temp9 ;0 variable args
             strcat ::temp9 "Battle: Assassin " ::temp9 
             strcat ::temp9 ::temp9 " walking toward " 
@@ -3705,7 +3705,7 @@
             strcat ::temp2 ::temp2 ")" 
             callmethod DebugMsg ::Core_var ::nonevar ::temp2 ;1 variable args
             jmp _label27
-            ; line 1390
+            ; line 1391
           _label20:
             assign ::temp1 spawnDefenders 
             jmpf ::temp1 _label28
@@ -3713,18 +3713,18 @@
             assign ::temp1 ::temp1 
           _label28:
             jmpf ::temp1 _label27
-            ; line 1392
-            assign defStart ::ManifestCount_var 
             ; line 1393
+            assign defStart ::ManifestCount_var 
+            ; line 1394
             isub ::temp6 12 ::ManifestCount_var 
             assign defCap ::temp6 
-            ; line 1394
+            ; line 1395
             cmp_lt ::temp1 defenderCount defCap 
             jmpf ::temp1 _label29
-            ; line 1395
+            ; line 1396
             assign defCap defenderCount 
             jmp _label29
-            ; line 1397
+            ; line 1398
           _label29:
             strcat ::temp2 targetFaction ":" 
             cast ::temp9 defCap 
@@ -3732,100 +3732,100 @@
             cast ::temp14 player 
             callstatic intelEngine SpawnBattleSoldiers ::temp8 ::temp9 ::temp14 ;2 variable args
             assign defenders ::temp8 
-            ; line 1399
-            assign i 0 
             ; line 1400
+            assign i 0 
+            ; line 1401
           _label32:
             array_length ::temp6 defenders 
             cmp_lt ::temp1 i ::temp6 
             jmpf ::temp1 _label30
-            ; line 1401
+            ; line 1402
             array_getlement ::temp7 defenders i 
             cast ::temp1 ::temp7 
             jmpf ::temp1 _label31
-            ; line 1403
+            ; line 1404
             callstatic utility RandomFloat ::temp0 -45.0 45.0 ;2 variable args
             fadd ::temp0 playerAngle ::temp0 
             assign ::mangled_angle_1 ::temp0 
-            ; line 1404
+            ; line 1405
             callstatic utility RandomFloat ::temp0 800.0 1200.0 ;2 variable args
             assign ::mangled_dist_0 ::temp0 
-            ; line 1405
+            ; line 1406
             callstatic math sin ::temp0 ::mangled_angle_1 ;1 variable args
             fmul ::temp0 ::temp0 ::mangled_dist_0 
             assign ::mangled_offsetX_2 ::temp0 
-            ; line 1406
+            ; line 1407
             callstatic math cos ::temp0 ::mangled_angle_1 ;1 variable args
             fmul ::temp0 ::temp0 ::mangled_dist_0 
             assign ::mangled_offsetY_2 ::temp0 
-            ; line 1407
+            ; line 1408
             cast ::temp14 player 
             array_getlement ::temp7 defenders i 
             callmethod MoveTo ::temp7 ::nonevar ::temp14 ::mangled_offsetX_2 ::mangled_offsetY_2 0.0 True ;5 variable args
-            ; line 1408
-            array_getlement ::temp7 defenders i 
-            callmethod AddToFaction ::temp7 ::nonevar ::Intel_BattleSideB_var ;1 variable args
             ; line 1409
             array_getlement ::temp7 defenders i 
-            array_setelement ::ManifestActors_var ::ManifestCount_var ::temp7 
+            callmethod AddToFaction ::temp7 ::nonevar ::Intel_BattleSideB_var ;1 variable args
             ; line 1410
+            array_getlement ::temp7 defenders i 
+            array_setelement ::ManifestActors_var ::ManifestCount_var ::temp7 
+            ; line 1411
             iadd ::temp6 ::ManifestCount_var 1 
             assign ::ManifestCount_var ::temp6 
             jmp _label31
-            ; line 1412
+            ; line 1413
           _label31:
             iadd ::temp6 i 1 
             assign i ::temp6 
             jmp _label32
-            ; line 1416
+            ; line 1417
           _label30:
             cmp_gt ::temp1 ::ManifestCount_var defStart 
             jmpf ::temp1 _label33
-            ; line 1418
-            assign i 0 
             ; line 1419
+            assign i 0 
+            ; line 1420
           _label39:
             cmp_lt ::temp1 i defStart 
             jmpf ::temp1 _label34
-            ; line 1420
+            ; line 1421
             array_getlement ::temp7 ::ManifestActors_var i 
             cast ::temp17 None 
             cmp_eq ::temp1 ::temp7 ::temp17 
             not ::temp1 ::temp1 
             jmpf ::temp1 _label35
-            ; line 1421
-            assign k defStart 
             ; line 1422
+            assign k defStart 
+            ; line 1423
           _label38:
             cmp_lt ::temp1 k ::ManifestCount_var 
             jmpf ::temp1 _label36
-            ; line 1423
+            ; line 1424
             array_getlement ::temp17 ::ManifestActors_var k 
             cast ::temp7 None 
             cmp_eq ::temp1 ::temp17 ::temp7 
             not ::temp1 ::temp1 
             jmpf ::temp1 _label37
-            ; line 1424
+            ; line 1425
             array_getlement ::temp7 ::ManifestActors_var k 
             array_getlement ::temp17 ::ManifestActors_var i 
             callmethod StartCombat ::temp17 ::nonevar ::temp7 ;1 variable args
             jmp _label37
-            ; line 1426
+            ; line 1427
           _label37:
             iadd ::temp6 k 1 
             assign k ::temp6 
             jmp _label38
           _label36:
             jmp _label35
-            ; line 1429
+            ; line 1430
           _label35:
             iadd ::temp6 i 1 
             assign i ::temp6 
             jmp _label39
-            ; line 1431
+            ; line 1432
           _label34:
             callstatic intelEngine ConfirmManifestationCooldown ::nonevar ;0 variable args
-            ; line 1432
+            ; line 1433
             strcat ::temp9 "Battle: Manifest " eventType 
             strcat ::temp9 ::temp9 " — " 
             cast ::temp2 defStart 
@@ -3836,81 +3836,81 @@
             strcat ::temp9 ::temp2 ::temp9 
             callmethod DebugMsg ::Core_var ::nonevar ::temp9 ;1 variable args
             jmp _label40
-            ; line 1435
+            ; line 1436
           _label33:
             strcat ::temp9 "Battle: Manifest " eventType 
             strcat ::temp9 ::temp9 " — no defenders spawned, aborting" 
             callmethod DebugMsg ::Core_var ::nonevar ::temp9 ;1 variable args
-            ; line 1436
-            assign i 0 
             ; line 1437
+            assign i 0 
+            ; line 1438
           _label43:
             cmp_lt ::temp1 i ::ManifestCount_var 
             jmpf ::temp1 _label41
-            ; line 1438
+            ; line 1439
             array_getlement ::temp7 ::ManifestActors_var i 
             cast ::temp17 None 
             cmp_eq ::temp1 ::temp7 ::temp17 
             not ::temp1 ::temp1 
             jmpf ::temp1 _label42
-            ; line 1439
-            array_getlement ::temp17 ::ManifestActors_var i 
-            callmethod DisableNoWait ::temp17 ::nonevar False ;1 variable args
             ; line 1440
             array_getlement ::temp17 ::ManifestActors_var i 
-            callmethod Delete ::temp17 ::nonevar ;0 variable args
+            callmethod DisableNoWait ::temp17 ::nonevar False ;1 variable args
             ; line 1441
+            array_getlement ::temp17 ::ManifestActors_var i 
+            callmethod Delete ::temp17 ::nonevar ;0 variable args
+            ; line 1442
             cast ::temp17 None 
             array_setelement ::ManifestActors_var i ::temp17 
             jmp _label42
-            ; line 1443
+            ; line 1444
           _label42:
             iadd ::temp6 i 1 
             assign i ::temp6 
             jmp _label43
-            ; line 1445
+            ; line 1446
           _label41:
             assign ::ManifestCount_var 0 
-            ; line 1446
-            assign ::ManifestActive_var False 
             ; line 1447
+            assign ::ManifestActive_var False 
+            ; line 1448
             return None 
           _label40:
             jmp _label27
-            ; line 1452
+            ; line 1453
           _label27:
             callstatic intelEngine GetFactionDisplayName ::temp9 attackerFaction ;1 variable args
             assign nameA ::temp9 
-            ; line 1453
+            ; line 1454
             callstatic intelEngine GetFactionDisplayName ::temp9 targetFaction ;1 variable args
             assign nameB ::temp9 
-            ; line 1454
+            ; line 1455
             cmp_eq ::temp1 eventType "brawl" 
             jmpf ::temp1 _label44
-            ; line 1455
+            ; line 1456
             strcat ::temp9 "A brawl erupts between " nameA 
             strcat ::temp9 ::temp9 " and " 
             strcat ::temp9 ::temp9 nameB 
             strcat ::temp9 ::temp9 "!" 
             callstatic debug Notification ::nonevar ::temp9 ;1 variable args
             jmp _label45
-            ; line 1456
+            ; line 1457
           _label44:
             cmp_eq ::temp1 eventType "border_skirmish" 
             jmpf ::temp1 _label45
-            ; line 1457
+            ; line 1458
             strcat ::temp9 nameA " skirmishers clash with " 
             strcat ::temp9 ::temp9 nameB 
             strcat ::temp9 ::temp9 " forces!" 
             callstatic debug Notification ::nonevar ::temp9 ;1 variable args
             jmp _label45
-            ; line 1460
+            ; line 1461
           _label45:
             assign ::ManifestActive_var True 
-            ; line 1461
+            ; line 1462
             callstatic utility GetCurrentRealTime ::temp0 ;0 variable args
             assign ::ManifestStartTime_var ::temp0 
-            ; line 1462
+            ; line 1463
             callmethod RegisterForSingleUpdate self ::nonevar ::PollInterval_var ;1 variable args
           .endCode
         .endFunction ;ManifestEvent
@@ -3944,41 +3944,41 @@
             .local eventWitness actor
           .endLocalTable
           .code
-            ; line 1469
-            jmpf ::ManifestAssassinAttacked_var _label0
             ; line 1470
+            jmpf ::ManifestAssassinAttacked_var _label0
+            ; line 1471
             return None 
             jmp _label0
-            ; line 1472
+            ; line 1473
           _label0:
             assign ::ManifestAssassinAttacked_var True 
-            ; line 1474
+            ; line 1475
             callmethod GetDisplayName assassin ::temp0 ;0 variable args
             strcat ::temp0 "Battle: Assassin " ::temp0 
             strcat ::temp0 ::temp0 " reached " 
             strcat ::temp0 ::temp0 targetName 
             strcat ::temp0 ::temp0 " — beginning buildup" 
             callmethod DebugMsg ::Core_var ::nonevar ::temp0 ;1 variable args
-            ; line 1476
+            ; line 1477
             callstatic game GetPlayer ::temp1 ;0 variable args
             assign player ::temp1 
-            ; line 1477
+            ; line 1478
             assign target ::ManifestLeaderTarget_var 
-            ; line 1480
+            ; line 1481
             cast ::temp1 None 
             cmp_eq ::temp2 target ::temp1 
             not ::temp2 ::temp2 
             jmpf ::temp2 _label1
-            ; line 1481
+            ; line 1482
             cast ::temp3 player 
             callstatic intelEngine GetNearbyWitnessNPCs ::temp4 ::temp3 2000.0 ;2 variable args
             assign nearbyNPCs ::temp4 
-            ; line 1482
+            ; line 1483
             cast ::temp1 None 
             assign witness ::temp1 
-            ; line 1483
-            assign ni 0 
             ; line 1484
+            assign ni 0 
+            ; line 1485
           _label7:
             array_length ::temp5 nearbyNPCs 
             cmp_lt ::temp2 ni ::temp5 
@@ -3989,7 +3989,7 @@
             assign ::temp2 ::temp2 
           _label2:
             jmpf ::temp2 _label3
-            ; line 1485
+            ; line 1486
             array_getlement ::temp1 nearbyNPCs ni 
             cast ::temp6 None 
             cmp_eq ::temp2 ::temp1 ::temp6 
@@ -4009,33 +4009,33 @@
             assign ::temp2 ::temp2 
           _label5:
             jmpf ::temp2 _label6
-            ; line 1486
+            ; line 1487
             array_getlement ::temp6 nearbyNPCs ni 
             assign witness ::temp6 
             jmp _label6
-            ; line 1488
+            ; line 1489
           _label6:
             iadd ::temp5 ni 1 
             assign ni ::temp5 
             jmp _label7
-            ; line 1490
+            ; line 1491
           _label3:
             cast ::temp6 None 
             cmp_eq ::temp2 witness ::temp6 
             not ::temp2 ::temp2 
             jmpf ::temp2 _label8
-            ; line 1491
+            ; line 1492
             strcat ::temp0 "spotted a suspicious stranger lingering near " targetName 
             strcat ::temp0 ::temp0 " and grew uneasy" 
             callstatic skyrimNetApi DirectNarration ::temp5 ::temp0 witness player ;3 variable args
             jmp _label8
           _label8:
             jmp _label1
-            ; line 1496
+            ; line 1497
           _label1:
             callstatic utility RandomFloat ::temp7 5.0 8.0 ;2 variable args
             callstatic utility Wait ::nonevar ::temp7 ;1 variable args
-            ; line 1499
+            ; line 1500
             callmethod IsDead assassin ::temp2 ;0 variable args
             assign ::temp2 ::temp2 
             jmpt ::temp2 _label9
@@ -4049,51 +4049,51 @@
             assign ::temp2 ::temp2 
           _label10:
             jmpf ::temp2 _label11
-            ; line 1500
-            callmethod DebugMsg ::Core_var ::nonevar "Battle: Assassination aborted — assassin or target dead" ;1 variable args
             ; line 1501
-            callmethod CleanupManifestation self ::nonevar ;0 variable args
+            callmethod DebugMsg ::Core_var ::nonevar "Battle: Assassination aborted — assassin or target dead" ;1 variable args
             ; line 1502
+            callmethod CleanupManifestation self ::nonevar ;0 variable args
+            ; line 1503
             return None 
             jmp _label11
-            ; line 1506
+            ; line 1507
           _label11:
             callstatic intelEngine TriggerAssassinationAttack ::nonevar ;0 variable args
-            ; line 1507
+            ; line 1508
             callmethod StartCombat assassin ::nonevar target ;1 variable args
-            ; line 1510
+            ; line 1511
             strcat ::temp0 "witnessed an assassination attempt on " targetName 
             assign infiltrationFact ::temp0 
-            ; line 1511
+            ; line 1512
             cast ::temp3 player 
             callstatic intelEngine GetNearbyWitnessNPCs ::temp4 ::temp3 3000.0 ;2 variable args
             assign witnesses ::temp4 
-            ; line 1512
-            assign wi 0 
             ; line 1513
+            assign wi 0 
+            ; line 1514
           _label14:
             array_length ::temp5 witnesses 
             cmp_lt ::temp2 wi ::temp5 
             jmpf ::temp2 _label12
-            ; line 1514
+            ; line 1515
             array_getlement ::temp6 witnesses wi 
             cast ::temp1 None 
             cmp_eq ::temp2 ::temp6 ::temp1 
             not ::temp2 ::temp2 
             jmpf ::temp2 _label13
-            ; line 1515
+            ; line 1516
             array_getlement ::temp1 witnesses wi 
             callmethod InjectFact ::Core_var ::nonevar ::temp1 infiltrationFact ;2 variable args
             jmp _label13
-            ; line 1517
+            ; line 1518
           _label13:
             iadd ::temp5 wi 1 
             assign wi ::temp5 
             jmp _label14
-            ; line 1519
+            ; line 1520
           _label12:
             assign eventWitness player 
-            ; line 1520
+            ; line 1521
             array_length ::temp5 witnesses 
             cmp_gt ::temp2 ::temp5 0 
             assign ::temp2 ::temp2 
@@ -4105,23 +4105,23 @@
             assign ::temp2 ::temp2 
           _label15:
             jmpf ::temp2 _label16
-            ; line 1521
+            ; line 1522
             array_getlement ::temp6 witnesses 0 
             assign eventWitness ::temp6 
             jmp _label16
-            ; line 1523
+            ; line 1524
           _label16:
             callstatic skyrimNetApi RegisterEvent ::temp5 "political_assassination" infiltrationFact target eventWitness ;4 variable args
-            ; line 1526
+            ; line 1527
             callstatic utility GetCurrentRealTime ::temp7 ;0 variable args
             assign ::ManifestStartTime_var ::temp7 
-            ; line 1527
+            ; line 1528
             strcat ::temp0 "Assassin strikes at " targetName 
             strcat ::temp0 ::temp0 "!" 
             callstatic debug Notification ::nonevar ::temp0 ;1 variable args
-            ; line 1528
-            callstatic intelEngine ConfirmManifestationCooldown ::nonevar ;0 variable args
             ; line 1529
+            callstatic intelEngine ConfirmManifestationCooldown ::nonevar ;0 variable args
+            ; line 1530
             strcat ::temp0 "Battle: Assassination attack triggered on " targetName 
             callmethod DebugMsg ::Core_var ::nonevar ::temp0 ;1 variable args
           .endCode
@@ -4144,12 +4144,12 @@
             .local i Int
           .endLocalTable
           .code
-            ; line 1533
+            ; line 1534
             cast ::temp0 ::ManifestCount_var 
             strcat ::temp0 "Battle: Cleaning up manifestation (" ::temp0 
             strcat ::temp0 ::temp0 " actors)" 
             callmethod DebugMsg ::Core_var ::nonevar ::temp0 ;1 variable args
-            ; line 1536
+            ; line 1537
             cast ::temp1 None 
             cmp_eq ::temp2 ::ManifestLeaderTarget_var ::temp1 
             not ::temp2 ::temp2 
@@ -4162,67 +4162,67 @@
             assign ::temp2 ::temp2 
           _label0:
             jmpf ::temp2 _label1
-            ; line 1537
+            ; line 1538
             array_getlement ::temp3 ::ManifestActors_var 0 
             callmethod FindSlotByAgent ::Core_var ::temp4 ::temp3 ;1 variable args
             assign assSlot ::temp4 
-            ; line 1538
+            ; line 1539
             comp_gte ::temp2 assSlot 0 
             jmpf ::temp2 _label2
-            ; line 1539
+            ; line 1540
             callmethod ClearSlot ::Core_var ::nonevar assSlot False False ;3 variable args
             jmp _label2
           _label2:
             jmp _label1
-            ; line 1543
+            ; line 1544
           _label1:
             assign i 0 
-            ; line 1544
+            ; line 1545
           _label7:
             cmp_lt ::temp2 i ::ManifestCount_var 
             jmpf ::temp2 _label3
-            ; line 1545
+            ; line 1546
             array_getlement ::temp3 ::ManifestActors_var i 
             cast ::temp1 None 
             cmp_eq ::temp2 ::temp3 ::temp1 
             not ::temp2 ::temp2 
             jmpf ::temp2 _label4
-            ; line 1546
+            ; line 1547
             array_getlement ::temp1 ::ManifestActors_var i 
             callmethod IsDead ::temp1 ::temp2 ;0 variable args
             jmpf ::temp2 _label5
-            ; line 1547
+            ; line 1548
             array_getlement ::temp1 ::ManifestActors_var i 
             callmethod DisableNoWait ::temp1 ::nonevar False ;1 variable args
-            ; line 1548
+            ; line 1549
             array_getlement ::temp1 ::ManifestActors_var i 
             callmethod Delete ::temp1 ::nonevar ;0 variable args
             jmp _label6
-            ; line 1551
+            ; line 1552
           _label5:
             array_getlement ::temp1 ::ManifestActors_var i 
             callmethod RemoveFromFaction ::temp1 ::nonevar ::Intel_BattleSideA_var ;1 variable args
-            ; line 1552
+            ; line 1553
             array_getlement ::temp1 ::ManifestActors_var i 
             callmethod RemoveFromFaction ::temp1 ::nonevar ::Intel_BattleSideB_var ;1 variable args
-            ; line 1554
+            ; line 1555
           _label6:
             cast ::temp1 None 
             array_setelement ::ManifestActors_var i ::temp1 
             jmp _label4
-            ; line 1556
+            ; line 1557
           _label4:
             iadd ::temp4 i 1 
             assign i ::temp4 
             jmp _label7
-            ; line 1558
+            ; line 1559
           _label3:
             assign ::ManifestCount_var 0 
-            ; line 1559
-            assign ::ManifestActive_var False 
             ; line 1560
-            assign ::ManifestAssassinAttacked_var False 
+            assign ::ManifestActive_var False 
             ; line 1561
+            assign ::ManifestAssassinAttacked_var False 
+            ; line 1562
             cast ::temp1 None 
             assign ::ManifestLeaderTarget_var ::temp1 
           .endCode
@@ -4242,13 +4242,13 @@
             .local ::temp3 Int
           .endLocalTable
           .code
-            ; line 1565
-            assign i 0 
             ; line 1566
+            assign i 0 
+            ; line 1567
           _label4:
             cmp_lt ::temp0 i ::ManifestCount_var 
             jmpf ::temp0 _label0
-            ; line 1567
+            ; line 1568
             array_getlement ::temp1 ::ManifestActors_var i 
             cast ::temp2 None 
             cmp_eq ::temp0 ::temp1 ::temp2 
@@ -4267,15 +4267,15 @@
             assign ::temp0 ::temp0 
           _label2:
             jmpf ::temp0 _label3
-            ; line 1568
+            ; line 1569
             return True 
             jmp _label3
-            ; line 1570
+            ; line 1571
           _label3:
             iadd ::temp3 i 1 
             assign i ::temp3 
             jmp _label4
-            ; line 1572
+            ; line 1573
           _label0:
             return False 
           .endCode
@@ -4295,19 +4295,19 @@
             .local ::temp2 Bool
           .endLocalTable
           .code
-            ; line 1583
+            ; line 1584
             callstatic game GetPlayer ::temp0 ;0 variable args
             assign player ::temp0 
-            ; line 1584
+            ; line 1585
             callmethod GetParentCell player ::temp1 ;0 variable args
             assign playerCell ::temp1 
-            ; line 1585
+            ; line 1586
             not ::temp2 playerCell 
             jmpf ::temp2 _label0
-            ; line 1586
+            ; line 1587
             return False 
             jmp _label0
-            ; line 1588
+            ; line 1589
           _label0:
             callmethod IsInterior playerCell ::temp2 ;0 variable args
             not ::temp2 ::temp2 
@@ -4330,27 +4330,27 @@
             .local ::temp2 String
           .endLocalTable
           .code
-            ; line 1592
+            ; line 1593
             callstatic utility RandomInt ::temp0 0 2 ;2 variable args
             assign startMsg ::temp0 
-            ; line 1593
+            ; line 1594
             cmp_eq ::temp1 startMsg 0 
             jmpf ::temp1 _label0
-            ; line 1594
+            ; line 1595
             strcat ::temp2 "Soldiers clash near " locationName 
             strcat ::temp2 ::temp2 "." 
             callstatic debug Notification ::nonevar ::temp2 ;1 variable args
             jmp _label1
-            ; line 1595
+            ; line 1596
           _label0:
             cmp_eq ::temp1 startMsg 1 
             jmpf ::temp1 _label2
-            ; line 1596
+            ; line 1597
             strcat ::temp2 "A skirmish breaks out at " locationName 
             strcat ::temp2 ::temp2 "." 
             callstatic debug Notification ::nonevar ::temp2 ;1 variable args
             jmp _label1
-            ; line 1598
+            ; line 1599
           _label2:
             strcat ::temp2 "Armed men trade blows near " locationName 
             strcat ::temp2 ::temp2 "." 
@@ -4369,15 +4369,15 @@
             .local ::nonevar None
           .endLocalTable
           .code
-            ; line 1604
-            callmethod DebugMsg ::Core_var ::nonevar "Battle: Unexpected end — cleaning up" ;1 variable args
             ; line 1605
-            callmethod RemovePlayerFromBattle self ::nonevar ;0 variable args
+            callmethod DebugMsg ::Core_var ::nonevar "Battle: Unexpected end — cleaning up" ;1 variable args
             ; line 1606
-            callmethod CleanupAllActors self ::nonevar ;0 variable args
+            callmethod RemovePlayerFromBattle self ::nonevar ;0 variable args
             ; line 1607
-            callmethod CleanupMarkers self ::nonevar ;0 variable args
+            callmethod CleanupAllActors self ::nonevar ;0 variable args
             ; line 1608
+            callmethod CleanupMarkers self ::nonevar ;0 variable args
+            ; line 1609
             callmethod ResetState self ::nonevar ;0 variable args
           .endCode
         .endFunction ;CleanupBattle
@@ -4395,36 +4395,36 @@
             .local ::nonevar None
           .endLocalTable
           .code
-            ; line 1621
+            ; line 1622
             callstatic utility GetCurrentRealTime ::temp0 ;0 variable args
             assign now ::temp0 
-            ; line 1622
+            ; line 1623
             cmp_gt ::temp1 ::BattleStartRealTime_var now 
             jmpf ::temp1 _label0
-            ; line 1623
+            ; line 1624
             assign ::BattleStartRealTime_var now 
             jmp _label0
-            ; line 1625
+            ; line 1626
           _label0:
             cmp_gt ::temp1 ::DeferredCleanupStart_var now 
             jmpf ::temp1 _label1
-            ; line 1626
+            ; line 1627
             assign ::DeferredCleanupStart_var now 
             jmp _label1
-            ; line 1628
+            ; line 1629
           _label1:
             cmp_gt ::temp1 ::ManifestStartTime_var now 
             jmpf ::temp1 _label2
-            ; line 1629
+            ; line 1630
             assign ::ManifestStartTime_var now 
             jmp _label2
-            ; line 1633
+            ; line 1634
           _label2:
             jmpf ::ManifestActive_var _label3
-            ; line 1634
+            ; line 1635
             callmethod CleanupManifestation self ::nonevar ;0 variable args
             jmp _label3
-            ; line 1640
+            ; line 1641
           _label3:
             assign ::temp1 ::BattleSpawned_var 
             jmpt ::temp1 _label4
@@ -4436,23 +4436,23 @@
             assign ::temp1 ::temp1 
           _label5:
             jmpf ::temp1 _label6
-            ; line 1641
+            ; line 1642
             callmethod DebugMsg ::Core_var ::nonevar "Battle: Game reloaded during active battle — cleaning up" ;1 variable args
-            ; line 1643
-            callstatic intelEngine EndBattle ::nonevar ::ActiveBattleId_var "reload" "" ;3 variable args
             ; line 1644
-            callmethod RemovePlayerFromBattle self ::nonevar ;0 variable args
+            callstatic intelEngine EndBattle ::nonevar ::ActiveBattleId_var "reload" "" ;3 variable args
             ; line 1645
-            callmethod CleanupAllActors self ::nonevar ;0 variable args
+            callmethod RemovePlayerFromBattle self ::nonevar ;0 variable args
             ; line 1646
-            callmethod CleanupMarkers self ::nonevar ;0 variable args
+            callmethod CleanupAllActors self ::nonevar ;0 variable args
             ; line 1647
+            callmethod CleanupMarkers self ::nonevar ;0 variable args
+            ; line 1648
             callmethod ResetState self ::nonevar ;0 variable args
             jmp _label6
-            ; line 1651
+            ; line 1652
           _label6:
             callstatic intelEngine ClearPendingBattles ::nonevar ;0 variable args
-            ; line 1652
+            ; line 1653
             assign ::PendingPollActive_var False 
           .endCode
         .endFunction ;OnGameReload

@@ -14,7 +14,7 @@
   RemoveAllPackages            actorutil.clearpackageoverride                   1 -> 0
   RemoveAllPackages            evaluatepackage                                  1 -> 0
   RemoveAllPackages            removeintelpackages                              0 -> 1
-## IntelEngine_StoryEngine: baseline 1892 call sites, patched 1986
+## IntelEngine_StoryEngine: baseline 1892 call sites, patched 1994
   DispatchNPCSocial            addrecentstoryevent                              1 -> 2
   DispatchNPCSocial            buildinteractionsummary                          1 -> 2
   DispatchNPCSocial            debugmsg                                         2 -> 3
@@ -32,6 +32,13 @@
   HandleQuestDispatch          getdisplayname                                   13 -> 15
   HandleQuestDispatch          ieb_storyblocked                                 0 -> 3
   HandleQuestDispatch          intelengine.marklastdispatchfailed               0 -> 3
+  IEB_AssassinationBlocked     getactorbase                                     0 -> 1
+  IEB_AssassinationBlocked     ieb_dispatchblocked                              0 -> 1
+  IEB_AssassinationBlocked     ieb_qifile                                       0 -> 1
+  IEB_AssassinationBlocked     ieb_questreserved                                0 -> 1
+  IEB_AssassinationBlocked     isessential                                      0 -> 2
+  IEB_AssassinationBlocked     isprotected                                      0 -> 1
+  IEB_AssassinationBlocked     jsonutil.formlisthas                             0 -> 1
   IEB_DispatchBlocked          findslotbyagent                                  0 -> 1
   IEB_DispatchBlocked          game.getformfromfile                             0 -> 1
   IEB_DispatchBlocked          getfactionrank                                   0 -> 1
@@ -96,4 +103,4 @@
   ManifestEvent                debugmsg                                         12 -> 13
   ManifestEvent                delete                                           3 -> 4
   ManifestEvent                disablenowait                                    3 -> 4
-  ManifestEvent                ieb_storyblocked                                 0 -> 1
+  ManifestEvent                ieb_assassinationblocked                         0 -> 1

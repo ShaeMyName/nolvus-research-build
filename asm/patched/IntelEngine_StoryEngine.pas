@@ -1,6 +1,6 @@
 .info
   .source "C:\nolvus-research\build\src\intelengine\Source\Scripts\IntelEngine_StoryEngine.psc"
-  .compileTime 1791570831 ;2026-10-09 14:33:51
+  .compileTime 1791572583 ;2026-10-09 15:03:03
   .user "sharp"
   .computer "EMISSARY"
 .endInfo
@@ -16599,6 +16599,72 @@
             callstatic debug Trace ::nonevar ::temp4 0 ;2 variable args
           .endCode
         .endFunction ;IEB_QIWriteProbe
+        .function IEB_AssassinationBlocked
+           ; function type 0
+          .userFlags 0 ;none
+          .docString "Patch E7 (Shae 2026-10-09): IntelEngine's assassination is plain combat (StartCombat; no Kill or flag change),
+     so essential and protected targets survive it. Cancel only for busy targets, targets a running questline is
+     using now (tier 1), or targets that could die and are in reserved_npcs."
+          .return Bool
+          .paramTable
+            .param a actor
+          .endParamTable
+          .localTable
+            .local ::temp0 actor
+            .local ::temp1 Bool
+            .local b actorBase
+            .local ::temp2 actorBase
+            .local ::temp3 String
+            .local ::temp4 form
+          .endLocalTable
+          .code
+            ; line 5331
+            cast ::temp0 None 
+            cmp_eq ::temp1 a ::temp0 
+            jmpf ::temp1 _label0
+            ; line 5332
+            return False 
+            jmp _label0
+            ; line 5334
+          _label0:
+            callmethod IEB_DispatchBlocked self ::temp1 a ;1 variable args
+            assign ::temp1 ::temp1 
+            jmpt ::temp1 _label1
+            callmethod IEB_QuestReserved self ::temp1 a 1 ;2 variable args
+            assign ::temp1 ::temp1 
+          _label1:
+            jmpf ::temp1 _label2
+            ; line 5335
+            return True 
+            jmp _label2
+            ; line 5337
+          _label2:
+            callmethod GetActorBase a ::temp2 ;0 variable args
+            assign b ::temp2 
+            ; line 5338
+            callmethod IsEssential a ::temp1 ;0 variable args
+            assign ::temp1 ::temp1 
+            jmpt ::temp1 _label3
+            callmethod IsEssential b ::temp1 ;0 variable args
+            assign ::temp1 ::temp1 
+          _label3:
+            assign ::temp1 ::temp1 
+            jmpt ::temp1 _label4
+            callmethod IsProtected b ::temp1 ;0 variable args
+            assign ::temp1 ::temp1 
+          _label4:
+            jmpf ::temp1 _label5
+            ; line 5339
+            return False 
+            jmp _label5
+            ; line 5341
+          _label5:
+            callmethod IEB_QIFile self ::temp3 ;0 variable args
+            cast ::temp4 b 
+            callstatic jsonUtil FormListHas ::temp1 ::temp3 "reserved_npcs" ::temp4 ;3 variable args
+            return ::temp1 
+          .endCode
+        .endFunction ;IEB_AssassinationBlocked
       .endState
     .endStateTable
   .endObject
