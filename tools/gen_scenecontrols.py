@@ -3,7 +3,8 @@ attachments and property lists below must never change once Lucienne's save exis
 globals are defaults only (the save keeps its own).
 
 Same writer and layout as ErrandBridge.esp, except that the logic script lives on the player alias (spec §11.8:
-"IEB_SceneMain ... on a player alias"), next to IEB_BeastFormHook (§16.4). The quest itself carries no script.
+"IEB_SceneMain ... on a player alias"), next to IEB_BeastFormHook (§16.4). The quest carries IEB_SceneActions (no
+properties), the entry point for the JoinScene / LeaveScene YAML actions, which forwards to the alias script.
 [CHANGED in build 2026-10-09] The FormLists IEB_MinimalBody / IEB_Smallclothes ship EMPTY: their seed items live in
 other mods (Divine Elegance, Queen Marika's Dress, DX Druid Armor, Necrolock; R3 item 5 §3), which would become masters
 of a frozen plugin. Step 5c's body fills them at runtime with GetFormFromFile + AddForm.
@@ -31,6 +32,8 @@ GLOBALS = [
 FLISTS = [(0x810, "IEB_MinimalBody"), (0x811, "IEB_Smallclothes")]
 QUEST_ID, QUEST_EDID = 0x820, "IEB_SceneQuest"
 MAIN_SCRIPT, HOOK_SCRIPT = "IEB_SceneMain", "IEB_BeastFormHook"
+QUEST_SCRIPT = "IEB_SceneActions"   # [CHANGED in build 2026-10-09, step 4c] SkyrimNet actions call member functions
+                                    # of a script bound to the QUEST (every installed action does); no properties
 
 
 def sub(sig, value): return E.Sub(sig, value=value, typed=True)
@@ -56,7 +59,7 @@ def quest():
     props = ([prop_obj(edid, SELF | lid) for lid, edid, _, _ in GLOBALS]
              + [prop_obj(edid, SELF | lid) for lid, edid in FLISTS] + [prop_obj("PlayerRef", PLAYER_REF)])
     vmad = {"version": 5, "objFormat": 2,
-            "scripts": [],
+            "scripts": [{"name": QUEST_SCRIPT, "status": 0, "props": []}],
             "quest": {"unk": 2, "fragments": [], "fileName": "",
                       "aliases": [{"object": {"form": SELF | QUEST_ID, "alias": 0, "unused": 0},
                                    "version": 5, "objFormat": 2,

@@ -1,0 +1,9 @@
+{% if render_mode == "full" and is_narration_enabled() and exists("npc") and existsIn(npc, "UUID") and not is_player(npc.UUID) %}
+{% if not decnpc(npc.UUID).isInCombat %}
+{# shae.scene-text 9900 (spec 11.13.2): the person rule, last text of the dialogue prompt, scene partners only. #}
+{% set _ieb_scene = false %}{% if papyrus_util("GetIntValue", player.UUID, "IEB_SceneMode", 0) == 1 %}{% if papyrus_util("GetIntValue", npc.UUID, "IEB_IsScenePartner", 0) == 1 %}{% if not decnpc(npc.UUID).isChild and not decnpc(npc.UUID).isVirtual %}{% set _ieb_scene = true %}{% endif %}{% endif %}{% endif %}
+{% if _ieb_scene %}
+**Text in asterisks is always third person, present tense. Never use I, me or my inside asterisks.**
+{% endif %}
+{% endif %}
+{% endif %}

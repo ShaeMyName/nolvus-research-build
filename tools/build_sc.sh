@@ -8,7 +8,7 @@ ST='C:\nolvus-research\build\stubs'
 OUT="${1:-C:\nolvus-research\build\bin\sc_shell}"
 mkdir -p "$(cygpath -u "$OUT")"
 cd /c/nolvus-research/build/src/scenecontrols_shell
-for f in IEB_SceneMain IEB_BeastFormHook; do
+for f in IEB_SceneMain IEB_BeastFormHook IEB_SceneActions; do
   "$CAP" "${FLAGS[@]}" -o "$OUT" -i "$SRC;$ST;$IMP" $f.psc 2>&1 | grep -vE "^Importing|^Imported|W7000|W1004"
   echo "== $f exit ${PIPESTATUS[0]}"
 done

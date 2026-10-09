@@ -1,0 +1,13 @@
+{% if render_mode == "full" and actorUUID %}
+{# shae.scene-text 0335 (spec 11.13.4): the NPC's own intimacy profile, in that NPC's own full prompt only. Gate: not a
+   child, and (scene partner in scene mode, or a romantic Lover or above). Text authored by the private Relationships
+   patch (ieb_intimacy_author), mirrored to StorageUtil IEB_IntimacyProfile. #}
+{% if not decnpc(actorUUID).isChild and not decnpc(actorUUID).isVirtual %}
+{% set _ieb_scene = false %}{% if papyrus_util("GetIntValue", player.UUID, "IEB_SceneMode", 0) == 1 %}{% if papyrus_util("GetIntValue", actorUUID, "IEB_IsScenePartner", 0) == 1 %}{% if not decnpc(actorUUID).isChild and not decnpc(actorUUID).isVirtual %}{% set _ieb_scene = true %}{% endif %}{% endif %}{% endif %}
+{% set _ieb_show = _ieb_scene %}{% if not _ieb_show %}{% if get_faction_rank(actorUUID, "SNRom_Bond") >= 4 %}{% if papyrus_util("GetIntValue", actorUUID, "SNRom_Sparked", 0) == 1 %}{% set _ieb_show = true %}{% endif %}{% endif %}{% endif %}
+{% if _ieb_show %}{% set _ieb_prof = papyrus_util("GetStringValue", actorUUID, "IEB_IntimacyProfile", "") %}{% if _ieb_prof != "" %}
+## Your intimacy profile
+{{ _ieb_prof }}
+{% endif %}{% endif %}
+{% endif %}
+{% endif %}

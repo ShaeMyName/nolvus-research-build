@@ -1,0 +1,44 @@
+# shae.scene-text (spec 11.13.8, S-29): a witness joins the scene. The NPC chooses it; the player confirms in a box;
+# IEB_SceneMain then runs the existing partners' check (exclusivity >= 88 refuses) before adding them.
+name: JoinScene
+description: "Use only when {{ player.name }} has invited the speaker into the intimate scene, or the speaker offers to join and {{ player.name }} welcomes it, and the speaker wants to join."
+questEditorId: IEB_SceneQuest
+scriptName: IEB_SceneActions
+executionFunctionName: JoinScene
+parameterMapping:
+  - type: speaker
+    name: akActor
+    description: the one joining the scene
+useConfirmationWindow: true
+enabled: true
+eligibilityRules:
+  - conditions:
+      - decoratorName: "is_in_combat"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "papyrus_util"
+        arguments: ["GetIntValue", "player", "IEB_SceneMode", 0]
+        comparisonOperator: "=="
+        expectedValue: 1
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "papyrus_util"
+        arguments: ["GetIntValue", "currentActor", "IEB_IsScenePartner", 0]
+        comparisonOperator: "=="
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      # Child guard (spec 11.10 P2/P4): a child speaker is never eligible. SkyrimNet's native decnpc().isChild.
+      - decoratorName: "decnpc"
+        arguments: ["currentActor"]
+        resultPath: "isChild"
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true

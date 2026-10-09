@@ -1,0 +1,14 @@
+{
+  "id": "shae.scene-text",
+  "type": "bundle",
+  "title": "Scene Text (private)",
+  "tagline": "Private: scene tier, visible actions, scene contract, attire facts, intimacy profile, join/leave.",
+  "description": "Component G of the Errand Bridge build (spec 11.5-11.7, 11.13). Adult fiction between consenting adults; children are never scene speakers (P3) and never subjects of attire facts. Needs SceneControls.esp. Private; never published.",
+  "author": "shae",
+  "version": "1.0.0",
+  "min_skyrimnet_version": "0.25.0",
+  "nsfw": true,
+  "mods": [
+    { "required": true, "file": "SceneControls.esp", "name": "SceneControls" }
+  ]
+}

@@ -25,6 +25,16 @@ Event OnPlayerLoadGame()
         IEB_SceneKey.GetValue() + " lists=" + IEB_MinimalBody.GetSize() + "/" + IEB_Smallclothes.GetSize())
 EndEvent
 
+Function JoinScene(Actor akActor)
+    {Called through IEB_SceneActions (the JoinScene action). Logic: step 5c (spec §11.13.8).}
+    Log("JoinScene (shell skeleton): not built yet")
+EndFunction
+
+Function LeaveScene(Actor akActor)
+    {Called through IEB_SceneActions (the LeaveScene action). Logic: step 5c (spec §11.13.8).}
+    Log("LeaveScene (shell skeleton): not built yet")
+EndFunction
+
 Function Log(String asMsg)
     Debug.Trace("[IEB-SC] " + asMsg)
 EndFunction

@@ -1,0 +1,84 @@
+{
+  "errors": [],
+  "files": 8,
+  "not_checked": [
+    "decorator names, arities and values (users register their own; every call is listed under unresolved)",
+    "action questEditorId / scriptName / executionFunctionName existence (needs game data)",
+    "eventType membership is a warning only (the game is the only source of the list)"
+  ],
+  "ok": true,
+  "plugin_id": "shae.scene-text",
+  "shadows": [
+    {
+      "logical_path": "prompts/submodules/system_head/0020_format_rules.prompt",
+      "shadows": "skyrimnet.base"
+    }
+  ],
+  "unresolved": [
+    {
+      "code": "UNRESOLVED",
+      "col": 29,
+      "file": "submodules/character_bio/0335_ieb_intimacy_profile",
+      "line": 5,
+      "message": "variable 'isChild' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 63,
+      "file": "submodules/character_bio/0335_ieb_intimacy_profile",
+      "line": 5,
+      "message": "variable 'isVirtual' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 35,
+      "file": "submodules/character_bio/0335_ieb_intimacy_profile",
+      "line": 6,
+      "message": "variable 'papyrus_util' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 61,
+      "file": "submodules/character_bio/0335_ieb_intimacy_profile",
+      "line": 7,
+      "message": "variable 'get_faction_rank' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 28,
+      "file": "submodules/guidelines",
+      "line": 5,
+      "message": "variable 'name' not found",
+      "original": "{{ decnpc(npc.UUID).name }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 24,
+      "file": "submodules/guidelines",
+      "line": 7,
+      "message": "variable 'isInCombat' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 24,
+      "file": "submodules/system_head/0020_format_rules",
+      "line": 15,
+      "message": "variable 'isInCombat' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 33,
+      "file": "submodules/user_final_instructions/0760_visible_actions",
+      "line": 1,
+      "message": "variable 'is_narration_enabled' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 33,
+      "file": "submodules/user_final_instructions/9900_ieb_scene_pov",
+      "line": 1,
+      "message": "variable 'is_narration_enabled' not found"
+    }
+  ],
+  "warnings": []
+}

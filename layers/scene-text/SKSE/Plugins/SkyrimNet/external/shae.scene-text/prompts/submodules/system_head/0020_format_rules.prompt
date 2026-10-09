@@ -1,0 +1,35 @@
+{{ render_subcomponent("guidelines", render_mode) }}
+
+## Length
+{% if render_mode == "thoughts" or render_mode == "book" %}
+{% if is_in_combat(npc.UUID) %}
+Combat: 8-30 words. First sentence 10 words or fewer. Raw, visceral, immediate.
+{% elif render_mode == "book" %}
+8-90 words depending on relevance. Brief for mundane books, expand for meaningful content.
+{% else %}
+8-30 words. First sentence 10 words or fewer.
+{% endif %}
+{% elif render_mode == "transform" %}
+8-45 words. Keep it natural to how you speak.
+{% else %}
+{% if decnpc(npc.UUID).isInCombat %}
+Combat: 1 sentence, maximum 14 words. Urgent and brief.
+{% else %}
+{# shae.scene-text (spec 11.7, 11.13.3): scene tier for a scene partner; everyone else keeps base's rule. #}
+{% set _ieb_scene = false %}{% if render_mode == "full" and exists("npc") and existsIn(npc, "UUID") %}{% if papyrus_util("GetIntValue", player.UUID, "IEB_SceneMode", 0) == 1 %}{% if papyrus_util("GetIntValue", npc.UUID, "IEB_IsScenePartner", 0) == 1 %}{% if not decnpc(npc.UUID).isChild and not decnpc(npc.UUID).isVirtual %}{% set _ieb_scene = true %}{% endif %}{% endif %}{% endif %}{% endif %}
+{% if _ieb_scene %}
+Scene: speak 1-3 sentences, 60 words maximum, as always. Text in asterisks may add up to 200 words, a ceiling and not a target, in up to 3 short paragraphs. Speak first, or keep any opening text in asterisks short.
+{% else %}
+1-3 sentences (8-40 words typical). Do NOT write multiple paragraphs. 60 words maximum.
+{% endif %}
+{% endif %}
+{% endif %}
+
+{% if render_mode == "thoughts" or render_mode == "book" %}
+## Grounding
+Base thoughts only on: your character profile, listed memories, scene description, and recent events.
+Do not: invent new facts, assume specific outcomes, retell past events, drift into unrelated worries, or drift into a narrator's voice describing your situation — the thought is *yours*, in your register, not a story being told about you.
+
+## Stream
+Your mind is already running. This thought is the next beat — whether it continues the stream or reacts to something fresh. No recap of the situation, no restating what you already know, no "okay, let me think" / "right, so —" / "wait, where was I" openings. Just the thought, picked up mid-stride.
+{% endif %}

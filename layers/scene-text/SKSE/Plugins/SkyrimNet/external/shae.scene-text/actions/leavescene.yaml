@@ -1,0 +1,19 @@
+# shae.scene-text (spec 11.13.8, S-29): any partner may leave at any time, no confirmation (the decline rule's spirit).
+name: LeaveScene
+description: "Use when the speaker, a partner in the intimate scene, chooses to leave it: they have had enough, they will not share, or they want to stop."
+questEditorId: IEB_SceneQuest
+scriptName: IEB_SceneActions
+executionFunctionName: LeaveScene
+parameterMapping:
+  - type: speaker
+    name: akActor
+    description: the partner leaving the scene
+enabled: true
+eligibilityRules:
+  - conditions:
+      - decoratorName: "papyrus_util"
+        arguments: ["GetIntValue", "currentActor", "IEB_IsScenePartner", 0]
+        comparisonOperator: "=="
+        expectedValue: 1
+    logicalOperator: "AND"
+    required: true

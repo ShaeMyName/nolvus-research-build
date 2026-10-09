@@ -1,0 +1,29 @@
+{
+  "errors": [],
+  "files": 1,
+  "not_checked": [
+    "decorator names, arities and values (users register their own; every call is listed under unresolved)",
+    "action questEditorId / scriptName / executionFunctionName existence (needs game data)",
+    "eventType membership is a warning only (the game is the only source of the list)"
+  ],
+  "ok": true,
+  "plugin_id": "shae.marriage",
+  "shadows": [],
+  "unresolved": [
+    {
+      "code": "UNRESOLVED",
+      "col": 11,
+      "file": "submodules/guidelines/0501_marriage_chances",
+      "line": 1,
+      "message": "variable 'isTimePaused' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 28,
+      "file": "submodules/guidelines/0501_marriage_chances",
+      "line": 1,
+      "message": "variable 'is_in_faction' not found"
+    }
+  ],
+  "warnings": []
+}

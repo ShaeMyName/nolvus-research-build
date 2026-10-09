@@ -1,0 +1,14 @@
+{
+  "id": "shae.marriage",
+  "type": "bundle",
+  "title": "Marriage and Exclusivity (private)",
+  "tagline": "Private: MARAS proposal guidance with facts only, a capped top band and Relationships exclusivity.",
+  "description": "Component K of the Errand Bridge build (spec 11.12.3 M1). Same-path override of MARAS 0.11.0 guidelines/0501_marriage_chances.prompt. Needs MARAS and SkyrimNet Relationships (with the private patch's M2 partner count). Private; never published.",
+  "author": "shae",
+  "version": "1.0.0",
+  "min_skyrimnet_version": "0.25.0",
+  "nsfw": false,
+  "mods": [
+    { "required": true, "file": "TT_MARAS.esp", "name": "MARAS" }
+  ]
+}
