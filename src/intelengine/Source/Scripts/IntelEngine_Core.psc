@@ -207,6 +207,10 @@ Function Maintenance(Bool isFirstLoad = false)
     EndIf
     LastMaintenanceRealTime = now
     DebugMsg("IntelEngine Maintenance (firstLoad=" + isFirstLoad + ")")
+    ; Patch: the quest-integrity guard must never fail silently (once per load, after the duplicate guard)
+    If StoryEngine
+        StoryEngine.IEB_QISelfCheck()
+    EndIf
 
     ; On first install (new game), clear all StorageUtil data from previous sessions.
     ; StorageUtil persists outside the save system, so stale data from other saves

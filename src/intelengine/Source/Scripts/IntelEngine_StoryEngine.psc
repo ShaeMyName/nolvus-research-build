@@ -5265,3 +5265,61 @@ Int Function IEB_StoryTier(String storyType)
     EndIf
     return 0
 EndFunction
+
+Function IEB_QISelfCheck()
+    {Patch (list A): the quest-integrity guard must never fail silently. On every load: the JSON exists
+     and parses, and each form list resolves to at least 95% of the builder's recorded count.}
+    String f = IEB_QIFile()
+    String problem = ""
+    If !JsonUtil.JsonExists(f)
+        problem = "file missing"
+    ElseIf !JsonUtil.IsGood(f)
+        problem = "parse error " + JsonUtil.GetErrors(f)
+    Else
+        problem = IEB_QICheckList(f, "story_quests") + IEB_QICheckList(f, "reserved_npcs")
+        Int ex = JsonUtil.StringListCount(f, "exempt_plugins")
+        If ex == 0 || ex < JsonUtil.GetIntValue(f, "exempt_plugins_count", 1)
+            problem += "exempt_plugins " + ex + " of " + JsonUtil.GetIntValue(f, "exempt_plugins_count", 0) + "; "
+        EndIf
+    EndIf
+    If problem == ""
+        Debug.Trace("[IEB] quest_integrity OK: story_quests " + JsonUtil.FormListCount(f, "story_quests") + ", reserved_npcs " + JsonUtil.FormListCount(f, "reserved_npcs"))
+    Else
+        Debug.Trace("[IEB] WARN quest_integrity: " + problem + "quest NPCs are NOT protected from story dispatch", 2)
+        Debug.Notification("IEB WARNING: quest-integrity list failed (" + problem + ") Quest NPCs are unprotected.")
+    EndIf
+    If JsonUtil.GetIntValue(f, "write_probe", 0) == 1
+        IEB_QIWriteProbe(f)
+    EndIf
+EndFunction
+
+String Function IEB_QICheckList(String f, String listKey)
+    {Patch: "" if the list resolves to >= 95% of its recorded count, else a short problem text.}
+    Int expected = JsonUtil.GetIntValue(f, listKey + "_count", 0)
+    Form[] arr = JsonUtil.FormListToArray(f, listKey)
+    Int resolved = arr.Length - PapyrusUtil.CountNone(arr)
+    Debug.Trace("[IEB] quest_integrity " + listKey + ": resolved " + resolved + " of " + expected + " (entries " + arr.Length + ")")
+    If expected <= 0
+        return listKey + " has no recorded count; "
+    ElseIf resolved == 0 || resolved * 100 < expected * 95
+        return listKey + " resolved " + resolved + " of " + expected + "; "
+    EndIf
+    return ""
+EndFunction
+
+Function IEB_QIWriteProbe(String f)
+    {Patch, test builds only (write_probe = 1): PapyrusUtil writes known forms itself (test Q-9), so its exact
+     form-string spelling can be compared with the builder's; also logs whether each form matches the list.}
+    String p = "../ErrandBridge/qi_probe"
+    JsonUtil.FormListClear(p, "probe")
+    Int n = JsonUtil.StringListCount(f, "probe_plugins")
+    Int i = 0
+    While i < n
+        Form fm = Game.GetFormFromFile(JsonUtil.IntListGet(f, "probe_ids", i), JsonUtil.StringListGet(f, "probe_plugins", i))
+        JsonUtil.FormListAdd(p, "probe", fm)
+        Debug.Trace("[IEB] quest_integrity probe " + i + ": resolved " + (fm != None) + ", in " + JsonUtil.StringListGet(f, "probe_lists", i) + " " + JsonUtil.FormListHas(f, JsonUtil.StringListGet(f, "probe_lists", i), fm))
+        i += 1
+    EndWhile
+    JsonUtil.Save(p)
+    Debug.Trace("[IEB] quest_integrity probe written: " + n + " forms")
+EndFunction
