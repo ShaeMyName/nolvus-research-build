@@ -7,12 +7,13 @@
   OtherPartners                  snrom_bridge.maraspresent                    0 -> 1
   OtherPartners                  snrom_decorators.upper                       0 -> 1
   RomanceOk                      ischild                                      0 -> 1
-## SNRom_Bridge: baseline 1931 call sites, patched 2086
+## SNRom_Bridge: baseline 1931 call sites, patched 2087
   AcceptRomance                  diag                                         2 -> 3
   AcceptRomance                  getdisplayname                               2 -> 3
   AcceptRomance                  ischild                                      0 -> 1
   AcceptRomance                  snrom_bridge.log_info                        1 -> 2
   ApplyCharacter                 ieb_lockchildintimacy                        0 -> 1
+  ApplyCharacter                 ieb_writeromtrack                            0 -> 1
   ApplyDrift                     game.getplayer                               2 -> 1
   ApplyDrift                     ieb_lockchildintimacy                        0 -> 1
   ApplyDrift                     sendmodevent                                 0 -> 1

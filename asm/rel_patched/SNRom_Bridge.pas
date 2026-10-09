@@ -1,6 +1,6 @@
 .info
   .source "C:\nolvus-research\build\src\relationships\src\scripts\SNRom_Bridge.psc"
-  .compileTime 1791572374 ;2026-10-09 14:59:34
+  .compileTime 1791572518 ;2026-10-09 15:01:58
   .user "sharp"
   .computer "EMISSARY"
 .endInfo
@@ -17675,38 +17675,40 @@
           _label4:
             callmethod IEB_LockChildIntimacy self ::temp2 akActor ;1 variable args
             ; line 8436
+            callmethod IEB_WriteRomTrack self ::nonevar akActor ;1 variable args
+            ; line 8437
             callstatic sNRom_Decorators FieldValue ::temp3 asResponse "ARDOR:" ;2 variable args
             cmp_eq ::temp2 ::temp3 "" 
             not ::temp2 ::temp2 
             jmpf ::temp2 _label5
-            ; line 8437
+            ; line 8438
             cast ::temp4 akActor 
             callstatic storageUtil SetIntValue ::temp1 ::temp4 "SNRom_Ardor" ardor ;3 variable args
             jmp _label5
-            ; line 8439
+            ; line 8440
           _label5:
             callstatic sNRom_Decorators FieldValue ::temp3 asResponse "EXCLUSIVITY:" ;2 variable args
             cmp_eq ::temp2 ::temp3 "" 
             not ::temp2 ::temp2 
             jmpf ::temp2 _label6
-            ; line 8440
+            ; line 8441
             cast ::temp4 akActor 
             callstatic storageUtil SetIntValue ::temp1 ::temp4 "SNRom_Exclusivity" excl ;3 variable args
             jmp _label6
-            ; line 8450
+            ; line 8451
           _label6:
             strcat ::temp3 "orientation='" orientWord 
             strcat ::temp3 ::temp3 "'->" 
             cast ::temp0 orient 
             strcat ::temp0 ::temp3 ::temp0 
             strcat ::temp0 ::temp0 " basis='" 
-            ; line 8451
+            ; line 8452
             strcat ::temp0 ::temp0 basisWord 
             strcat ::temp0 ::temp0 "'->" 
             cast ::temp3 basis 
             strcat ::temp3 ::temp0 ::temp3 
             assign orientPart ::temp3 
-            ; line 8452
+            ; line 8453
             cmp_eq ::temp2 orientWord "" 
             not ::temp2 ::temp2 
             assign ::temp2 ::temp2 
@@ -17715,21 +17717,21 @@
             assign ::temp2 ::temp2 
           _label7:
             jmpf ::temp2 _label8
-            ; line 8453
+            ; line 8454
             strcat ::temp3 "orientation=REJECTED(authored '" orientWord 
             strcat ::temp3 ::temp3 "', married to player) - unchanged" 
             assign orientPart ::temp3 
             jmp _label8
-            ; line 8455
+            ; line 8456
           _label8:
             callstatic sNRom_Bridge LOG_INFO ::temp1 ;0 variable args
             callmethod GetDisplayName akActor ::temp3 ;0 variable args
             strcat ::temp3 "Character for " ::temp3 
             strcat ::temp3 ::temp3 ": " 
-            ; line 8456
+            ; line 8457
             strcat ::temp3 ::temp3 orientPart 
             strcat ::temp3 ::temp3 " intimacy='" 
-            ; line 8457
+            ; line 8458
             strcat ::temp3 ::temp3 intimWord 
             strcat ::temp3 ::temp3 "'->minTier" 
             cast ::temp0 minTier 
@@ -17738,31 +17740,31 @@
             cast ::temp3 bypass 
             strcat ::temp3 ::temp0 ::temp3 
             strcat ::temp3 ::temp3 " ardor=" 
-            ; line 8458
+            ; line 8459
             cast ::temp0 ardor 
             strcat ::temp0 ::temp3 ::temp0 
             strcat ::temp0 ::temp0 " exclusivity=" 
             cast ::temp3 excl 
             strcat ::temp3 ::temp0 ::temp3 
             callmethod Diag self ::nonevar ::temp1 ::temp3 False ;3 variable args
-            ; line 8462
+            ; line 8463
             callmethod EnforceBlockAnswers self ::nonevar akActor ;1 variable args
-            ; line 8469
+            ; line 8470
             callmethod GetDisplayName akActor ::temp3 ;0 variable args
             strcat ::temp3 ::temp3 " re-authored: exclusivity " 
-            ; line 8470
+            ; line 8471
             cast ::temp4 akActor 
             callstatic storageUtil GetIntValue ::temp1 ::temp4 "SNRom_Exclusivity" 50 ;3 variable args
             cast ::temp0 ::temp1 
             strcat ::temp0 ::temp3 ::temp0 
             strcat ::temp0 ::temp0 ", ardor " 
-            ; line 8471
+            ; line 8472
             cast ::temp4 akActor 
             callstatic storageUtil GetIntValue ::temp1 ::temp4 "SNRom_Ardor" 2 ;3 variable args
             cast ::temp3 ::temp1 
             strcat ::temp3 ::temp0 ::temp3 
             strcat ::temp3 ::temp3 ", " 
-            ; line 8472
+            ; line 8473
             cast ::temp4 akActor 
             callstatic storageUtil GetIntValue ::temp1 ::temp4 "SNRom_PhysMinTier" 4 ;3 variable args
             callstatic sNRom_Decorators IntimacyWordFromTier ::temp0 ::temp1 ;1 variable args
@@ -17824,7 +17826,7 @@
             .local ::temp6 String
           .endLocalTable
           .code
-            ; line 8500
+            ; line 8501
             cast ::temp0 None 
             cmp_eq ::temp1 akActor ::temp0 
             assign ::temp1 ::temp1 
@@ -17834,14 +17836,14 @@
             assign ::temp1 ::temp1 
           _label0:
             jmpf ::temp1 _label1
-            ; line 8501
+            ; line 8502
             return None 
             jmp _label1
-            ; line 8503
+            ; line 8504
           _label1:
             callstatic severActionsNativeExt2 Native_BioBlock_AssignedTitles ::temp2 akActor ;1 variable args
             assign titles ::temp2 
-            ; line 8504
+            ; line 8505
             not ::temp1 titles 
             assign ::temp1 ::temp1 
             jmpt ::temp1 _label2
@@ -17850,54 +17852,54 @@
             assign ::temp1 ::temp1 
           _label2:
             jmpf ::temp1 _label3
-            ; line 8505
+            ; line 8506
             return None 
             jmp _label3
-            ; line 8507
+            ; line 8508
           _label3:
             callmethod GetDisplayName akActor ::temp4 ;0 variable args
             assign who ::temp4 
-            ; line 8510
+            ; line 8511
             callmethod BlockAnswer self ::temp4 titles "Drawn To:" ;2 variable args
             assign drawn ::temp4 
-            ; line 8511
-            assign oWord "" 
             ; line 8512
+            assign oWord "" 
+            ; line 8513
             cmp_eq ::temp1 drawn "Men" 
             jmpf ::temp1 _label4
-            ; line 8513
+            ; line 8514
             assign oWord "ATTRACTED_TO_MEN" 
             jmp _label5
-            ; line 8514
+            ; line 8515
           _label4:
             cmp_eq ::temp1 drawn "Women" 
             jmpf ::temp1 _label6
-            ; line 8515
+            ; line 8516
             assign oWord "ATTRACTED_TO_WOMEN" 
             jmp _label5
-            ; line 8516
+            ; line 8517
           _label6:
             cmp_eq ::temp1 drawn "Both" 
             jmpf ::temp1 _label7
-            ; line 8517
+            ; line 8518
             assign oWord "ATTRACTED_TO_BOTH" 
             jmp _label5
-            ; line 8518
+            ; line 8519
           _label7:
             cmp_eq ::temp1 drawn "No One" 
             jmpf ::temp1 _label5
-            ; line 8519
+            ; line 8520
             assign oWord "ATTRACTED_TO_NEITHER" 
             jmp _label5
-            ; line 8521
+            ; line 8522
           _label5:
             cmp_eq ::temp1 oWord "" 
             not ::temp1 ::temp1 
             jmpf ::temp1 _label8
-            ; line 8522
+            ; line 8523
             callstatic sNRom_Decorators OrientationToInt ::temp3 oWord ;1 variable args
             assign o ::temp3 
-            ; line 8523
+            ; line 8524
             callstatic sNRom_Bridge IsMarriedToPlayer ::temp1 akActor ;1 variable args
             assign ::temp1 ::temp1 
             jmpf ::temp1 _label9
@@ -17905,7 +17907,7 @@
             assign ::temp1 ::temp1 
           _label9:
             jmpf ::temp1 _label10
-            ; line 8524
+            ; line 8525
             callstatic sNRom_Bridge LOG_WARN ::temp3 ;0 variable args
             strcat ::temp4 "Block 'Drawn To: " drawn 
             strcat ::temp4 ::temp4 "' NOT applied to " 
@@ -17913,7 +17915,7 @@
             strcat ::temp4 ::temp4 " - the game records a marriage to the player, which the block contradicts. Fix the block." 
             callmethod Diag self ::nonevar ::temp3 ::temp4 False ;3 variable args
             jmp _label11
-            ; line 8526
+            ; line 8527
           _label10:
             cast ::temp5 akActor 
             callstatic storageUtil GetIntValue ::temp3 ::temp5 "SNRom_Orientation" 3 ;3 variable args
@@ -17921,7 +17923,7 @@
             not ::temp1 ::temp1 
             assign ::temp1 ::temp1 
             jmpt ::temp1 _label12
-            ; line 8527
+            ; line 8528
             cast ::temp5 akActor 
             callstatic storageUtil GetIntValue ::temp3 ::temp5 "SNRom_OrientationKnown" 0 ;3 variable args
             cmp_eq ::temp1 ::temp3 2 
@@ -17929,31 +17931,31 @@
             assign ::temp1 ::temp1 
           _label12:
             jmpf ::temp1 _label11
-            ; line 8528
-            cast ::temp5 akActor 
-            callstatic storageUtil SetIntValue ::temp3 ::temp5 "SNRom_Orientation" o ;3 variable args
             ; line 8529
             cast ::temp5 akActor 
-            callstatic storageUtil SetIntValue ::temp3 ::temp5 "SNRom_OrientationKnown" 2 ;3 variable args
+            callstatic storageUtil SetIntValue ::temp3 ::temp5 "SNRom_Orientation" o ;3 variable args
             ; line 8530
+            cast ::temp5 akActor 
+            callstatic storageUtil SetIntValue ::temp3 ::temp5 "SNRom_OrientationKnown" 2 ;3 variable args
+            ; line 8531
             callstatic sNRom_Bridge LOG_INFO ::temp3 ;0 variable args
             strcat ::temp4 "BLOCK OVERRIDE for " who 
             strcat ::temp4 ::temp4 ": orientation -> " 
             strcat ::temp4 ::temp4 oWord 
             strcat ::temp4 ::temp4 " / STATED, from the applied block 'Drawn To: " 
-            ; line 8531
+            ; line 8532
             strcat ::temp4 ::temp4 drawn 
             strcat ::temp4 ::temp4 "'." 
             callmethod Diag self ::nonevar ::temp3 ::temp4 False ;3 variable args
             jmp _label11
           _label11:
             jmp _label13
-            ; line 8533
+            ; line 8534
           _label8:
             cmp_eq ::temp1 drawn "" 
             not ::temp1 ::temp1 
             jmpf ::temp1 _label13
-            ; line 8534
+            ; line 8535
             callstatic sNRom_Bridge LOG_WARN ::temp3 ;0 variable args
             strcat ::temp4 "Block 'Drawn To: " drawn 
             strcat ::temp4 ::temp4 "' on " 
@@ -17961,82 +17963,82 @@
             strcat ::temp4 ::temp4 " is not one of the library's answers (or two disagree) - orientation left as authored." 
             callmethod Diag self ::nonevar ::temp3 ::temp4 False ;3 variable args
             jmp _label13
-            ; line 8539
+            ; line 8540
           _label13:
             callmethod BlockAnswer self ::temp4 titles "Expression:" ;2 variable args
             assign expr ::temp4 
-            ; line 8540
-            assign rWord "" 
             ; line 8541
+            assign rWord "" 
+            ; line 8542
             cmp_eq ::temp1 expr "Reserved and Undemonstrative" 
             jmpf ::temp1 _label14
-            ; line 8542
+            ; line 8543
             assign rWord "RESERVED" 
             jmp _label15
-            ; line 8543
+            ; line 8544
           _label14:
             cmp_eq ::temp1 expr "Measured, Shows Little" 
             jmpf ::temp1 _label16
-            ; line 8544
+            ; line 8545
             assign rWord "MEASURED" 
             jmp _label15
-            ; line 8545
+            ; line 8546
           _label16:
             cmp_eq ::temp1 expr "Warm but Not Effusive" 
             jmpf ::temp1 _label17
-            ; line 8546
+            ; line 8547
             assign rWord "WARM" 
             jmp _label15
-            ; line 8547
+            ; line 8548
           _label17:
             cmp_eq ::temp1 expr "Open About What They Feel" 
             jmpf ::temp1 _label18
-            ; line 8548
+            ; line 8549
             assign rWord "OPEN" 
             jmp _label15
-            ; line 8549
+            ; line 8550
           _label18:
             cmp_eq ::temp1 expr "Intense and Unmistakable" 
             jmpf ::temp1 _label15
-            ; line 8550
+            ; line 8551
             assign rWord "INTENSE" 
             jmp _label15
-            ; line 8552
+            ; line 8553
           _label15:
             cmp_eq ::temp1 rWord "" 
             not ::temp1 ::temp1 
             jmpf ::temp1 _label19
-            ; line 8553
+            ; line 8554
             callstatic sNRom_Decorators ArdorToInt ::temp3 rWord ;1 variable args
             assign r ::temp3 
-            ; line 8554
+            ; line 8555
             cast ::temp5 akActor 
             callstatic storageUtil GetIntValue ::temp3 ::temp5 "SNRom_Ardor" 2 ;3 variable args
             cmp_eq ::temp1 ::temp3 r 
             not ::temp1 ::temp1 
             jmpf ::temp1 _label20
-            ; line 8555
+            ; line 8556
             cast ::temp5 akActor 
             callstatic storageUtil SetIntValue ::temp3 ::temp5 "SNRom_Ardor" r ;3 variable args
-            ; line 8556
+            ; line 8557
             callstatic sNRom_Bridge LOG_INFO ::temp3 ;0 variable args
             strcat ::temp4 "BLOCK OVERRIDE for " who 
             strcat ::temp4 ::temp4 ": ardor -> " 
             strcat ::temp4 ::temp4 rWord 
             strcat ::temp4 ::temp4 ", from the applied block 'Expression: " 
-            ; line 8557
+            ; line 8558
             strcat ::temp4 ::temp4 expr 
             strcat ::temp4 ::temp4 "'." 
             callmethod Diag self ::nonevar ::temp3 ::temp4 False ;3 variable args
             jmp _label20
           _label20:
             jmp _label21
-            ; line 8559
+            ; line 8560
           _label19:
             cmp_eq ::temp1 expr "" 
             not ::temp1 ::temp1 
             jmpf ::temp1 _label21
-            ; line 8560
+            ; line 8561
             callstatic sNRom_Bridge LOG_WARN ::temp3 ;0 variable args
             strcat ::temp4 "Block 'Expression: " expr 
             strcat ::temp4 ::temp4 "' on " 
@@ -18044,64 +18046,64 @@
             strcat ::temp4 ::temp4 " is not one of the library's answers (or two disagree) - ardor left as authored." 
             callmethod Diag self ::nonevar ::temp3 ::temp4 False ;3 variable args
             jmp _label21
-            ; line 8565
+            ; line 8566
           _label21:
             callmethod BlockAnswer self ::temp4 titles "Attachment:" ;2 variable args
             assign attach ::temp4 
-            ; line 8566
-            assign xWord "" 
             ; line 8567
+            assign xWord "" 
+            ; line 8568
             cmp_eq ::temp1 attach "Untroubled by Others" 
             jmpf ::temp1 _label22
-            ; line 8568
+            ; line 8569
             assign xWord "UNTROUBLED" 
             jmp _label23
-            ; line 8569
+            ; line 8570
           _label22:
             cmp_eq ::temp1 attach "Accepts Others Easily" 
             jmpf ::temp1 _label24
-            ; line 8570
+            ; line 8571
             assign xWord "ACCEPTING" 
             jmp _label23
-            ; line 8571
+            ; line 8572
           _label24:
             cmp_eq ::temp1 attach "Expects the Usual Arrangement" 
             jmpf ::temp1 _label25
-            ; line 8572
+            ; line 8573
             assign xWord "CONVENTIONAL" 
             jmp _label23
-            ; line 8573
+            ; line 8574
           _label25:
             cmp_eq ::temp1 attach "Needs to Be the Only One" 
             jmpf ::temp1 _label26
-            ; line 8574
+            ; line 8575
             assign xWord "POSSESSIVE" 
             jmp _label23
-            ; line 8575
+            ; line 8576
           _label26:
             cmp_eq ::temp1 attach "Cannot Share at All" 
             jmpf ::temp1 _label23
-            ; line 8576
+            ; line 8577
             assign xWord "CONSUMING" 
             jmp _label23
-            ; line 8578
+            ; line 8579
           _label23:
             cmp_eq ::temp1 xWord "" 
             not ::temp1 ::temp1 
             jmpf ::temp1 _label27
-            ; line 8579
+            ; line 8580
             callstatic sNRom_Decorators ExclusivityToInt ::temp3 xWord ;1 variable args
             assign x ::temp3 
-            ; line 8580
+            ; line 8581
             cast ::temp5 akActor 
             callstatic storageUtil GetIntValue ::temp3 ::temp5 "SNRom_Exclusivity" 50 ;3 variable args
             cmp_eq ::temp1 ::temp3 x 
             not ::temp1 ::temp1 
             jmpf ::temp1 _label28
-            ; line 8581
+            ; line 8582
             cast ::temp5 akActor 
             callstatic storageUtil SetIntValue ::temp3 ::temp5 "SNRom_Exclusivity" x ;3 variable args
-            ; line 8582
+            ; line 8583
             callstatic sNRom_Bridge LOG_INFO ::temp3 ;0 variable args
             strcat ::temp4 "BLOCK OVERRIDE for " who 
             strcat ::temp4 ::temp4 ": exclusivity -> " 
@@ -18110,19 +18112,19 @@
             cast ::temp6 x 
             strcat ::temp6 ::temp4 ::temp6 
             strcat ::temp6 ::temp6 "), from the applied block 'Attachment: " 
-            ; line 8583
+            ; line 8584
             strcat ::temp6 ::temp6 attach 
             strcat ::temp6 ::temp6 "'." 
             callmethod Diag self ::nonevar ::temp3 ::temp6 False ;3 variable args
             jmp _label28
           _label28:
             jmp _label29
-            ; line 8585
+            ; line 8586
           _label27:
             cmp_eq ::temp1 attach "" 
             not ::temp1 ::temp1 
             jmpf ::temp1 _label29
-            ; line 8586
+            ; line 8587
             callstatic sNRom_Bridge LOG_WARN ::temp3 ;0 variable args
             strcat ::temp6 "Block 'Attachment: " attach 
             strcat ::temp6 ::temp6 "' on " 
@@ -18159,34 +18161,34 @@
             .local cut Int
           .endLocalTable
           .code
-            ; line 8598
-            assign found "" 
             ; line 8599
+            assign found "" 
+            ; line 8600
             callstatic stringUtil GetLength ::temp0 asPrefix ;1 variable args
             assign plen ::temp0 
-            ; line 8600
-            assign i 0 
             ; line 8601
+            assign i 0 
+            ; line 8602
           _label6:
             array_length ::temp0 akTitles 
             cmp_lt ::temp1 i ::temp0 
             jmpf ::temp1 _label0
-            ; line 8602
+            ; line 8603
             array_getlement ::temp2 akTitles i 
             callstatic sNRom_Decorators Trim ::temp2 ::temp2 ;1 variable args
             assign t ::temp2 
-            ; line 8603
+            ; line 8604
             callstatic stringUtil Find ::temp0 t asPrefix 0 ;3 variable args
             cmp_eq ::temp1 ::temp0 0 
             jmpf ::temp1 _label1
-            ; line 8604
+            ; line 8605
             callstatic stringUtil Substring ::temp2 t plen 0 ;3 variable args
             callstatic sNRom_Decorators Trim ::temp2 ::temp2 ;1 variable args
             assign v ::temp2 
-            ; line 8605
+            ; line 8606
             callstatic stringUtil Find ::temp0 v " (" 0 ;3 variable args
             assign cut ::temp0 
-            ; line 8606
+            ; line 8607
             cmp_gt ::temp1 cut 0 
             assign ::temp1 ::temp1 
             jmpf ::temp1 _label2
@@ -18197,34 +18199,34 @@
             assign ::temp1 ::temp1 
           _label2:
             jmpf ::temp1 _label3
-            ; line 8607
+            ; line 8608
             callstatic stringUtil Substring ::temp2 v 0 cut ;3 variable args
             callstatic sNRom_Decorators Trim ::temp2 ::temp2 ;1 variable args
             assign v ::temp2 
             jmp _label3
-            ; line 8609
+            ; line 8610
           _label3:
             cmp_eq ::temp1 found "" 
             jmpf ::temp1 _label4
-            ; line 8610
+            ; line 8611
             assign found v 
             jmp _label5
-            ; line 8611
+            ; line 8612
           _label4:
             cmp_eq ::temp1 found v 
             not ::temp1 ::temp1 
             jmpf ::temp1 _label5
-            ; line 8612
+            ; line 8613
             return "?" 
             jmp _label5
           _label5:
             jmp _label1
-            ; line 8615
+            ; line 8616
           _label1:
             iadd ::temp0 i 1 
             assign i ::temp0 
             jmp _label6
-            ; line 8617
+            ; line 8618
           _label0:
             return found 
           .endCode
@@ -18253,25 +18255,25 @@
             .local ::temp3 Bool
           .endLocalTable
           .code
-            ; line 8638
+            ; line 8639
             callmethod GetDisplayName akActor ::temp0 ;0 variable args
             strcat ::temp0 ::temp0 " could not be re-authored - the read failed. Their character is unchanged; try again." 
             callmethod AnnounceAuthored self ::nonevar akActor ::temp0 ;2 variable args
-            ; line 8639
+            ; line 8640
             cast ::temp1 akActor 
             callstatic storageUtil GetIntValue ::temp2 ::temp1 "SNRom_DispositionAuthored" 0 ;3 variable args
             cmp_eq ::temp3 ::temp2 0 
             jmpf ::temp3 _label0
-            ; line 8640
+            ; line 8641
             cast ::temp1 akActor 
             callstatic storageUtil SetIntValue ::temp2 ::temp1 "SNRom_DispositionAuthored" 2 ;3 variable args
-            ; line 8641
+            ; line 8642
             callstatic sNRom_Bridge LOG_INFO ::temp2 ;0 variable args
             callmethod GetDisplayName akActor ::temp0 ;0 variable args
             strcat ::temp0 "Archetype disposition applied to " ::temp0 
             callmethod Diag self ::nonevar ::temp2 ::temp0 False ;3 variable args
             jmp _label1
-            ; line 8643
+            ; line 8644
           _label0:
             callstatic sNRom_Bridge LOG_INFO ::temp2 ;0 variable args
             callmethod GetDisplayName akActor ::temp0 ;0 variable args
@@ -18300,30 +18302,30 @@
             .local ::nonevar None
           .endLocalTable
           .code
-            ; line 8649
+            ; line 8650
             callstatic sNRom_Bridge Escape ::temp0 asName ;1 variable args
             strcat ::temp0 "{\"npc\":\"" ::temp0 
             strcat ::temp0 ::temp0 "\"" 
             strcat ::temp0 ::temp0 ",\"gd\":" 
-            ; line 8650
+            ; line 8651
             callstatic utility GetCurrentGameTime ::temp1 ;0 variable args
             cast ::temp2 ::temp1 
             strcat ::temp2 ::temp0 ::temp2 
             strcat ::temp2 ::temp2 ",\"success\":" 
-            ; line 8651
+            ; line 8652
             cast ::temp0 aiSuccess 
             strcat ::temp0 ::temp2 ::temp0 
             strcat ::temp0 ::temp0 ",\"outcome\":\"" 
-            ; line 8652
+            ; line 8653
             strcat ::temp0 ::temp0 asOutcome 
             strcat ::temp0 ::temp0 "\"" 
             strcat ::temp0 ::temp0 ",\"raw\":\"" 
-            ; line 8653
+            ; line 8654
             callstatic sNRom_Decorators JsonEscape ::temp2 asRaw ;1 variable args
             strcat ::temp2 ::temp0 ::temp2 
             strcat ::temp2 ::temp2 "\"}" 
             assign row ::temp2 
-            ; line 8654
+            ; line 8655
             callstatic sNRom_Bridge NL ::temp2 ;0 variable args
             strcat ::temp2 row ::temp2 
             callmethod WriteLog self ::nonevar "dispositions.jsonl" "Data/SKSE/Plugins/SkyrimNet Relationships/logs/dispositions.jsonl" ::temp2 ;3 variable args
@@ -18344,14 +18346,14 @@
             .local ::temp3 Bool
           .endLocalTable
           .code
-            ; line 8677
+            ; line 8678
             callstatic sNRom_Bridge LOG_ERROR ::temp0 ;0 variable args
             callstatic sNRom_Bridge CFG ::temp1 ;0 variable args
             callstatic skyrimNetApi GetConfigString ::temp1 ::temp1 "llmVariant" "SENTINEL" ;3 variable args
             strcat ::temp1 "CFG str  llmVariant='" ::temp1 
             strcat ::temp1 ::temp1 "' (settings.yaml: sever_background)" 
             callmethod Diag self ::nonevar ::temp0 ::temp1 False ;3 variable args
-            ; line 8678
+            ; line 8679
             callstatic sNRom_Bridge LOG_ERROR ::temp0 ;0 variable args
             callstatic sNRom_Bridge CFG ::temp1 ;0 variable args
             callstatic skyrimNetApi GetConfigInt ::temp2 ::temp1 "awardMaxPoints" -999 ;3 variable args
@@ -18359,7 +18361,7 @@
             strcat ::temp1 "CFG int  awardMaxPoints=" ::temp1 
             strcat ::temp1 ::temp1 " (settings.yaml: 75)" 
             callmethod Diag self ::nonevar ::temp0 ::temp1 False ;3 variable args
-            ; line 8679
+            ; line 8680
             callstatic sNRom_Bridge LOG_ERROR ::temp0 ;0 variable args
             callstatic sNRom_Bridge CFG ::temp1 ;0 variable args
             callstatic skyrimNetApi GetConfigInt ::temp2 ::temp1 "logFlushEvery" -999 ;3 variable args
@@ -18367,7 +18369,7 @@
             strcat ::temp1 "CFG int  logFlushEvery=" ::temp1 
             strcat ::temp1 ::temp1 " (settings.yaml: 25)" 
             callmethod Diag self ::nonevar ::temp0 ::temp1 False ;3 variable args
-            ; line 8680
+            ; line 8681
             callstatic sNRom_Bridge LOG_ERROR ::temp0 ;0 variable args
             callstatic sNRom_Bridge CFG ::temp1 ;0 variable args
             callstatic skyrimNetApi GetConfigBool ::temp3 ::temp1 "enrollmentOrganic" False ;3 variable args
@@ -18392,7 +18394,7 @@
             .local ::temp3 Int
           .endLocalTable
           .code
-            ; line 8698
+            ; line 8699
             cast ::temp0 None 
             cmp_eq ::temp1 akActor ::temp0 
             assign ::temp1 ::temp1 
@@ -18402,17 +18404,17 @@
             assign ::temp1 ::temp1 
           _label0:
             jmpf ::temp1 _label1
-            ; line 8699
+            ; line 8700
             return False 
             jmp _label1
-            ; line 8701
+            ; line 8702
           _label1:
             cast ::temp2 akActor 
             callstatic storageUtil SetIntValue ::temp3 ::temp2 "SNRom_PhysMinTier" -1 ;3 variable args
-            ; line 8702
+            ; line 8703
             cast ::temp2 akActor 
             callstatic storageUtil SetIntValue ::temp3 ::temp2 "SNRom_PhysAttrBypass" 0 ;3 variable args
-            ; line 8703
+            ; line 8704
             return True 
           .endCode
         .endFunction ;IEB_LockChildIntimacy
@@ -18438,24 +18440,24 @@
             .local ::temp4 String
           .endLocalTable
           .code
-            ; line 8710
+            ; line 8711
             cast ::temp0 None 
             callstatic storageUtil FormListCount ::temp1 ::temp0 "SNRom_Roster" ;2 variable args
             assign total ::temp1 
-            ; line 8711
-            assign fixedCount 0 
             ; line 8712
-            assign i 0 
+            assign fixedCount 0 
             ; line 8713
+            assign i 0 
+            ; line 8714
           _label5:
             cmp_lt ::temp2 i total 
             jmpf ::temp2 _label0
-            ; line 8714
+            ; line 8715
             cast ::temp0 None 
             callstatic storageUtil FormListGet ::temp0 ::temp0 "SNRom_Roster" i ;3 variable args
             cast ::temp3 ::temp0 
             assign a ::temp3 
-            ; line 8715
+            ; line 8716
             cast ::temp3 None 
             cmp_eq ::temp2 a ::temp3 
             not ::temp2 ::temp2 
@@ -18470,43 +18472,43 @@
             assign ::temp2 ::temp2 
           _label2:
             jmpf ::temp2 _label3
-            ; line 8716
-            callmethod IEB_LockChildIntimacy self ::temp2 a ;1 variable args
             ; line 8717
+            callmethod IEB_LockChildIntimacy self ::temp2 a ;1 variable args
+            ; line 8718
             cast ::temp0 a 
             callstatic storageUtil SetIntValue ::temp1 ::temp0 "SNRom_SparkDecided" 1 ;3 variable args
-            ; line 8718
+            ; line 8719
             cast ::temp0 a 
             callstatic storageUtil GetIntValue ::temp1 ::temp0 "SNRom_Sparked" 0 ;3 variable args
             cmp_eq ::temp2 ::temp1 1 
             jmpf ::temp2 _label4
-            ; line 8719
-            callmethod UnsparkActor self ::nonevar a ;1 variable args
             ; line 8720
+            callmethod UnsparkActor self ::nonevar a ;1 variable args
+            ; line 8721
             iadd ::temp1 fixedCount 1 
             assign fixedCount ::temp1 
             jmp _label4
-            ; line 8722
+            ; line 8723
           _label4:
             cast ::temp0 a 
             callstatic storageUtil UnsetIntValue ::temp2 ::temp0 "SNRom_PlayerStance" ;2 variable args
-            ; line 8723
+            ; line 8724
             cast ::temp0 a 
             callstatic storageUtil UnsetIntValue ::temp2 ::temp0 "SNRom_BankedPoints" ;2 variable args
-            ; line 8724
+            ; line 8725
             cast ::temp0 a 
             callstatic storageUtil UnsetIntValue ::temp2 ::temp0 "SNRom_AskPending" ;2 variable args
             jmp _label3
-            ; line 8726
+            ; line 8727
           _label3:
             iadd ::temp1 i 1 
             assign i ::temp1 
             jmp _label5
-            ; line 8728
+            ; line 8729
           _label0:
             cmp_gt ::temp2 fixedCount 0 
             jmpf ::temp2 _label6
-            ; line 8729
+            ; line 8730
             callstatic sNRom_Bridge LOG_WARN ::temp1 ;0 variable args
             cast ::temp4 fixedCount 
             strcat ::temp4 "Child sweep: un-sparked " ::temp4 
@@ -18538,22 +18540,22 @@
             .local ::temp5 Int
           .endLocalTable
           .code
-            ; line 8740
+            ; line 8741
             callstatic mARAS GetNPCsByStatus ::temp0 asStatus ;1 variable args
             assign arr ::temp0 
-            ; line 8741
-            assign n 0 
             ; line 8742
-            assign i 0 
+            assign n 0 
             ; line 8743
+            assign i 0 
+            ; line 8744
           _label5:
             array_length ::temp1 arr 
             cmp_lt ::temp2 i ::temp1 
             jmpf ::temp2 _label0
-            ; line 8744
+            ; line 8745
             array_getlement ::temp3 arr i 
             assign a ::temp3 
-            ; line 8745
+            ; line 8746
             cast ::temp3 None 
             cmp_eq ::temp2 a ::temp3 
             not ::temp2 ::temp2 
@@ -18564,7 +18566,7 @@
             assign ::temp2 ::temp2 
           _label1:
             jmpf ::temp2 _label2
-            ; line 8746
+            ; line 8747
             callstatic sNRom_Decorators IsSparked ::temp2 a ;1 variable args
             assign ::temp2 ::temp2 
             jmpf ::temp2 _label3
@@ -18576,18 +18578,18 @@
           _label3:
             not ::temp2 ::temp2 
             jmpf ::temp2 _label4
-            ; line 8747
+            ; line 8748
             iadd ::temp5 n 1 
             assign n ::temp5 
             jmp _label4
           _label4:
             jmp _label2
-            ; line 8750
+            ; line 8751
           _label2:
             iadd ::temp5 i 1 
             assign i ::temp5 
             jmp _label5
-            ; line 8752
+            ; line 8753
           _label0:
             return n 
           .endCode
@@ -18606,7 +18608,7 @@
             .local ::nonevar None
           .endLocalTable
           .code
-            ; line 8757
+            ; line 8758
             cast ::temp0 None 
             cmp_eq ::temp1 akActor ::temp0 
             assign ::temp1 ::temp1 
@@ -18621,10 +18623,10 @@
             assign ::temp1 ::temp1 
           _label1:
             jmpf ::temp1 _label2
-            ; line 8758
+            ; line 8759
             return False 
             jmp _label2
-            ; line 8760
+            ; line 8761
           _label2:
             callmethod IsChild akActor ::temp1 ;0 variable args
             assign ::temp1 ::temp1 
@@ -18644,13 +18646,13 @@
             assign ::temp1 ::temp1 
           _label5:
             jmpf ::temp1 _label6
-            ; line 8761
+            ; line 8762
             return False 
             jmp _label6
-            ; line 8763
+            ; line 8764
           _label6:
             callmethod EnrollNow self ::nonevar akActor "Enrolled on MARAS courtship:" ;2 variable args
-            ; line 8764
+            ; line 8765
             return True 
           .endCode
         .endFunction ;IEB_EnrollOnCourtship
@@ -18676,28 +18678,28 @@
             .local ::temp5 actor
           .endLocalTable
           .code
-            ; line 8770
+            ; line 8771
             callstatic sNRom_Bridge MarasPresent ::temp0 ;0 variable args
             not ::temp0 ::temp0 
             jmpf ::temp0 _label0
-            ; line 8771
+            ; line 8772
             return None 
             jmp _label0
-            ; line 8773
+            ; line 8774
           _label0:
             assign budget 2 
-            ; line 8774
+            ; line 8775
             array_create ::temp1 3 
             assign statuses ::temp1 
-            ; line 8775
-            array_setelement statuses 0 "married" 
             ; line 8776
-            array_setelement statuses 1 "engaged" 
+            array_setelement statuses 0 "married" 
             ; line 8777
-            array_setelement statuses 2 "candidate" 
+            array_setelement statuses 1 "engaged" 
             ; line 8778
-            assign s 0 
+            array_setelement statuses 2 "candidate" 
             ; line 8779
+            assign s 0 
+            ; line 8780
           _label7:
             cmp_lt ::temp0 s 3 
             assign ::temp0 ::temp0 
@@ -18706,13 +18708,13 @@
             assign ::temp0 ::temp0 
           _label1:
             jmpf ::temp0 _label2
-            ; line 8780
+            ; line 8781
             array_getlement ::temp2 statuses s 
             callstatic mARAS GetNPCsByStatus ::temp3 ::temp2 ;1 variable args
             assign arr ::temp3 
-            ; line 8781
-            assign i 0 
             ; line 8782
+            assign i 0 
+            ; line 8783
           _label6:
             array_length ::temp4 arr 
             cmp_lt ::temp0 i ::temp4 
@@ -18722,20 +18724,20 @@
             assign ::temp0 ::temp0 
           _label3:
             jmpf ::temp0 _label4
-            ; line 8783
+            ; line 8784
             array_getlement ::temp5 arr i 
             callmethod IEB_EnrollOnCourtship self ::temp0 ::temp5 ;1 variable args
             jmpf ::temp0 _label5
-            ; line 8784
+            ; line 8785
             isub ::temp4 budget 1 
             assign budget ::temp4 
             jmp _label5
-            ; line 8786
+            ; line 8787
           _label5:
             iadd ::temp4 i 1 
             assign i ::temp4 
             jmp _label6
-            ; line 8788
+            ; line 8789
           _label4:
             iadd ::temp4 s 1 
             assign s ::temp4 
@@ -18762,25 +18764,25 @@
             .local ::temp4 Int
           .endLocalTable
           .code
-            ; line 8800
+            ; line 8801
             cast ::temp0 None 
             cmp_eq ::temp1 akActor ::temp0 
             jmpf ::temp1 _label0
-            ; line 8801
+            ; line 8802
             return None 
             jmp _label0
-            ; line 8803
+            ; line 8804
           _label0:
             assign t 0 
-            ; line 8804
+            ; line 8805
             callstatic sNRom_Decorators RomanceApplicability ::temp2 akActor -1 ;2 variable args
             cmp_eq ::temp1 ::temp2 0 
             jmpf ::temp1 _label1
-            ; line 8805
+            ; line 8806
             callstatic sNRom_Decorators IsSparked ::temp1 akActor ;1 variable args
             assign ::temp1 ::temp1 
             jmpf ::temp1 _label2
-            ; line 8806
+            ; line 8807
             cast ::temp3 akActor 
             callstatic storageUtil GetIntValue ::temp2 ::temp3 "SNRom_PlayerStance" 0 ;3 variable args
             callstatic sNRom_Bridge STANCE_ACCEPTED ::temp4 ;0 variable args
@@ -18789,18 +18791,18 @@
           _label2:
             assign ::temp1 ::temp1 
             jmpt ::temp1 _label3
-            ; line 8807
+            ; line 8808
             callstatic sNRom_Bridge CommitmentState ::temp4 akActor ;1 variable args
             comp_gte ::temp1 ::temp4 2 
             assign ::temp1 ::temp1 
           _label3:
             jmpf ::temp1 _label4
-            ; line 8808
+            ; line 8809
             assign t 1 
             jmp _label4
           _label4:
             jmp _label1
-            ; line 8811
+            ; line 8812
           _label1:
             cast ::temp3 akActor 
             callstatic storageUtil SetIntValue ::temp4 ::temp3 "IEB_RomTrack" t ;3 variable args
@@ -18823,7 +18825,7 @@
             .local ::temp4 String
           .endLocalTable
           .code
-            ; line 8823
+            ; line 8824
             cast ::temp0 None 
             cmp_eq ::temp1 akActor ::temp0 
             assign ::temp1 ::temp1 
@@ -18843,47 +18845,47 @@
             assign ::temp1 ::temp1 
           _label2:
             jmpf ::temp1 _label3
-            ; line 8824
+            ; line 8825
             return False 
             jmp _label3
-            ; line 8826
+            ; line 8827
           _label3:
             cast ::temp2 akActor 
             callstatic storageUtil GetIntValue ::temp3 ::temp2 "SNRom_DispositionAuthored" 0 ;3 variable args
             cmp_eq ::temp1 ::temp3 1 
             not ::temp1 ::temp1 
             jmpf ::temp1 _label4
-            ; line 8827
+            ; line 8828
             return False 
             jmp _label4
-            ; line 8829
+            ; line 8830
           _label4:
             callstatic sNRom_Decorators RomanceApplicability ::temp3 akActor -1 ;2 variable args
             cmp_eq ::temp1 ::temp3 0 
             not ::temp1 ::temp1 
             jmpf ::temp1 _label5
-            ; line 8830
+            ; line 8831
             return False 
             jmp _label5
-            ; line 8832
+            ; line 8833
           _label5:
             cast ::temp2 akActor 
             callstatic storageUtil GetIntValue ::temp3 ::temp2 "SNRom_PhysMinTier" 4 ;3 variable args
             cmp_lt ::temp1 ::temp3 0 
             jmpf ::temp1 _label6
-            ; line 8833
+            ; line 8834
             return False 
             jmp _label6
-            ; line 8835
+            ; line 8836
           _label6:
             cast ::temp2 akActor 
             callstatic storageUtil GetIntValue ::temp3 ::temp2 "IEB_ForceIntimacyAuthor" 0 ;3 variable args
             cmp_eq ::temp1 ::temp3 1 
             jmpf ::temp1 _label7
-            ; line 8836
+            ; line 8837
             return True 
             jmp _label7
-            ; line 8838
+            ; line 8839
           _label7:
             callstatic sNRom_Bridge StoreGetText ::temp4 akActor "Intimacy" "" 0 ;4 variable args
             cmp_eq ::temp1 ::temp4 "" 
@@ -18906,7 +18908,7 @@
             .local ::nonevar None
           .endLocalTable
           .code
-            ; line 8842
+            ; line 8843
             not ::temp0 _ready 
             assign ::temp0 ::temp0 
             jmpt ::temp0 _label0
@@ -18915,15 +18917,15 @@
             assign ::temp0 ::temp0 
           _label0:
             jmpf ::temp0 _label1
-            ; line 8843
+            ; line 8844
             return None 
             jmp _label1
-            ; line 8845
+            ; line 8846
           _label1:
             cast ::temp1 None 
             cast ::temp2 akActor 
             callstatic storageUtil FormListAdd ::temp3 ::temp1 "IEB_IntimacyQueue" ::temp2 False ;4 variable args
-            ; line 8846
+            ; line 8847
             callmethod IEB_PumpIntimacy self ::nonevar ;0 variable args
           .endCode
         .endFunction ;IEB_QueueIntimacy
@@ -18943,29 +18945,29 @@
             .local ::nonevar None
           .endLocalTable
           .code
-            ; line 8851
+            ; line 8852
             cast ::temp0 None 
             cmp_eq ::temp1 _pendingIntimacy ::temp0 
             not ::temp1 ::temp1 
             jmpf ::temp1 _label0
-            ; line 8852
+            ; line 8853
             return None 
             jmp _label0
-            ; line 8854
+            ; line 8855
           _label0:
             cast ::temp2 None 
             callstatic storageUtil FormListCount ::temp3 ::temp2 "IEB_IntimacyQueue" ;2 variable args
             cmp_gt ::temp1 ::temp3 0 
             jmpf ::temp1 _label1
-            ; line 8855
+            ; line 8856
             cast ::temp2 None 
             callstatic storageUtil FormListGet ::temp2 ::temp2 "IEB_IntimacyQueue" 0 ;3 variable args
             cast ::temp0 ::temp2 
             assign next ::temp0 
-            ; line 8856
+            ; line 8857
             cast ::temp2 None 
             callstatic storageUtil FormListRemoveAt ::temp1 ::temp2 "IEB_IntimacyQueue" 0 ;3 variable args
-            ; line 8857
+            ; line 8858
             cast ::temp0 None 
             cmp_eq ::temp1 next ::temp0 
             not ::temp1 ::temp1 
@@ -18981,9 +18983,9 @@
             assign ::temp1 ::temp1 
           _label3:
             jmpf ::temp1 _label4
-            ; line 8858
-            callmethod IEB_SendIntimacy self ::nonevar next ;1 variable args
             ; line 8859
+            callmethod IEB_SendIntimacy self ::nonevar next ;1 variable args
+            ; line 8860
             return None 
             jmp _label4
           _label4:
@@ -19013,63 +19015,63 @@
             .local ::temp6 actor
           .endLocalTable
           .code
-            ; line 8865
+            ; line 8866
             cast ::temp0 akActor 
             callstatic storageUtil GetIntValue ::temp1 ::temp0 "SNRom_PhysMinTier" 4 ;3 variable args
             assign minTier ::temp1 
-            ; line 8866
+            ; line 8867
             callmethod GetDisplayName akActor ::temp2 ;0 variable args
             callstatic sNRom_Decorators JsonEscape ::temp2 ::temp2 ;1 variable args
             strcat ::temp2 "{\"npc_name\":\"" ::temp2 
             strcat ::temp2 ::temp2 "\"" 
             strcat ::temp2 ::temp2 ",\"npc_formid\":" 
-            ; line 8867
+            ; line 8868
             callmethod GetFormID akActor ::temp1 ;0 variable args
             cast ::temp3 ::temp1 
             strcat ::temp3 ::temp2 ::temp3 
             strcat ::temp3 ::temp3 ",\"disp_orientation\":\"" 
-            ; line 8868
+            ; line 8869
             callstatic sNRom_Decorators OrientationWord ::temp2 akActor ;1 variable args
             strcat ::temp2 ::temp3 ::temp2 
             strcat ::temp2 ::temp2 "\"" 
             strcat ::temp2 ::temp2 ",\"disp_intimacy\":\"" 
-            ; line 8869
+            ; line 8870
             callstatic sNRom_Decorators IntimacyWordFromTier ::temp3 minTier ;1 variable args
             strcat ::temp3 ::temp2 ::temp3 
             strcat ::temp3 ::temp3 "\"" 
             strcat ::temp3 ::temp3 ",\"disp_ardor\":\"" 
-            ; line 8870
+            ; line 8871
             cast ::temp0 akActor 
             callstatic storageUtil GetIntValue ::temp1 ::temp0 "SNRom_Ardor" 2 ;3 variable args
             callstatic sNRom_Decorators ArdorWord ::temp2 ::temp1 ;1 variable args
             strcat ::temp2 ::temp3 ::temp2 
             strcat ::temp2 ::temp2 "\"" 
             strcat ::temp2 ::temp2 ",\"disp_exclusivity\":" 
-            ; line 8871
+            ; line 8872
             cast ::temp0 akActor 
             callstatic storageUtil GetIntValue ::temp1 ::temp0 "SNRom_Exclusivity" 50 ;3 variable args
             cast ::temp3 ::temp1 
             strcat ::temp3 ::temp2 ::temp3 
             strcat ::temp3 ::temp3 ",\"disp_why\":\"" 
-            ; line 8872
+            ; line 8873
             callstatic sNRom_Bridge StoreGetText ::temp2 akActor "Why" "" 0 ;4 variable args
             callstatic sNRom_Decorators JsonEscape ::temp2 ::temp2 ;1 variable args
             strcat ::temp2 ::temp3 ::temp2 
             strcat ::temp2 ::temp2 "\"" 
             strcat ::temp2 ::temp2 ",\"disp_limit\":\"" 
-            ; line 8873
+            ; line 8874
             callstatic sNRom_Bridge StoreGetText ::temp3 akActor "Limit" "" 0 ;4 variable args
             callstatic sNRom_Decorators JsonEscape ::temp3 ::temp3 ;1 variable args
             strcat ::temp3 ::temp2 ::temp3 
             strcat ::temp3 ::temp3 "\"}" 
             assign ctx ::temp3 
-            ; line 8874
+            ; line 8875
             assign _pendingIntimacy akActor 
-            ; line 8876
+            ; line 8877
             cast ::temp4 self 
             callstatic skyrimNetApi SendCustomPromptToLLM ::temp1 "ieb_intimacy_author" "ieb_intimacy_author" ctx ::temp4 "SNRom_Bridge" "IEB_OnIntimacyAuthored" ;6 variable args
             assign rc ::temp1 
-            ; line 8877
+            ; line 8878
             callstatic sNRom_Bridge LOG_INFO ::temp1 ;0 variable args
             callmethod GetDisplayName akActor ::temp3 ;0 variable args
             strcat ::temp3 "Intimacy profile requested for " ::temp3 
@@ -19078,11 +19080,11 @@
             strcat ::temp2 ::temp3 ::temp2 
             strcat ::temp2 ::temp2 ")" 
             callmethod Diag self ::nonevar ::temp1 ::temp2 False ;3 variable args
-            ; line 8878
+            ; line 8879
             cmp_eq ::temp5 rc 1 
             not ::temp5 ::temp5 
             jmpf ::temp5 _label0
-            ; line 8879
+            ; line 8880
             cast ::temp6 None 
             assign _pendingIntimacy ::temp6 
             jmp _label0
@@ -19110,22 +19112,22 @@
             .local ::temp5 form
           .endLocalTable
           .code
-            ; line 8884
-            assign who _pendingIntimacy 
             ; line 8885
+            assign who _pendingIntimacy 
+            ; line 8886
             cast ::temp0 None 
             assign _pendingIntimacy ::temp0 
-            ; line 8886
+            ; line 8887
             callstatic stringUtil GetLength ::temp1 asResponse ;1 variable args
             assign len ::temp1 
-            ; line 8887
+            ; line 8888
             cast ::temp0 None 
             cmp_eq ::temp2 who ::temp0 
             jmpf ::temp2 _label0
-            ; line 8888
+            ; line 8889
             return None 
             jmp _label0
-            ; line 8890
+            ; line 8891
           _label0:
             cmp_eq ::temp2 aiSuccess 1 
             not ::temp2 ::temp2 
@@ -19140,7 +19142,7 @@
             assign ::temp2 ::temp2 
           _label2:
             jmpf ::temp2 _label3
-            ; line 8891
+            ; line 8892
             callstatic sNRom_Bridge LOG_WARN ::temp1 ;0 variable args
             callmethod GetDisplayName who ::temp3 ;0 variable args
             strcat ::temp3 "Intimacy profile for " ::temp3 
@@ -19153,16 +19155,16 @@
             strcat ::temp3 ::temp3 ")" 
             callmethod Diag self ::nonevar ::temp1 ::temp3 False ;3 variable args
             jmp _label4
-            ; line 8893
+            ; line 8894
           _label3:
             callstatic sNRom_Bridge StoreSetText ::nonevar who "Intimacy" asResponse ;3 variable args
-            ; line 8894
-            cast ::temp5 who 
-            callstatic storageUtil SetStringValue ::temp3 ::temp5 "IEB_IntimacyProfile" asResponse ;3 variable args
             ; line 8895
             cast ::temp5 who 
-            callstatic storageUtil UnsetIntValue ::temp2 ::temp5 "IEB_ForceIntimacyAuthor" ;2 variable args
+            callstatic storageUtil SetStringValue ::temp3 ::temp5 "IEB_IntimacyProfile" asResponse ;3 variable args
             ; line 8896
+            cast ::temp5 who 
+            callstatic storageUtil UnsetIntValue ::temp2 ::temp5 "IEB_ForceIntimacyAuthor" ;2 variable args
+            ; line 8897
             callstatic sNRom_Bridge LOG_INFO ::temp1 ;0 variable args
             callmethod GetDisplayName who ::temp3 ;0 variable args
             strcat ::temp3 "Intimacy profile stored for " ::temp3 
@@ -19171,7 +19173,7 @@
             strcat ::temp4 ::temp3 ::temp4 
             strcat ::temp4 ::temp4 ")" 
             callmethod Diag self ::nonevar ::temp1 ::temp4 False ;3 variable args
-            ; line 8898
+            ; line 8899
           _label4:
             callmethod IEB_PumpIntimacy self ::nonevar ;0 variable args
           .endCode
@@ -19194,7 +19196,7 @@
             .local ::nonevar None
           .endLocalTable
           .code
-            ; line 8903
+            ; line 8904
             cast ::temp0 None 
             cmp_eq ::temp1 _pendingIntimacy ::temp0 
             not ::temp1 ::temp1 
@@ -19206,26 +19208,26 @@
             assign ::temp1 ::temp1 
           _label0:
             jmpf ::temp1 _label1
-            ; line 8904
+            ; line 8905
             return None 
             jmp _label1
-            ; line 8906
+            ; line 8907
           _label1:
             cast ::temp2 None 
             callstatic storageUtil FormListCount ::temp3 ::temp2 "SNRom_Roster" ;2 variable args
             assign total ::temp3 
-            ; line 8907
-            assign i 0 
             ; line 8908
+            assign i 0 
+            ; line 8909
           _label5:
             cmp_lt ::temp1 i total 
             jmpf ::temp1 _label2
-            ; line 8909
+            ; line 8910
             cast ::temp2 None 
             callstatic storageUtil FormListGet ::temp2 ::temp2 "SNRom_Roster" i ;3 variable args
             cast ::temp0 ::temp2 
             assign a ::temp0 
-            ; line 8910
+            ; line 8911
             cast ::temp0 None 
             cmp_eq ::temp1 a ::temp0 
             not ::temp1 ::temp1 
@@ -19235,12 +19237,12 @@
             assign ::temp1 ::temp1 
           _label3:
             jmpf ::temp1 _label4
-            ; line 8911
-            callmethod IEB_QueueIntimacy self ::nonevar a ;1 variable args
             ; line 8912
+            callmethod IEB_QueueIntimacy self ::nonevar a ;1 variable args
+            ; line 8913
             return None 
             jmp _label4
-            ; line 8914
+            ; line 8915
           _label4:
             iadd ::temp3 i 1 
             assign i ::temp3 
@@ -19270,61 +19272,61 @@
             .local ::nonevar None
           .endLocalTable
           .code
-            ; line 8921
+            ; line 8922
             cast ::temp0 None 
             assign _pendingIntimacy ::temp0 
-            ; line 8922
-            assign mirrored 0 
             ; line 8923
+            assign mirrored 0 
+            ; line 8924
             cast ::temp1 None 
             callstatic storageUtil FormListCount ::temp2 ::temp1 "SNRom_Roster" ;2 variable args
             assign total ::temp2 
-            ; line 8924
-            assign i 0 
             ; line 8925
+            assign i 0 
+            ; line 8926
           _label4:
             cmp_lt ::temp3 i total 
             jmpf ::temp3 _label0
-            ; line 8926
+            ; line 8927
             cast ::temp1 None 
             callstatic storageUtil FormListGet ::temp1 ::temp1 "SNRom_Roster" i ;3 variable args
             cast ::temp0 ::temp1 
             assign a ::temp0 
-            ; line 8927
+            ; line 8928
             cast ::temp0 None 
             cmp_eq ::temp3 a ::temp0 
             not ::temp3 ::temp3 
             jmpf ::temp3 _label1
-            ; line 8928
+            ; line 8929
             callmethod IsChild a ::temp3 ;0 variable args
             jmpf ::temp3 _label2
-            ; line 8929
+            ; line 8930
             cast ::temp1 a 
             callstatic storageUtil UnsetStringValue ::temp3 ::temp1 "IEB_IntimacyProfile" ;2 variable args
             jmp _label3
-            ; line 8931
+            ; line 8932
           _label2:
             callstatic sNRom_Bridge StoreGetText ::temp4 a "Intimacy" "" 0 ;4 variable args
             assign t ::temp4 
-            ; line 8932
+            ; line 8933
             cmp_eq ::temp3 t "" 
             not ::temp3 ::temp3 
             jmpf ::temp3 _label3
-            ; line 8933
+            ; line 8934
             cast ::temp1 a 
             callstatic storageUtil SetStringValue ::temp4 ::temp1 "IEB_IntimacyProfile" t ;3 variable args
-            ; line 8934
+            ; line 8935
             iadd ::temp2 mirrored 1 
             assign mirrored ::temp2 
             jmp _label3
           _label3:
             jmp _label1
-            ; line 8938
+            ; line 8939
           _label1:
             iadd ::temp2 i 1 
             assign i ::temp2 
             jmp _label4
-            ; line 8940
+            ; line 8941
           _label0:
             callstatic sNRom_Bridge LOG_INFO ::temp2 ;0 variable args
             cast ::temp4 mirrored 
