@@ -1,0 +1,14 @@
+{
+  "id": "shae.privacy-overrides",
+  "type": "bundle",
+  "title": "Witness Scoping (private)",
+  "tagline": "Private: Relationships status privacy, child-safe and intimacy authoring prompts.",
+  "description": "Component F of the Errand Bridge build (spec §11.4, §11.10.2, §11.13.4). Needs the private Relationships patch (SNRom_Bridge / SNRom_Decorators). Private; never published.",
+  "author": "shae",
+  "version": "1.0.0",
+  "min_skyrimnet_version": "0.25.0",
+  "nsfw": true,
+  "mods": [
+    { "required": true, "file": "SNRom_Integration.esl", "name": "SkyrimNet Relationships" }
+  ]
+}

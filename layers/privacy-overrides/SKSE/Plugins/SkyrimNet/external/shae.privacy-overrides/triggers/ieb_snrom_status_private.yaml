@@ -1,0 +1,24 @@
+# Relationships status changes are internal states (spec §11.4). The private Relationships patch sends them as
+# a mod event from the NPC (SNRom_Bridge: BeginSpark, ApplyTalkAward landmark/rupture, ApplyDrift) instead of
+# RegisterPersistentEvent. This stores the same text, but only the NPC and the player hold it. No LLM call.
+# Per-event fields live under event_json (see Relationships' snrom_question_raised.yaml).
+name: "ieb_snrom_status_private"
+description: "A Relationships status change, private to the NPC and the player."
+
+eventCriteria:
+  eventType: "mod_event"
+  schemaConditions:
+    - fieldPath: "event_name"
+      operator: "equals"
+      value: "IEB_SNRomStatus"
+      caseSensitive: true
+
+response:
+  type: "persistent_generic"
+  content: "{{ event_json.str_arg }}"
+
+audience: "originator_or_target"
+enabled: true
+probability: 1.0
+cooldownSeconds: 0
+priority: 8

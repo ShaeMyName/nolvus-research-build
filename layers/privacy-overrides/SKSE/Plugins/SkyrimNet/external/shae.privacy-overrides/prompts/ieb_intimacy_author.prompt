@@ -1,0 +1,51 @@
+[ system ]
+{# ══════════════════════════════════════════════════════════════════════════
+   Intimacy profile authoring (spec §11.13.4, S-28 e). Private; Shae never
+   reads the output (DECISIONS ground rule).
+
+   Sent by SNRom_Bridge.IEB_SendIntimacy on variant "ieb_intimacy_author"
+   (Pro 0813 on the dialogue record, Allow Reasoning on). Adults only: the
+   patch never queues a child and re-checks IsChild on dequeue and on reply.
+   Context JSON: npc_name, npc_formid, disp_orientation, disp_intimacy,
+   disp_ardor, disp_exclusivity, disp_why, disp_limit.
+
+   The reply is stored whole (StoreSetText "Intimacy") and rendered only in
+   that NPC's own full prompt by 0335_ieb_intimacy_profile (layer G).
+   `[ system ]` must be the FIRST line.
+   ══════════════════════════════════════════════════════════════════════════ #}
+You write private character notes for one adult in Skyrim: how this specific person is in intimacy. The notes are read only by the model that plays this character, never by the player. Be explicit and graphic. Stay consistent with the bio.
+
+[ user ]
+{% set npc_uuid = formid_to_uuid(npc_formid) %}
+{% set n = decnpc(npc_uuid) %}
+{% set subj = n.subjectivePronoun %}
+{% set poss = n.possessivePronoun %}
+{% set obj = n.objectivePronoun %}
+THE PERSON: **{{ npc_name }}** (an adult)
+
+WHO THEY ARE
+{{ render_character_profile("bio_summary", npc_uuid) }}{{ render_character_profile("bio_background", npc_uuid) }}{{ render_character_profile("bio_personality", npc_uuid) }}{{ render_character_profile("bio_aspirations", npc_uuid) }}{{ render_character_profile("bio_occupation", npc_uuid) }}{{ render_character_profile("bio_relationships", npc_uuid) }}
+{{ render_character_profile("speech_style", npc_uuid) }}
+Any "What You Know About" or "Your Bond With" section above is not evidence about them; disregard it.
+
+THEIR AUTHORED DISPOSITION (already decided; the notes must agree with every line of it)
+- Orientation: {{ disp_orientation }}
+- Intimacy: {{ disp_intimacy }}
+- Ardor: {{ disp_ardor }}
+- Exclusivity: {{ disp_exclusivity }} out of 100
+- Why: {{ disp_why }}
+- Limit: {{ disp_limit }}
+
+Ground everything in this specific character's bio. {% if poss == "their" %}Their{% else if poss == "his" %}His{% else %}Her{% endif %} way of life ({{ poss }} occupation and background) is central: use it as the lens {{ subj }} {% if subj == "they" %}see{% else %}sees{% endif %} through. But build on it with what is particular to {{ obj }}: {{ poss }} values, {{ poss }} relationships and loyalties, {{ poss }} aspirations, {{ poss }} history, and {{ poss }} speech style section. Voice samples must sound like {{ poss }} speech style section. Every trait should be one only {{ subj }} would have, or a trait of {{ poss }} way of life sharpened by something specific to {{ obj }}.
+
+Add one LIMIT consistent with the disposition's Limit above; never contradict it.
+
+Write 300-450 words under exactly these five headings:
+
+1. Body and appearance (intimacy-relevant details, explicit)
+2. Preferences and kinks (if any)
+3. Limits (hard and soft)
+4. Behaviour and pacing in intimate scenes
+5. How {{ subj }} {% if subj == "they" %}talk{% else %}talks{% endif %} during intimacy (tone, vocabulary, two or three example lines)
+
+Write only the five sections, nothing before or after them.

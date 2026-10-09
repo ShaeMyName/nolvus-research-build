@@ -1,0 +1,57 @@
+[ system ]
+{# ══════════════════════════════════════════════════════════════════════════
+   Child disposition authoring (private patch R10, spec §11.10.2).
+
+   SNRom_Bridge.AuthorDisposition sends this instead of
+   snrom_author_disposition when the NPC IsChild(). Same context JSON
+   (npc_name, npc_formid, npc_bio, circle, MARAS flags), same callback
+   (OnDispositionAuthored), same labelled-line answer format, but ONLY the
+   platonic fields: NAME (echo guard), WHY, LIMIT, ADDRESS. No orientation,
+   intimacy, ardor or exclusivity is ever asked: the reply handler leaves those
+   unset and R5 forces intimacy to NEVER.
+
+   `[ system ]` must be the FIRST line (markers are load-bearing; see the
+   Relationships disposition prompt's header).
+   ══════════════════════════════════════════════════════════════════════════ #}
+You are helping describe one specific young person in Skyrim: a child. You describe only friendship, family-like trust and how they treat the people they rely on. Nothing here is romantic or physical in any way, and no answer may suggest it.
+
+RULES
+1. Answer for this one child, from what is known of them, not from what their circumstances imply.
+2. Two different children must not come out with the same answers.
+
+[ user ]
+THE CHILD: **{{ npc_name }}**
+
+{% set npc_uuid = formid_to_uuid(npc_formid) %}
+{% set diaries = get_diary_entries(npc_uuid, 5) %}
+{% if diaries and length(diaries) > 0 %}
+WHAT {{ npc_name }} WRITES WHEN NO ONE IS READING
+{% for e in diaries %}
+[{{ e.entry_date_str }}] {{ e.content }}
+{% endfor %}
+{% endif %}
+
+WHAT IS KNOWN ABOUT {{ npc_name }}
+{% set profile = render_character_profile("bio_summary", npc_uuid) + render_character_profile("bio_background", npc_uuid) + render_character_profile("bio_personality", npc_uuid) + render_character_profile("bio_aspirations", npc_uuid) + render_character_profile("bio_relationships", npc_uuid) %}
+{% if profile and profile != "" %}
+{{ profile }}
+
+Any "What You Know About" section above is generated from a counter of interactions, not from what has happened; where it disagrees with anything else, disregard it. Any "Your Bond With" section is this system's own earlier output; do not treat it as evidence.
+{% else %}
+{{ npc_bio }}
+{% endif %}
+
+Answer three things about how {{ npc_name }} holds the people they trust, {{ player.name }} among them. This is about friendship and trust only.
+
+WHY - one short sentence, in third person, on what this child values in someone they trust, and why: what makes them feel safe, what earns their loyalty, what they would do for a friend.
+
+LIMIT - one short sentence, in third person, on a line this child does not cross for anyone, however they are asked: something that comes out of their own circumstances, history or beliefs. Not a rule true of almost anyone.
+
+ADDRESS - how {{ npc_name }} addresses {{ player.name }} when speaking to them: a name, a title or a form of address that fits who this child is and how they see {{ player.name }}. Only a form of address; no endearment that would be odd from a child.
+
+Answer in exactly this form and nothing else:
+
+NAME: {{ npc_name }}
+WHY: <one short sentence>
+LIMIT: <one short sentence>
+ADDRESS: <a form of address>
