@@ -929,10 +929,16 @@ Function OnNPCInteractionResponse(String response, Int success)
     Bool npc1Visible = (playerCell != None && npc1.GetParentCell() == playerCell)
     Bool npc2Visible = (playerCell != None && npc2.GetParentCell() == playerCell)
 
+    ; Patch E5 (quest integrity): the off-screen NPC is the one who would travel
+    Actor ieTraveller = npc2
+    If npc2Visible
+        ieTraveller = npc1
+    EndIf
+
     If npc1Visible && npc2Visible
         ; Both in player cell -- instant interaction
         PerformVisibleInteraction(npc1, npc2, narration, storyType)
-    ElseIf (npc1Visible || npc2Visible) && !IsNPCStoryActive && !npc1.IsPlayerTeammate() && !npc2.IsPlayerTeammate()
+    ElseIf (npc1Visible || npc2Visible) && !IsNPCStoryActive && !npc1.IsPlayerTeammate() && !npc2.IsPlayerTeammate() && !IEB_StoryBlocked(ieTraveller, 1)
         ; One visible -- dispatch the off-screen NPC to walk over
         If npc2Visible
             DispatchNPCSocial(npc1, npc2, narration, storyType)
@@ -1501,6 +1507,13 @@ Function OnDungeonMasterResponse(String response, Int success)
         If !ApplyCooldownCheck(npc)
             Core.DebugMsg("Story DM: " + npc.GetDisplayName() + " on cooldown")
             IntelEngine.MarkLastDispatchFailed("on story cooldown")
+            return
+        EndIf
+        ; Patch E1 (quest integrity): refuse before any story state is written
+        Int ieTier = IEB_StoryTier(storyType)
+        If ieTier > 0 && IEB_StoryBlocked(npc, ieTier)
+            Core.DebugMsg("Story DM: " + npc.GetDisplayName() + " is committed to a quest - " + storyType + " refused")
+            IntelEngine.MarkLastDispatchFailed("npc is committed to a quest")
             return
         EndIf
 
@@ -2604,6 +2617,12 @@ Function HandleMessageDispatch(Actor senderNPC, String narration, String respons
             return
         EndIf
     EndIf
+    ; Patch E3 (quest integrity): messenger tier 1, before any message facts are written
+    If IEB_StoryBlocked(messenger, 1)
+        Core.DebugMsg("Story message: rejected -- messenger " + messenger.GetDisplayName() + " is committed to a quest")
+        IntelEngine.MarkLastDispatchFailed("npc is committed to a quest")
+        return
+    EndIf
 
     String messengerName = messenger.GetDisplayName()
 
@@ -2663,7 +2682,10 @@ Function OnMessageArrived()
         If senderName != ""
             senderForMeeting = IntelEngine.FindNPCByName(senderName)
         EndIf
-        If senderForMeeting != None
+        ; Patch E4 (quest integrity): no meeting for a sender blocked at tier 1
+        If senderForMeeting != None && IEB_StoryBlocked(senderForMeeting, 1)
+            Core.DebugMsg("Story message: meeting skipped -- " + senderForMeeting.GetDisplayName() + " is committed to a quest")
+        ElseIf senderForMeeting != None
             String timeCondition = meetTime
             If timeCondition == ""
                 timeCondition = "evening"
@@ -3088,6 +3110,12 @@ Function HandleQuestDispatch(Actor npc, String narration, String response)
             Core.DebugMsg("Story DM: quest/rescue rejected -- victim '" + victimName + "' is the player's teammate")
             return
         EndIf
+        ; Patch E2 (quest integrity): victim tier 2
+        If IEB_StoryBlocked(victimActor, 2)
+            Core.DebugMsg("Story DM: quest/rescue rejected -- victim '" + victimName + "' is committed to a quest")
+            IntelEngine.MarkLastDispatchFailed("npc is committed to a quest")
+            return
+        EndIf
         ; Hard cooldown — victim was recently used in a quest or story dispatch
         If IntelEngine.IsActorOnStoryCooldown(victimActor)
             Core.DebugMsg("Story DM: quest/rescue rejected -- victim '" + victimName + "' is on story cooldown")
@@ -3116,6 +3144,12 @@ Function HandleQuestDispatch(Actor npc, String narration, String response)
         Actor factionMember = IntelEngine.FindFactionMember(alliedFaction)
         If factionMember == None
             Core.DebugMsg("Story DM: quest/" + questSubTypeStr + " rejected -- no loaded " + alliedFaction + " member found")
+            return
+        EndIf
+        ; Patch E2 (quest integrity): faction courier tier 1
+        If IEB_StoryBlocked(factionMember, 1)
+            Core.DebugMsg("Story DM: quest/" + questSubTypeStr + " rejected -- faction member " + factionMember.GetDisplayName() + " is committed to a quest")
+            IntelEngine.MarkLastDispatchFailed("npc is committed to a quest")
             return
         EndIf
         ; Guard: faction member must not be the rescue victim
@@ -3178,6 +3212,12 @@ Function HandleQuestDispatch(Actor npc, String narration, String response)
             Actor factionSub = IntelEngine.FindFactionMember(alliedFaction)
             If factionSub == None
                 Core.DebugMsg("Story DM: quest/" + questSubTypeStr + " rejected -- no loaded " + alliedFaction + " member found")
+                return
+            EndIf
+            ; Patch E2 (quest integrity): substitute giver tier 1
+            If IEB_StoryBlocked(factionSub, 1)
+                Core.DebugMsg("Story DM: quest/" + questSubTypeStr + " rejected -- substitute " + factionSub.GetDisplayName() + " is committed to a quest")
+                IntelEngine.MarkLastDispatchFailed("npc is committed to a quest")
                 return
             EndIf
             If victimActor != None && factionSub == victimActor
