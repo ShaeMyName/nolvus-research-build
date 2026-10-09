@@ -606,6 +606,7 @@ Function AllocateSlot(Int slot, Actor akAgent, String taskType, String targetNam
     IntelEngine.SetSlotSpeed(slot, speed)
 
     DebugMsg("Allocated slot " + slot + " to " + akAgent.GetDisplayName() + " for " + taskType)
+    akAgent.SendModEvent("IntelEngine_TaskStarted", taskType, slot as Float)
 EndFunction
 
 Function ClearSlot(Int slot, Bool restoreNPC = true, Bool intelPackagesOnly = false)
@@ -621,6 +622,7 @@ Function ClearSlot(Int slot, Bool restoreNPC = true, Bool intelPackagesOnly = fa
         Actor agent = agentAlias.GetActorReference()
         If agent
             DebugMsg("Clearing slot " + slot + ": " + agent.GetDisplayName())
+            agent.SendModEvent("IntelEngine_TaskEnded", StorageUtil.GetStringValue(agent, "Intel_Result"), slot as Float)
 
             ; Save to task history before clearing
             String histType = SlotTaskTypes[slot]
