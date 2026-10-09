@@ -94,6 +94,18 @@ Function Recall(Int aiFormId, Int aiStay)
     EndIf
 EndFunction
 
+String Function UUIDOf(Int aiFormId)
+    {SkyrimNet's entity UUID (uppercase hex) for a loaded actor, for MCP tools such as check_action_eligibility, which
+     do not accept FormIDs. Logged as "[IEB-TEST] UUID <formid> <name> = <uuid>"; "" if the actor is not loaded.}
+    Actor a = A(aiFormId)
+    If a == None
+        Return ""
+    EndIf
+    String u = SkyrimNetApi.GetEntityUUID(a)
+    Log("UUID " + PO3_SKSEFunctions.IntToString(aiFormId, True) + " " + a.GetDisplayName() + " = " + u + " child=" + a.IsChild())
+    Return u
+EndFunction
+
 Function Check(Int aiFormId)
     Actor a = A(aiFormId)
     If a != None

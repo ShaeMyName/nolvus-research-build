@@ -1,0 +1,132 @@
+"""Step 8 test runner over SkyrimNet's MCP server ([::1]:8889) and the harness controller (IEB_TestQuest /
+IEB_TestCtl). Test profile only. Prints PASS/FAIL lines; results also appended to C:/nolvus-research/test_runs/.
+
+  runner.py smoke            MCP reachable, harness answers, timescale = recorded
+  runner.py cs23 [child=0x1A66B] [adult=0x1A675]
+        CS-23 (spec §11.10.4; FIRST test of step 8, Shae 2026-10-09; a FAIL stops step 8): a child speaker is never
+        eligible for SeverActions' Undress, UnequipArmor or SitOrLayDown (layer I's rule: decnpc resultPath isChild ==
+        false), while an adult is not blocked by that rule. Defaults: Braith (child, Skyrim.esm ref 0x01A66B) and
+        Carlotta Valentia (adult, ref 0x01A675), both in the Whiterun market by day; both must be loaded.
+"""
+import json, os, re, sys, time
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from mcp_client import MCP
+
+PAPYRUS = os.path.expanduser("~/Documents/My Games/Skyrim Special Edition/Logs/Script/Papyrus.0.log")
+OUT = "C:/nolvus-research/test_runs/"
+ACTIONS = ["Undress", "UnequipArmor", "SitOrLayDown"]
+
+
+class Run:
+    def __init__(self, name):
+        self.name, self.lines, self.fails = name, [], 0
+        self.c = MCP()
+
+    def log(self, s):
+        print(s)
+        self.lines.append(s)
+
+    def check(self, ok, what):
+        if not ok:
+            self.fails += 1
+        self.log("%s %s %s" % ("PASS" if ok else "FAIL", self.name, what))
+
+    def tool(self, name, args):
+        r = self.c.request("tools/call", {"name": name, "arguments": args})
+        if "result" not in r:
+            return {"error": r.get("error")}
+        txt = "".join(p.get("text", "") for p in r["result"].get("content", []))
+        try:
+            return json.loads(txt)
+        except ValueError:
+            return {"text": txt}
+
+    def ctl(self, fn, args=None):
+        return self.tool("execute_quest_function", {"quest_editor_id": "IEB_TestQuest", "script_name": "IEB_TestCtl",
+                                                    "function_name": fn, "arguments": args or []})
+
+    def logline(self, pattern, since_size, timeout=15):
+        """Wait for a Papyrus log line matching pattern, written after byte offset since_size."""
+        end = time.time() + timeout
+        while time.time() < end:
+            with open(PAPYRUS, "rb") as f:
+                f.seek(since_size)
+                m = re.search(pattern, f.read().decode("utf-8", "replace"))
+            if m:
+                return m
+            time.sleep(1)
+        return None
+
+    def uuid(self, formid):
+        size = os.path.getsize(PAPYRUS)
+        r = self.ctl("UUIDOf", [formid])
+        for k in ("returnValue", "result", "return"):
+            if isinstance(r, dict) and r.get(k):
+                return str(r[k]), None
+        m = self.logline(r"\[IEB-TEST\] UUID \S+ (.+?) = ([0-9A-Fa-f]*) child=(\w+)", size)
+        if not m:
+            return "", None
+        return m.group(2), (m.group(1), m.group(3).upper() == "TRUE")
+
+    def save(self):
+        os.makedirs(OUT, exist_ok=True)
+        p = OUT + "%s_%s.txt" % (self.name, time.strftime("%Y%m%d-%H%M%S"))
+        open(p, "w", encoding="utf-8").write("\n".join(self.lines) + "\n")
+        self.log("saved %s; %s" % (p, "ALL PASS" if not self.fails else "%d FAIL" % self.fails))
+
+
+def eligible(res):
+    """Normalise check_action_eligibility output to (eligible: bool|None, detail: str)."""
+    if not isinstance(res, dict):
+        return None, str(res)[:300]
+    for k in ("eligible", "isEligible", "is_eligible"):
+        if k in res:
+            return bool(res[k]), json.dumps(res)[:600]
+    t = json.dumps(res)
+    if re.search(r"not eligible|ineligible|\"false\"", t, re.I):
+        return False, t[:600]
+    return None, t[:600]
+
+
+def cs23(args):
+    child = int(next((a.split("=")[1] for a in args if a.startswith("child=")), "0x1A66B"), 16)
+    adult = int(next((a.split("=")[1] for a in args if a.startswith("adult=")), "0x1A675"), 16)
+    r = Run("CS-23")
+    cu, cinfo = r.uuid(child)
+    au, ainfo = r.uuid(adult)
+    r.check(bool(cu), "child loaded and UUID resolved (%s)" % (cinfo[0] if cinfo else "not loaded"))
+    r.check(bool(au), "adult loaded and UUID resolved (%s)" % (ainfo[0] if ainfo else "not loaded"))
+    if cinfo:
+        r.check(cinfo[1], "child actor reports IsChild() true")
+    if ainfo:
+        r.check(not ainfo[1], "adult actor reports IsChild() false")
+    if not (cu and au):
+        r.save()
+        return r.fails
+    for act in ACTIONS:
+        ce, cd = eligible(r.tool("check_action_eligibility", {"action_name": act, "actor_uuid": cu}))
+        r.log("  child %s -> %s" % (act, cd))
+        r.check(ce is False, "%s: child NOT eligible" % act)
+        ae, ad = eligible(r.tool("check_action_eligibility", {"action_name": act, "actor_uuid": au}))
+        r.log("  adult %s -> %s" % (act, ad))
+        blocked_by_child_rule = bool(re.search(r"isChild|decnpc", ad))
+        r.check(ae is True or (ae is False and not blocked_by_child_rule),
+                "%s: adult not blocked by the child rule (eligible=%s)" % (act, ae))
+    r.save()
+    return r.fails
+
+
+def smoke(args):
+    r = Run("SMOKE")
+    res = r.ctl("AssertTimescale")
+    r.check(isinstance(res, dict) and "error" not in res, "harness controller answers over MCP")
+    size = max(0, os.path.getsize(PAPYRUS) - 200000)
+    m = r.logline(r"ASSERT (PASS|FAIL) TIMESCALE", size)
+    r.check(bool(m) and m.group(1) == "PASS", "timescale equals the recorded play value")
+    r.save()
+    return r.fails
+
+
+if __name__ == "__main__":
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "smoke"
+    sys.exit(1 if {"cs23": cs23, "smoke": smoke}[cmd](sys.argv[2:]) else 0)
