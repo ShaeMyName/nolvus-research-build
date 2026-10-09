@@ -5144,3 +5144,84 @@ Bool Function IEB_DispatchBlocked(Actor a)
     Faction cff = Game.GetFormFromFile(0x0005C84E, "Skyrim.esm") as Faction   ; CurrentFollowerFaction
     return cff != None && a.GetFactionRank(cff) >= 0
 EndFunction
+
+Bool Function IEB_StoryBlocked(Actor a, Int tier)
+    return IEB_DispatchBlocked(a) || IEB_QuestReserved(a, tier)
+EndFunction
+
+Bool Function IEB_QuestReserved(Actor a, Int tier)
+    {Patch: true if a story beat of this tier must not use this actor (quest integrity).}
+    If a == None || tier < 1
+        return false
+    EndIf
+    If a.GetCurrentScene() != None
+        return true
+    EndIf
+    String qiFile = IEB_QIFile()
+    Int n = a.GetNumReferenceAliases()
+    Int i = 0
+    While i < n
+        ReferenceAlias ra = a.GetNthReferenceAlias(i)
+        Quest q = None
+        If ra
+            q = ra.GetOwningQuest()
+        EndIf
+        If q && (q.IsRunning() || q.IsStarting()) && !IEB_ExemptQuest(q)
+            If JsonUtil.FormListHas(qiFile, "story_quests", q) || IEB_HasOpenObjective(q)
+                return true
+            EndIf
+        EndIf
+        i += 1
+    EndWhile
+    If tier >= 2
+        ActorBase b = a.GetActorBase()
+        If a.IsEssential() || b.IsEssential() || b.IsProtected()
+            return true
+        EndIf
+        return JsonUtil.FormListHas(qiFile, "reserved_npcs", b)
+    EndIf
+    return false
+EndFunction
+
+String Function IEB_QIFile()
+    {Patch: Data/SKSE/Plugins/ErrandBridge/quest_integrity.json (JsonUtil paths are relative to StorageUtilData).}
+    return "../ErrandBridge/quest_integrity"
+EndFunction
+
+Bool Function IEB_ExemptQuest(Quest q)
+    {Patch: the quest's original plugin is in the JSON string list "exempt_plugins" (Papyrus == ignores case).}
+    String modName = PO3_SKSEFunctions.GetFormModName(q, false)
+    String qiFile = IEB_QIFile()
+    Int n = JsonUtil.StringListCount(qiFile, "exempt_plugins")
+    Int i = 0
+    While i < n
+        If JsonUtil.StringListGet(qiFile, "exempt_plugins", i) == modName
+            return true
+        EndIf
+        i += 1
+    EndWhile
+    return false
+EndFunction
+
+Bool Function IEB_HasOpenObjective(Quest q)
+    {Patch: any objective that is displayed and not completed.}
+    Int[] objs = PO3_SKSEFunctions.GetAllQuestObjectives(q)
+    Int i = 0
+    While i < objs.Length
+        If q.IsObjectiveDisplayed(objs[i]) && !q.IsObjectiveCompleted(objs[i])
+            return true
+        EndIf
+        i += 1
+    EndWhile
+    return false
+EndFunction
+
+Int Function IEB_StoryTier(String storyType)
+    {Patch: E1 tier by story type (§10.2.1). message is checked later on the messenger (E3).}
+    If storyType == "ambush"
+        return 2
+    ElseIf storyType == "seek_player" || storyType == "informant" || storyType == "road_encounter" || storyType == "stalker" || storyType == "quest"
+        return 1
+    EndIf
+    return 0
+EndFunction
