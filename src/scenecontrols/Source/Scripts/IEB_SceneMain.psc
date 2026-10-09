@@ -618,7 +618,14 @@ Function SceneWitness()
 EndFunction
 
 Function BeastWitness(String asForm)
-    {M7b, from IEB_BeastFormHook: one event at the moment of transformation (the GameMaster's timer is not relied on).}
+    {M7b, from IEB_BeastFormHook: one event at the moment of transformation (the GameMaster's timer is not relied on).
+     Gated like the private flag (Shae, 2026-10-09): fires only if at least one live, enabled ActorTypeNPC other than a
+     scene partner is within the current awareness radius; with no one around it fires nothing (and uses no floor).}
+    Int others = CountOthers(CurrentRadius())
+    If others == 0
+        Log("WITNESS beast_form skipped: no one in range")
+        Return
+    EndIf
     FireWitness("transforms into a " + asForm + " in plain sight", "", "beast_form")
 EndFunction
 
