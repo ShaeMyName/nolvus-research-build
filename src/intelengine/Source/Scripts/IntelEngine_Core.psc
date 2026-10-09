@@ -1052,14 +1052,21 @@ Function DismissFollowerForTask(Actor npc)
     and reverts to default AI.}
 
     ; Clear ALL package overrides from all sources
-    ActorUtil.ClearPackageOverride(npc)
-    DebugMsg("Cleared all package overrides for " + npc.GetDisplayName())
+    RemoveIntelPackages(npc, false)
+    IEB_ReleaseSkyrimNetPackages(npc)
+    DebugMsg("Removed IntelEngine and SkyrimNet follow packages for " + npc.GetDisplayName())
 
-    ; Also clear vanilla follower state so the engine doesn't re-apply follow AI
+    ; Patch: mark the follower but KEEP the teammate flag for the whole task. The priority-100
+    ; overrides drive the NPC; ClearSlotRestoreFollower's SetPlayerTeammate(true) becomes a no-op.
+    ; Global StorageUtil int "IEB_DropTeammate" = 1 restores the stock drop (A/B, rollback).
     If npc.IsPlayerTeammate()
         StorageUtil.SetIntValue(npc, "Intel_WasFollower", 1)
-        npc.SetPlayerTeammate(false)
-        DebugMsg("Dismissed follower: " + npc.GetDisplayName())
+        If StorageUtil.GetIntValue(None, "IEB_DropTeammate", 0) == 1
+            npc.SetPlayerTeammate(false)
+            DebugMsg("Dismissed follower: " + npc.GetDisplayName())
+        Else
+            DebugMsg("Kept follower as teammate for task: " + npc.GetDisplayName())
+        EndIf
     EndIf
 EndFunction
 
@@ -2779,3 +2786,16 @@ EndFunction
 
 IntelEngine_Politics Property Politics  Auto
 IntelEngine_Battle Property Battle Auto
+
+Function IEB_ReleaseSkyrimNetPackages(Actor npc)
+    {Patch: unregister SkyrimNet's own follow/talk packages by name instead of clearing every override.}
+    If SkyrimNetApi.HasPackage(npc, "FollowPlayer") == 1
+        SkyrimNetApi.UnregisterPackage(npc, "FollowPlayer")
+    EndIf
+    If SkyrimNetApi.HasPackage(npc, "TalkToPlayer") == 1
+        SkyrimNetApi.UnregisterPackage(npc, "TalkToPlayer")
+    EndIf
+    If SkyrimNetApi.HasPackage(npc, "TalkToNPC") == 1
+        SkyrimNetApi.UnregisterPackage(npc, "TalkToNPC")
+    EndIf
+EndFunction
