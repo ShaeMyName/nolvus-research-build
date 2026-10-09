@@ -554,6 +554,7 @@ Function SweepFollowers()
     EndWhile
     PurgeNonPersons()
     IEB_ChildSweep()   ; Patch R7 (IEB §11.10.2)
+    IEB_MarasCatchUp()   ; Patch M4' (IEB §11.12.3)
 
     ; ALWAYS log the counts. The first version of this function was silent, ran
     ; twice on a load, found nothing, and left no way to tell whether the scan
@@ -4808,6 +4809,13 @@ Event OnMarasStatusChanged(String asEventName, String asStatus, Float afStatusEn
     If who == None || !_ready
         Return
     EndIf
+    ; Patch M2 (IEB §11.12.3): a new engagement or marriage counts at once
+    RefreshPartnerCount()
+    ; Patch M4' (IEB §11.12.3): auto-enroll on courtship (candidate / engaged / married)
+    String ieSt = SNRom_Decorators.Upper(SNRom_Decorators.Trim(asStatus))
+    If ieSt == "CANDIDATE" || ieSt == "ENGAGED" || ieSt == "MARRIED"
+        IEB_EnrollOnCourtship(who)
+    EndIf
     If !IsEnrolled(who)
         Return
     EndIf
@@ -4829,6 +4837,20 @@ Event OnMarasStatusChanged(String asEventName, String asStatus, Float afStatusEn
     ; assets, hierarchy rank and house tenancy across 13 registered homes, and
     ; a mod that quietly dissolves marriages is worse than one that leaks.
     If st == "ENGAGED"
+        ; Patch M3 (IEB §11.12.3): exclusivity >= CONSUMING_MIN will not join a marriage shared with others
+        If StorageUtil.GetIntValue(who, "SNRom_Exclusivity", 50) >= CONSUMING_MIN() && SNRom_Decorators.OtherPartners(who) > 0
+            If MARAS.PromoteNPCToStatus(who, "candidate")
+                SkyrimNetApi.RegisterShortLivedEvent("ieb_excl_refusal_" + who.GetFormID(), "ieb_exclusivity_refusal", \
+                    who.GetDisplayName() + " would not join a shared marriage", "", 300000, who, Game.GetPlayer())
+                Diag(LOG_INFO(), "Engagement refused for " + who.GetDisplayName() + " - exclusivity " + \
+                    StorageUtil.GetIntValue(who, "SNRom_Exclusivity", 50) + " >= " + CONSUMING_MIN() + \
+                    " with " + SNRom_Decorators.OtherPartners(who) + " other partner(s); back to candidate." + MarasStateLine(who))
+            Else
+                Diag(LOG_ERROR(), "MARAS refused to demote " + who.GetDisplayName() + \
+                    " after an exclusivity refusal." + MarasStateLine(who))
+            EndIf
+            Return
+        EndIf
         Int held = PointsOf(who)
         If held < SPOUSE_MIN()
             If MARAS.PromoteNPCToStatus(who, "candidate")
@@ -4902,6 +4924,10 @@ Function RefreshPartnerCount()
         EndIf
         i += 1
     EndWhile
+    ; Patch M2 (IEB §11.12.3): plus MARAS engaged or married actors not already counted above
+    If MarasPresent()
+        n += IEB_CountMarasPartners("engaged") + IEB_CountMarasPartners("married")
+    EndIf
     If StorageUtil.GetIntValue(None, "SNRom_PartnerCount", -1) != n
         Diag(LOG_INFO(), "Acknowledged partners: " + n + ". The bond prompt uses this " + \
             "so an exclusivity boundary is not described as hypothetical to someone " + \
@@ -8686,4 +8712,63 @@ Function IEB_ChildSweep()
     If fixedCount > 0
         Diag(LOG_WARN(), "Child sweep: un-sparked " + fixedCount + " enrolled child(ren); intimacy locked (IsChild)")
     EndIf
+EndFunction
+
+; ===========================================================================
+; IEB private patch (component F): MARAS exclusivity M2 / M4' (spec §11.12.3)
+; ===========================================================================
+
+Int Function IEB_CountMarasPartners(String asStatus)
+    { Patch M2: MARAS actors with this status who are alive and not already counted as an acknowledged
+      Relationships partner (sparked + accepted), so the union has no duplicates. }
+    Actor[] arr = MARAS.GetNPCsByStatus(asStatus)
+    Int n = 0
+    Int i = 0
+    While i < arr.Length
+        Actor a = arr[i]
+        If a != None && !a.IsDead()
+            If !(SNRom_Decorators.IsSparked(a) && StorageUtil.GetIntValue(a, "SNRom_PlayerStance", 0) == STANCE_ACCEPTED())
+                n += 1
+            EndIf
+        EndIf
+        i += 1
+    EndWhile
+    Return n
+EndFunction
+
+Bool Function IEB_EnrollOnCourtship(Actor akActor)
+    { Patch M4': the same checks EnrollByHand makes, plus never a child. Idempotent through IsEnrolled. }
+    If akActor == None || akActor == Game.GetPlayer() || IsEnrolled(akActor)
+        Return False
+    EndIf
+    If akActor.IsChild() || akActor.IsDead() || akActor.IsCommandedActor() || !IsPerson(akActor)
+        Return False
+    EndIf
+    EnrollNow(akActor, "Enrolled on MARAS courtship:")
+    Return True
+EndFunction
+
+Function IEB_MarasCatchUp()
+    { Patch M4': each sweep enrolls at most 2 MARAS candidates, fiancés or spouses who are missing,
+      covering courtships begun before the patch or events lost at load. }
+    If !MarasPresent()
+        Return
+    EndIf
+    Int budget = 2
+    String[] statuses = new String[3]
+    statuses[0] = "married"
+    statuses[1] = "engaged"
+    statuses[2] = "candidate"
+    Int s = 0
+    While s < 3 && budget > 0
+        Actor[] arr = MARAS.GetNPCsByStatus(statuses[s])
+        Int i = 0
+        While i < arr.Length && budget > 0
+            If IEB_EnrollOnCourtship(arr[i])
+                budget -= 1
+            EndIf
+            i += 1
+        EndWhile
+        s += 1
+    EndWhile
 EndFunction

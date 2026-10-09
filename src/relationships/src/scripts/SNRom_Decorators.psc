@@ -502,6 +502,12 @@ Int Function OtherPartners(Actor akActor) Global
     If SNRom_Decorators.IsSparked(akActor) && \
        StorageUtil.GetIntValue(akActor, "SNRom_PlayerStance", 0) == 1
         total -= 1
+    ElseIf SNRom_Bridge.MarasPresent()
+        ; Patch M2 (IEB §11.12.3): self counted through the MARAS union
+        String ms = SNRom_Decorators.Upper(MARAS.GetNpcStatusName(akActor))
+        If ms == "ENGAGED" || ms == "MARRIED"
+            total -= 1
+        EndIf
     EndIf
     If total < 0
         Return 0
