@@ -4,7 +4,7 @@ collector.csv, and records every daily soak save (SOAK_d*) it sees in saves.csv.
 
 collector.csv: ts, papyrus_session, papyrus_suspended, papyrus_stackdump, papyrus_our_errors, sn_errors, sn_requests,
                sn_db_mb, ie_db_mb, skyrim_ws_mb, skyrim_private_mb, sys_commit_used_mb, sys_commit_limit_mb,
-               tts_private_mb, texture_oom
+               tts_private_mb, texture_oom, teammate_was_off, dispatch_conflict, assert_fail
 saves.csv:     save, mtime, ess_mb, skse_mb   (one row per SOAK_dNN save, first time it is seen)
 requests.csv:  ts, model, count            (cumulative LLM calls per model in the current SkyrimNet.log)
 
@@ -15,6 +15,7 @@ import csv, glob, json, os, re, subprocess, sys, time
 
 DOCS = os.path.expanduser("~/Documents/My Games/Skyrim Special Edition/")
 PAPYRUS = DOCS + "Logs/Script/Papyrus.0.log"
+WATCH = DOCS + "Logs/Script/User/ErrandBridgeWatch.0.log"
 SKSE = DOCS + "SKSE/"
 INST = "C:/Nolvus/Instances/Nolvus Awakening/MODS/"
 SAVES = INST + "profiles/SkyrimNet Test/saves/"
@@ -67,6 +68,21 @@ def skyrimnet_counts():
         if m:
             by_model[m.group(1).rstrip(",")] = by_model.get(m.group(1).rstrip(","), 0) + 1
     return errs, sum(by_model.values()), by_model
+
+
+def bridge_counts():
+    """SK-2: the bridge's own warnings (IEB_Main logs to Papyrus with [IEB]) and the watcher's assertion failures."""
+    tw = dc = 0
+    if os.path.exists(PAPYRUS):
+        for l in open(PAPYRUS, encoding="utf-8", errors="replace"):
+            if "[IEB] TEAMMATE_WAS_OFF" in l:
+                tw += 1
+            elif "[IEB] DISPATCH_CONFLICT" in l:
+                dc += 1
+    af = 0
+    if os.path.exists(WATCH):
+        af = sum("ASSERT FAIL" in l for l in open(WATCH, encoding="utf-8", errors="replace"))
+    return tw, dc, af
 
 
 def texture_oom():
@@ -122,10 +138,11 @@ def sample():
     append("collector.csv",
            ["ts", "papyrus_session", "papyrus_suspended", "papyrus_stackdump", "papyrus_our_errors", "sn_errors",
             "sn_requests", "sn_db_mb", "ie_db_mb", "skyrim_ws_mb", "skyrim_private_mb", "sys_commit_used_mb",
-            "sys_commit_limit_mb", "tts_private_mb", "texture_oom"],
+            "sys_commit_limit_mb", "tts_private_mb", "texture_oom", "teammate_was_off", "dispatch_conflict",
+            "assert_fail"],
            [ts, session, susp, dumps, ours, errs, reqs,
             size_mb([sn_db, sn_db + "-wal"]) if sn_db else 0, size_mb([ie_db, ie_db + "-wal"]) if ie_db else 0,
-            ws, priv, used, limit, tts, texture_oom()])
+            ws, priv, used, limit, tts, texture_oom()] + list(bridge_counts()))
     for model, n in by_model.items():
         append("requests.csv", ["ts", "model", "count"], [ts, model, n])
     have = seen_saves()
