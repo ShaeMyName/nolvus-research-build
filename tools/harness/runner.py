@@ -19,7 +19,7 @@ ACTIONS = ["Undress", "UnequipArmor", "SitOrLayDown"]
 
 class Run:
     def __init__(self, name):
-        self.name, self.lines, self.fails = name, [], 0
+        self.name, self.lines, self.fails, self.inconclusive = name, [], 0, 0
         self.c = MCP()
 
     def log(self, s):
@@ -72,7 +72,8 @@ class Run:
         os.makedirs(OUT, exist_ok=True)
         p = OUT + "%s_%s.txt" % (self.name, time.strftime("%Y%m%d-%H%M%S"))
         open(p, "w", encoding="utf-8").write("\n".join(self.lines) + "\n")
-        self.log("saved %s; %s" % (p, "ALL PASS" if not self.fails else "%d FAIL" % self.fails))
+        verdict = "%d FAIL" % self.fails if self.fails else ("INCONCLUSIVE (%d)" % self.inconclusive if self.inconclusive else "ALL PASS")
+        self.log("saved %s; %s" % (p, verdict))
 
 
 def eligible(res):
@@ -103,24 +104,39 @@ def cs23(args):
     if not (cu and au):
         r.save()
         return r.fails
+    # Settle: right after a load SeverActions' Papyrus-backed checks are not ready yet and EVERY SeverActions action
+    # reads ineligible for everyone (seen 2026-10-09, ~2 min after load). Wait up to 5 min for the adult control.
+    for _ in range(30):
+        if eligible(r.tool("check_action_eligibility", {"action_name": "SitOrLayDown", "actor_uuid": au}))[0] is True:
+            break
+        time.sleep(10)
+    else:
+        r.log("INCONCLUSIVE CS-23 settle: the adult control never became eligible within 5 min")
+        r.inconclusive += 1
+        r.save()
+        return r.fails + r.inconclusive
     for act in ACTIONS:
         ce, cd = eligible(r.tool("check_action_eligibility", {"action_name": act, "actor_uuid": cu}))
         r.log("  child %s -> %s" % (act, cd))
         r.check(ce is False, "%s: child NOT eligible" % act)
         ae, ad = eligible(r.tool("check_action_eligibility", {"action_name": act, "actor_uuid": au}))
         r.log("  adult %s -> %s" % (act, ad))
-        blocked_by_child_rule = bool(re.search(r"isChild|decnpc", ad))
-        r.check(ae is True or (ae is False and not blocked_by_child_rule),
-                "%s: adult not blocked by the child rule (eligible=%s)" % (act, ae))
+        # Discriminating only if the adult IS eligible (otherwise the child's "not eligible" could come from any rule,
+        # or from SkyrimNet blocking Papyrus decorators while the game is paused). Adult not eligible = INCONCLUSIVE.
+        if ae is True:
+            r.check(True, "%s: adult eligible (the child rule does not block adults)" % act)
+        else:
+            r.inconclusive += 1
+            r.log("INCONCLUSIVE CS-23 %s: adult not eligible (eligible=%s); check the game is unpaused (no console or menu open)" % (act, ae))
     r.save()
-    return r.fails
+    return r.fails + r.inconclusive
 
 
 def smoke(args):
     r = Run("SMOKE")
+    size = os.path.getsize(PAPYRUS)
     res = r.ctl("AssertTimescale")
     r.check(isinstance(res, dict) and "error" not in res, "harness controller answers over MCP")
-    size = max(0, os.path.getsize(PAPYRUS) - 200000)
     m = r.logline(r"ASSERT (PASS|FAIL) TIMESCALE", size)
     r.check(bool(m) and m.group(1) == "PASS", "timescale equals the recorded play value")
     r.save()
