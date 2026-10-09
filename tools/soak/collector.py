@@ -10,7 +10,7 @@ saves.csv:     save, mtime, ess_mb, skse_mb   (one row per SOAK_dNN save, first 
 requests.csv:  ts, model, count            (cumulative LLM calls per model in the current SkyrimNet.log)
 
 Counts are cumulative within the current log file (one game session); the scorer takes per-session maxima.
-Our scripts for Papyrus errors: IEB_*, LUC_*, SNRom_* (patched Relationships). IntelEngine errors: the 3 known ones
+Our scripts for Papyrus errors: IEB_*, LUC_*, SNRom_* (patched Relationships). IntelEngine errors: the known ones
 counted exactly (K1-K3); any other is reportable (ie_other).
 Usage: collector.py [--every 120] [--once]"""
 import csv, glob, json, os, re, subprocess, sys, time
@@ -27,8 +27,9 @@ OURS = re.compile(r"\b(IEB_|LUC_|SNRom_|IntelEngine_)\w*\.")
 REQ = re.compile(r"Creating request payload for model: (\S+)")
 # IntelEngine's own known errors (Shae, 2026-10-09: exact match, still counted, never silently skipped). Verified
 # 2026-10-09: IntelEngine 3.5.1's shipped Core.pex does the same "cast None to Int[]" before "SlotStates == None"; the
-# Schedule script is unpatched; K3 = the 7 natives IntelEngine's own (unpatched) native script declares but its DLL
-# does not bind, logged once per launch in every Papyrus log on disk (2026-10-09). Expected per game load: K1 = 1,
+# Schedule script is unpatched; K3 = the 7 natives IntelEngine's DLL registers but no installed IntelEngine script
+# declares (the removed Dialogue Safety Net set + ClaimPendingDirectorParams; nothing calls them), logged once per
+# launch in every Papyrus log on disk (2026-10-09). Expected per game load: K1 = 1,
 # K2 = 1; per launch: K3 = 7. A different count, or any other IntelEngine error, is reportable (ie_other).
 K3_NATIVES = ["BuildSafetyNetContextJson", "ClaimPendingDirectorParams", "GetLastConversationPartner", "GetSafetyNetNPC",
               "HasScheduleKeywords", "NotifyNewDialogue", "RunSafetyNetCheck"]
