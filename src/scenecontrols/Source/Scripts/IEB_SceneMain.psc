@@ -83,6 +83,7 @@ Function Startup(String asWhy)
     EndScene("auto_" + asWhy, False)         ; auto-off on load (§11.7); no notification
     RegisterWitnessSchema()
     SeedLists()
+    PruneWitnessPlaces()                     ; drop older days' places on every load
     _sceneKey = -1
     _whisperKey = -1
     SyncKeys()
@@ -185,6 +186,7 @@ Event OnUpdate()
     If SceneOn() && combat
         EndScene("combat", True)
     EndIf
+    PruneWitnessPlaces()                     ; day change
     ExposureCheck()
     Cell c = PlayerRef.GetParentCell()
     If c != _lastCell
@@ -584,7 +586,11 @@ Function ExposureCheck()
 EndFunction
 
 Function NewAreaWitness()
-    {(b) New area while still exposed: once per location (or cell) per game day.}
+    {(b) New area while still exposed: once per location (or cell) per game day. [CHANGED in build 2026-10-09, Shae]
+     The dedupe is ONE form list on the player (IEB_WitnessPlaces) holding only the current game day's places, plus
+     the day it belongs to (IEB_WitnessPlaceDay); PruneWitnessPlaces empties it on every day change and every load.
+     Bounded: no per-location keys accumulate (SK-2/SK-3).}
+    PruneWitnessPlaces()
     Int st = StorageUtil.GetIntValue(PlayerRef, "IEB_ExposureState", 0)
     If st == 0 || BeastForm(PlayerRef) != ""
         Return
@@ -593,16 +599,20 @@ Function NewAreaWitness()
     If place == None
         place = PlayerRef.GetParentCell()
     EndIf
-    If place == None
-        Return
-    EndIf
-    Float today = Utility.GetCurrentGameTime()
-    Float last = StorageUtil.GetFloatValue(place, "IEB_WitnessDay", -10.0)
-    If today - last < 1.0
+    If place == None || StorageUtil.FormListFind(PlayerRef, "IEB_WitnessPlaces", place) >= 0
         Return
     EndIf
     If FireWitness(ExposurePhrase(st), "", "new_area")
-        StorageUtil.SetFloatValue(place, "IEB_WitnessDay", today)
+        StorageUtil.FormListAdd(PlayerRef, "IEB_WitnessPlaces", place, False)
+    EndIf
+EndFunction
+
+Function PruneWitnessPlaces()
+    {Keep only the current game day's places: on a new day (or a load into another day) the list is emptied.}
+    Int today = Utility.GetCurrentGameTime() as Int
+    If StorageUtil.GetIntValue(PlayerRef, "IEB_WitnessPlaceDay", -1) != today
+        StorageUtil.FormListClear(PlayerRef, "IEB_WitnessPlaces")
+        StorageUtil.SetIntValue(PlayerRef, "IEB_WitnessPlaceDay", today)
     EndIf
 EndFunction
 

@@ -219,6 +219,55 @@ Function CFProbe(Int aiFormId)
         " nffSeat=" + Watcher().SeatOf(a) + " saRoster=" + IEB_SALib.IsSAFollower(a))
 EndFunction
 
+; ============================================================================ timescale (Shae, 2026-10-09)
+; Normal tests and the soak run at the timescale recorded at the step 7 first launch, never accelerated. Only timer
+; tests whose timer runs on GAME time (B-23, D-4, v1 edge 13) may raise it, and each restores and asserts it at teardown.
+
+Function RecordTimescale()
+    {Step 7 first launch: store the current (play) timescale as the reference.}
+    Float v = TS().GetValue()
+    StorageUtil.SetFloatValue(None, "EBT_PlayTimescale", v)
+    Log("TIMESCALE recorded " + v)
+EndFunction
+
+Function Accelerate(Float afTimescale)
+    {For a game-time timer test only. Refused while the soak probe is on (the soak save is never accelerated).}
+    GlobalVariable soak = Game.GetFormFromFile(0x802, "ErrandBridgeTest.esp") as GlobalVariable
+    If soak != None && soak.GetValue() >= 1.0
+        Log("ASSERT FAIL TIMESCALE: Accelerate refused, soak probe is on")
+        Return
+    EndIf
+    If !StorageUtil.HasFloatValue(None, "EBT_PlayTimescale")
+        Log("ASSERT FAIL TIMESCALE: no recorded play timescale (run RecordTimescale first)")
+        Return
+    EndIf
+    TS().SetValue(afTimescale)
+    Log("TIMESCALE accelerated to " + afTimescale)
+EndFunction
+
+Function RestoreTimescale()
+    {Teardown of every accelerated test: restore the recorded value, then assert it.}
+    Float want = StorageUtil.GetFloatValue(None, "EBT_PlayTimescale", -1.0)
+    If want > 0.0
+        TS().SetValue(want)
+    EndIf
+    AssertTimescale()
+EndFunction
+
+Function AssertTimescale()
+    Float want = StorageUtil.GetFloatValue(None, "EBT_PlayTimescale", -1.0)
+    Float got = TS().GetValue()
+    If want > 0.0 && got == want
+        Log("ASSERT PASS TIMESCALE " + got)
+    Else
+        Log("ASSERT FAIL TIMESCALE got " + got + " recorded " + want)
+    EndIf
+EndFunction
+
+GlobalVariable Function TS()
+    Return Game.GetFormFromFile(0x0000003A, "Skyrim.esm") as GlobalVariable
+EndFunction
+
 Int Function TestCFRefuse()
     GlobalVariable g = Game.GetFormFromFile(0x800, "ErrandBridgeTest.esp") as GlobalVariable
     If g == None
