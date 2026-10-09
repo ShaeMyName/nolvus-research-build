@@ -1,6 +1,6 @@
 .info
   .source "C:\nolvus-research\build\src\relationships\src\scripts\SNRom_Bridge.psc"
-  .compileTime 1791572518 ;2026-10-09 15:01:58
+  .compileTime 1791573552 ;2026-10-09 15:19:12
   .user "sharp"
   .computer "EMISSARY"
 .endInfo
@@ -18912,16 +18912,22 @@
             not ::temp0 _ready 
             assign ::temp0 ::temp0 
             jmpt ::temp0 _label0
-            callmethod IEB_IntimacyWanted self ::temp0 akActor ;1 variable args
+            callstatic sNRom_Bridge IEB_IntimacyOn ::temp0 ;0 variable args
             not ::temp0 ::temp0 
             assign ::temp0 ::temp0 
           _label0:
-            jmpf ::temp0 _label1
+            assign ::temp0 ::temp0 
+            jmpt ::temp0 _label1
+            callmethod IEB_IntimacyWanted self ::temp0 akActor ;1 variable args
+            not ::temp0 ::temp0 
+            assign ::temp0 ::temp0 
+          _label1:
+            jmpf ::temp0 _label2
             ; line 8844
             return None 
-            jmp _label1
+            jmp _label2
             ; line 8846
-          _label1:
+          _label2:
             cast ::temp1 None 
             cast ::temp2 akActor 
             callstatic storageUtil FormListAdd ::temp3 ::temp1 "IEB_IntimacyQueue" ::temp2 False ;4 variable args
@@ -18949,16 +18955,22 @@
             cast ::temp0 None 
             cmp_eq ::temp1 _pendingIntimacy ::temp0 
             not ::temp1 ::temp1 
-            jmpf ::temp1 _label0
+            assign ::temp1 ::temp1 
+            jmpt ::temp1 _label0
+            callstatic sNRom_Bridge IEB_IntimacyOn ::temp1 ;0 variable args
+            not ::temp1 ::temp1 
+            assign ::temp1 ::temp1 
+          _label0:
+            jmpf ::temp1 _label1
             ; line 8853
             return None 
-            jmp _label0
+            jmp _label1
             ; line 8855
-          _label0:
+          _label1:
             cast ::temp2 None 
             callstatic storageUtil FormListCount ::temp3 ::temp2 "IEB_IntimacyQueue" ;2 variable args
             cmp_gt ::temp1 ::temp3 0 
-            jmpf ::temp1 _label1
+            jmpf ::temp1 _label2
             ; line 8856
             cast ::temp2 None 
             callstatic storageUtil FormListGet ::temp2 ::temp2 "IEB_IntimacyQueue" 0 ;3 variable args
@@ -18972,25 +18984,25 @@
             cmp_eq ::temp1 next ::temp0 
             not ::temp1 ::temp1 
             assign ::temp1 ::temp1 
-            jmpf ::temp1 _label2
+            jmpf ::temp1 _label3
             callmethod IsChild next ::temp1 ;0 variable args
             not ::temp1 ::temp1 
             assign ::temp1 ::temp1 
-          _label2:
+          _label3:
             assign ::temp1 ::temp1 
-            jmpf ::temp1 _label3
+            jmpf ::temp1 _label4
             callmethod IEB_IntimacyWanted self ::temp1 next ;1 variable args
             assign ::temp1 ::temp1 
-          _label3:
-            jmpf ::temp1 _label4
+          _label4:
+            jmpf ::temp1 _label5
             ; line 8859
             callmethod IEB_SendIntimacy self ::nonevar next ;1 variable args
             ; line 8860
             return None 
-            jmp _label4
-          _label4:
-            jmp _label0
-          _label1
+            jmp _label5
+          _label5:
+            jmp _label1
+          _label2
           .endCode
         .endFunction ;IEB_PumpIntimacy
         .function IEB_SendIntimacy
@@ -19186,8 +19198,8 @@
           .paramTable
           .endParamTable
           .localTable
-            .local ::temp0 actor
-            .local ::temp1 Bool
+            .local ::temp0 Bool
+            .local ::temp1 actor
             .local ::temp2 form
             .local ::temp3 Int
             .local total Int
@@ -19197,57 +19209,63 @@
           .endLocalTable
           .code
             ; line 8904
-            cast ::temp0 None 
-            cmp_eq ::temp1 _pendingIntimacy ::temp0 
-            not ::temp1 ::temp1 
-            assign ::temp1 ::temp1 
-            jmpt ::temp1 _label0
+            callstatic sNRom_Bridge IEB_IntimacyOn ::temp0 ;0 variable args
+            not ::temp0 ::temp0 
+            assign ::temp0 ::temp0 
+            jmpt ::temp0 _label0
+            cast ::temp1 None 
+            cmp_eq ::temp0 _pendingIntimacy ::temp1 
+            not ::temp0 ::temp0 
+            assign ::temp0 ::temp0 
+          _label0:
+            assign ::temp0 ::temp0 
+            jmpt ::temp0 _label1
             cast ::temp2 None 
             callstatic storageUtil FormListCount ::temp3 ::temp2 "IEB_IntimacyQueue" ;2 variable args
-            cmp_gt ::temp1 ::temp3 0 
-            assign ::temp1 ::temp1 
-          _label0:
-            jmpf ::temp1 _label1
+            cmp_gt ::temp0 ::temp3 0 
+            assign ::temp0 ::temp0 
+          _label1:
+            jmpf ::temp0 _label2
             ; line 8905
             return None 
-            jmp _label1
+            jmp _label2
             ; line 8907
-          _label1:
+          _label2:
             cast ::temp2 None 
             callstatic storageUtil FormListCount ::temp3 ::temp2 "SNRom_Roster" ;2 variable args
             assign total ::temp3 
             ; line 8908
             assign i 0 
             ; line 8909
-          _label5:
-            cmp_lt ::temp1 i total 
-            jmpf ::temp1 _label2
+          _label6:
+            cmp_lt ::temp0 i total 
+            jmpf ::temp0 _label3
             ; line 8910
             cast ::temp2 None 
             callstatic storageUtil FormListGet ::temp2 ::temp2 "SNRom_Roster" i ;3 variable args
-            cast ::temp0 ::temp2 
-            assign a ::temp0 
+            cast ::temp1 ::temp2 
+            assign a ::temp1 
             ; line 8911
-            cast ::temp0 None 
-            cmp_eq ::temp1 a ::temp0 
-            not ::temp1 ::temp1 
-            assign ::temp1 ::temp1 
-            jmpf ::temp1 _label3
-            callmethod IEB_IntimacyWanted self ::temp1 a ;1 variable args
-            assign ::temp1 ::temp1 
-          _label3:
-            jmpf ::temp1 _label4
+            cast ::temp1 None 
+            cmp_eq ::temp0 a ::temp1 
+            not ::temp0 ::temp0 
+            assign ::temp0 ::temp0 
+            jmpf ::temp0 _label4
+            callmethod IEB_IntimacyWanted self ::temp0 a ;1 variable args
+            assign ::temp0 ::temp0 
+          _label4:
+            jmpf ::temp0 _label5
             ; line 8912
             callmethod IEB_QueueIntimacy self ::nonevar a ;1 variable args
             ; line 8913
             return None 
-            jmp _label4
+            jmp _label5
             ; line 8915
-          _label4:
+          _label5:
             iadd ::temp3 i 1 
             assign i ::temp3 
-            jmp _label5
-          _label2
+            jmp _label6
+          _label3
           .endCode
         .endFunction ;IEB_IntimacyCatchUp
         .function IEB_IntimacyOnLoad
@@ -19334,6 +19352,31 @@
             callmethod Diag self ::nonevar ::temp2 ::temp4 False ;3 variable args
           .endCode
         .endFunction ;IEB_IntimacyOnLoad
+        .function IEB_IntimacyOn
+           ; function type 0
+          .userFlags 0 ;none
+          .docString "Patch (Shae 2026-10-09): runtime kill switch for intimacy-profile AUTHORING. StorageUtil int
+      IEB_IntimacyEnabled on the player, default 0 (off). No script property. The list-A soak runs with it at 0;
+      setting it to 1 is a mid-save step after IP-1..IP-7 pass. The load-time mirror of profiles already on disk
+      and the rank-sync hook are not affected."
+          .return Bool
+          .paramTable
+          .endParamTable
+          .localTable
+            .local ::temp0 actor
+            .local ::temp1 form
+            .local ::temp2 Int
+            .local ::temp3 Bool
+          .endLocalTable
+          .code
+            ; line 8949
+            callstatic game GetPlayer ::temp0 ;0 variable args
+            cast ::temp1 ::temp0 
+            callstatic storageUtil GetIntValue ::temp2 ::temp1 "IEB_IntimacyEnabled" 0 ;3 variable args
+            cmp_eq ::temp3 ::temp2 1 
+            return ::temp3 
+          .endCode
+        .endFunction ;IEB_IntimacyOn
       .endState
     .endStateTable
   .endObject

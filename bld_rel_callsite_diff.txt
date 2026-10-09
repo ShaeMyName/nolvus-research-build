@@ -7,7 +7,7 @@
   OtherPartners                  snrom_bridge.maraspresent                    0 -> 1
   OtherPartners                  snrom_decorators.upper                       0 -> 1
   RomanceOk                      ischild                                      0 -> 1
-## SNRom_Bridge: baseline 1931 call sites, patched 2087
+## SNRom_Bridge: baseline 1931 call sites, patched 2092
   AcceptRomance                  diag                                         2 -> 3
   AcceptRomance                  getdisplayname                               2 -> 3
   AcceptRomance                  ischild                                      0 -> 1
@@ -69,8 +69,11 @@
   IEB_EnrollOnCourtship          snrom_bridge.isenrolled                      0 -> 1
   IEB_IntimacyCatchUp            ieb_intimacywanted                           0 -> 1
   IEB_IntimacyCatchUp            ieb_queueintimacy                            0 -> 1
+  IEB_IntimacyCatchUp            snrom_bridge.ieb_intimacyon                  0 -> 1
   IEB_IntimacyCatchUp            storageutil.formlistcount                    0 -> 2
   IEB_IntimacyCatchUp            storageutil.formlistget                      0 -> 1
+  IEB_IntimacyOn                 game.getplayer                               0 -> 1
+  IEB_IntimacyOn                 storageutil.getintvalue                      0 -> 1
   IEB_IntimacyOnLoad             diag                                         0 -> 1
   IEB_IntimacyOnLoad             ischild                                      0 -> 1
   IEB_IntimacyOnLoad             snrom_bridge.log_info                        0 -> 1
@@ -103,11 +106,13 @@
   IEB_PumpIntimacy               ieb_intimacywanted                           0 -> 1
   IEB_PumpIntimacy               ieb_sendintimacy                             0 -> 1
   IEB_PumpIntimacy               ischild                                      0 -> 1
+  IEB_PumpIntimacy               snrom_bridge.ieb_intimacyon                  0 -> 1
   IEB_PumpIntimacy               storageutil.formlistcount                    0 -> 1
   IEB_PumpIntimacy               storageutil.formlistget                      0 -> 1
   IEB_PumpIntimacy               storageutil.formlistremoveat                 0 -> 1
   IEB_QueueIntimacy              ieb_intimacywanted                           0 -> 1
   IEB_QueueIntimacy              ieb_pumpintimacy                             0 -> 1
+  IEB_QueueIntimacy              snrom_bridge.ieb_intimacyon                  0 -> 1
   IEB_QueueIntimacy              storageutil.formlistadd                      0 -> 1
   IEB_SendIntimacy               diag                                         0 -> 1
   IEB_SendIntimacy               getdisplayname                               0 -> 2
