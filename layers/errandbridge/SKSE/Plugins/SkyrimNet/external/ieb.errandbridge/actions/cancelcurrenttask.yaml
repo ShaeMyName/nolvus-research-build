@@ -1,0 +1,49 @@
+# Errand Bridge override of IntelEngine's CancelCurrentTask (spec §8.1, §11.1). Same name, so the model sees the
+# action IntelEngine's own 0801 prompt names. Routed to the bridge, which passes through to IntelEngine for anyone
+# the bridge does not hold.
+customCategory: intel_travel
+name: CancelCurrentTask
+description: >
+  Stop or call off the errand you are CURRENTLY on (travelling somewhere, fetching or escorting someone,
+  delivering a message, searching), when someone tells you to drop it, stop, wait, hold on, stay or come
+  back, or you decide it is not worth doing. If you are {{ player.name }}'s companion away on an errand
+  or waiting to rejoin after one, this is also how you answer "wait there" (stayHere 1) or "come back /
+  come here" (stayHere 0). Not for following someone when you have no errand.
+
+questEditorId: IEB_MainQuest
+scriptName: IEB_Main
+executionFunctionName: CancelOrRecall
+
+parameterMapping:
+  - type: speaker
+    name: akNPC
+    description: You (the one on the errand)
+  - type: dynamic
+    name: stayHere
+    description: "1 = stay where you are now; 0 = come back / drop it"
+
+eligibilityRules:
+  - conditions:
+      - decoratorName: is_in_combat
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true
+  - conditions:                       # on an IntelEngine task, or a bridge follower waiting to rejoin
+      - decoratorName: papyrus_util
+        arguments: ["GetIntValue", "currentActor", "Intel_Slot", -1]
+        comparisonOperator: "!="
+        expectedValue: -1
+      - decoratorName: papyrus_util
+        arguments: ["GetIntValue", "currentActor", "IEB_Held", 0]
+        comparisonOperator: "=="
+        expectedValue: 2
+    logicalOperator: "OR"
+    required: true
+
+eventString: "{{ actor.name }} called off their errand"
+isShortLived: true
+enabled: true
+defaultPriority: 7
+tags: []

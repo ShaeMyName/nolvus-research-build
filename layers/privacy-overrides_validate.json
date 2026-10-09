@@ -1,0 +1,287 @@
+{
+  "errors": [],
+  "files": 3,
+  "not_checked": [
+    "decorator names, arities and values (users register their own; every call is listed under unresolved)",
+    "action questEditorId / scriptName / executionFunctionName existence (needs game data)",
+    "eventType membership is a warning only (the game is the only source of the list)"
+  ],
+  "ok": true,
+  "plugin_id": "shae.privacy-overrides",
+  "shadows": [],
+  "unresolved": [
+    {
+      "code": "UNRESOLVED",
+      "col": 19,
+      "file": "ieb_intimacy_author",
+      "line": 19,
+      "message": "variable 'formid_to_uuid' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 12,
+      "file": "ieb_intimacy_author",
+      "line": 20,
+      "message": "variable 'decnpc' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 15,
+      "file": "ieb_intimacy_author",
+      "line": 21,
+      "message": "variable 'n.subjectivePronoun' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 15,
+      "file": "ieb_intimacy_author",
+      "line": 22,
+      "message": "variable 'n.possessivePronoun' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 14,
+      "file": "ieb_intimacy_author",
+      "line": 23,
+      "message": "variable 'n.objectivePronoun' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 18,
+      "file": "ieb_intimacy_author",
+      "line": 24,
+      "message": "variable 'npc_name' not found",
+      "original": "{{ npc_name }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 4,
+      "file": "ieb_intimacy_author",
+      "line": 27,
+      "message": "variable 'render_character_profile' not found",
+      "original": "{{ render_character_profile(\"bio_summary\", npc_uuid) }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 59,
+      "file": "ieb_intimacy_author",
+      "line": 27,
+      "message": "variable 'render_character_profile' not found",
+      "original": "{{ render_character_profile(\"bio_background\", npc_uuid) }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 117,
+      "file": "ieb_intimacy_author",
+      "line": 27,
+      "message": "variable 'render_character_profile' not found",
+      "original": "{{ render_character_profile(\"bio_personality\", npc_uuid) }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 176,
+      "file": "ieb_intimacy_author",
+      "line": 27,
+      "message": "variable 'render_character_profile' not found",
+      "original": "{{ render_character_profile(\"bio_aspirations\", npc_uuid) }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 235,
+      "file": "ieb_intimacy_author",
+      "line": 27,
+      "message": "variable 'render_character_profile' not found",
+      "original": "{{ render_character_profile(\"bio_occupation\", npc_uuid) }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 293,
+      "file": "ieb_intimacy_author",
+      "line": 27,
+      "message": "variable 'render_character_profile' not found",
+      "original": "{{ render_character_profile(\"bio_relationships\", npc_uuid) }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 4,
+      "file": "ieb_intimacy_author",
+      "line": 28,
+      "message": "variable 'render_character_profile' not found",
+      "original": "{{ render_character_profile(\"speech_style\", npc_uuid) }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 19,
+      "file": "ieb_intimacy_author",
+      "line": 32,
+      "message": "variable 'disp_orientation' not found",
+      "original": "{{ disp_orientation }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 16,
+      "file": "ieb_intimacy_author",
+      "line": 33,
+      "message": "variable 'disp_intimacy' not found",
+      "original": "{{ disp_intimacy }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 13,
+      "file": "ieb_intimacy_author",
+      "line": 34,
+      "message": "variable 'disp_ardor' not found",
+      "original": "{{ disp_ardor }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 19,
+      "file": "ieb_intimacy_author",
+      "line": 35,
+      "message": "variable 'disp_exclusivity' not found",
+      "original": "{{ disp_exclusivity }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 11,
+      "file": "ieb_intimacy_author",
+      "line": 36,
+      "message": "variable 'disp_why' not found",
+      "original": "{{ disp_why }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 13,
+      "file": "ieb_intimacy_author",
+      "line": 37,
+      "message": "variable 'disp_limit' not found",
+      "original": "{{ disp_limit }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 17,
+      "file": "ieb_snrom_author_child",
+      "line": 23,
+      "message": "variable 'npc_name' not found",
+      "original": "{{ npc_name }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 19,
+      "file": "ieb_snrom_author_child",
+      "line": 25,
+      "message": "variable 'formid_to_uuid' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 18,
+      "file": "ieb_snrom_author_child",
+      "line": 26,
+      "message": "variable 'get_diary_entries' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 24,
+      "file": "ieb_snrom_author_child",
+      "line": 34,
+      "message": "variable 'npc_name' not found",
+      "original": "{{ npc_name }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 70,
+      "file": "ieb_snrom_author_child",
+      "line": 35,
+      "message": "variable 'render_character_profile' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 18,
+      "file": "ieb_snrom_author_child",
+      "line": 35,
+      "message": "variable 'render_character_profile' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 125,
+      "file": "ieb_snrom_author_child",
+      "line": 35,
+      "message": "variable 'render_character_profile' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 68,
+      "file": "ieb_snrom_author_child",
+      "line": 35,
+      "message": "variable 'add' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 181,
+      "file": "ieb_snrom_author_child",
+      "line": 35,
+      "message": "variable 'render_character_profile' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 123,
+      "file": "ieb_snrom_author_child",
+      "line": 35,
+      "message": "variable 'add' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 237,
+      "file": "ieb_snrom_author_child",
+      "line": 35,
+      "message": "variable 'render_character_profile' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 179,
+      "file": "ieb_snrom_author_child",
+      "line": 35,
+      "message": "variable 'add' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 235,
+      "file": "ieb_snrom_author_child",
+      "line": 35,
+      "message": "variable 'add' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 4,
+      "file": "ieb_snrom_author_child",
+      "line": 41,
+      "message": "variable 'npc_bio' not found",
+      "original": "{{ npc_bio }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 34,
+      "file": "ieb_snrom_author_child",
+      "line": 44,
+      "message": "variable 'npc_name' not found",
+      "original": "{{ npc_name }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 18,
+      "file": "ieb_snrom_author_child",
+      "line": 50,
+      "message": "variable 'npc_name' not found",
+      "original": "{{ npc_name }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 10,
+      "file": "ieb_snrom_author_child",
+      "line": 54,
+      "message": "variable 'npc_name' not found",
+      "original": "{{ npc_name }}"
+    }
+  ],
+  "warnings": []
+}

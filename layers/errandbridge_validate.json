@@ -1,0 +1,35 @@
+{
+  "errors": [
+    {
+      "code": "MANIFEST_ID_AUTHOR_MISMATCH",
+      "file": "manifest.json",
+      "message": "manifest.id author segment 'ieb' does not match manifest.author 'shae'."
+    }
+  ],
+  "files": 7,
+  "not_checked": [
+    "decorator names, arities and values (users register their own; every call is listed under unresolved)",
+    "action questEditorId / scriptName / executionFunctionName existence (needs game data)",
+    "eventType membership is a warning only (the game is the only source of the list)"
+  ],
+  "ok": false,
+  "plugin_id": "ieb.errandbridge",
+  "shadows": [],
+  "unresolved": [
+    {
+      "code": "UNRESOLVED",
+      "col": 25,
+      "file": "submodules/character_bio/0802_ieb_errand",
+      "line": 2,
+      "message": "variable 'is_player' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 18,
+      "file": "submodules/character_bio/0802_ieb_errand",
+      "line": 3,
+      "message": "variable 'papyrus_util' not found"
+    }
+  ],
+  "warnings": []
+}

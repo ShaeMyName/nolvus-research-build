@@ -1,0 +1,5 @@
+# Errand Bridge category override (spec §11.1): the intent no longer claims stop/wait.
+customCategory: intel_travel
+name: Travel
+description: "Travel, movement, and tasks — SELECT THIS when {{ npc.name }} decides to: go somewhere, head to a location, go home, go outside/inside, lead someone to a destination, escort someone, go fetch a person and bring them back, abandon an errand they are currently on, hurry up, slow down, or change travel speed."
+enabled: true

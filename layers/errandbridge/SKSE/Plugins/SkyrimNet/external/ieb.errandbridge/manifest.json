@@ -1,0 +1,16 @@
+{
+  "id": "ieb.errandbridge",
+  "type": "bundle",
+  "title": "Errand Bridge (private)",
+  "tagline": "IntelEngine errands for NFF followers, SA lending, wait/recall routing.",
+  "description": "Component A of the Errand Bridge build (spec §11.1, §12). Private; never published.",
+  "author": "ieb",
+  "version": "1.0.0",
+  "min_skyrimnet_version": "0.25.0",
+  "nsfw": false,
+  "mods": [
+    { "required": true, "file": "ErrandBridge.esp", "name": "Errand Bridge" },
+    { "required": true, "file": "IntelEngine.esp", "name": "IntelEngine" },
+    { "required": true, "file": "nwsFollowerFramework.esp", "name": "Nether's Follower Framework" }
+  ]
+}

@@ -1,0 +1,16 @@
+{% if render_mode == "full" or render_mode == "thoughts" or render_mode == "transform" %}
+{% if actorUUID and not is_player(actorUUID) %}
+{% set iebHeld = papyrus_util("GetIntValue", actorUUID, "IEB_Held", 0) %}
+{% if iebHeld == 1 or iebHeld == 2 %}
+{% set iebName = decnpc(actorUUID).name %}
+{% set iebTarget = papyrus_util("GetStringValue", actorUUID, "IEB_TaskTarget", "") %}
+### Where {{ iebName }} Is Right Now
+{% if iebHeld == 1 %}
+- {{ iebName }} is still a member of {{ player.name }}'s party, but is not at {{ player.name }}'s side right now: {{ iebName }} is away on an errand for {{ player.name }}{% if iebTarget != "" %} (involving {{ iebTarget }}){% endif %} and will rejoin the group afterwards. This is more current than the travel history above.
+{% else %}
+- {{ iebName }} has finished an errand for {{ player.name }}{% if iebTarget != "" %} (involving {{ iebTarget }}){% endif %} and is waiting here to rejoin the group; {{ player.name }} is not with {{ iebName }} yet. This is more current than the travel history above.
+- If {{ player.name }} asks {{ iebName }} to come back now, or to stay put, use CancelCurrentTask (stayHere 0 = come back, 1 = stay).
+{% endif %}
+{% endif %}
+{% endif %}
+{% endif %}

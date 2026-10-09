@@ -1,8 +1,10 @@
 Scriptname IEB_Main extends Quest
-{Errand Bridge main quest script (spec §4-§9). SHELL SKELETON (step 3, list A3): final name and FROZEN property list.
- Bodies grow mid-save; anything not listed here is looked up with Game.GetFormFromFile, never a new property.}
+{Errand Bridge main quest script (spec §4-§9). One serialized worker: every state change happens in OnUpdate,
+ guarded by the Working state (R12); handlers only set request keys and ask for a tick.
+ FROZEN property list (spec §16.4 freeze rule): never add, remove or rename a property. Anything else is looked up
+ with Game.GetFormFromFile.}
 
-; ---- FROZEN property list (spec §16.4 freeze rule). Never add, remove or rename. ----
+; ---- FROZEN property list ----
 GlobalVariable Property IEB_Enabled Auto
 GlobalVariable Property IEB_PollSeconds Auto
 GlobalVariable Property IEB_LogLevel Auto
@@ -17,35 +19,789 @@ GlobalVariable Property IEB_Spare01 Auto
 GlobalVariable Property IEB_Spare02 Auto
 Actor Property PlayerRef Auto
 
-Int _ticks
+; ---- caches (rebuilt after every load; never relied on across saves) ----
+ReferenceAlias[] _agents
+Int _tick
+Int _reconcileAt          ; tick number at which a load reconcile is due (0 = none)
+Bool _reconcileSecond
+
+; ============================================================================ lifecycle
 
 Event OnInit()
-    Log("IEB_Main OnInit (shell skeleton)")
-    StartTicking()
+    Setup()
+    RegisterForSingleUpdate(5.0)
 EndEvent
 
 Function OnGameLoad()
-    {Called by IEB_PlayerAlias.OnPlayerLoadGame.}
-    Log("IEB_Main game load (shell skeleton): enabled=" + IEB_Enabled.GetValue() + " poll=" + IEB_PollSeconds.GetValue())
-    StartTicking()
+    {IEB_PlayerAlias.OnPlayerLoadGame. Settle delay longer than IntelEngine's 2 s maintenance dedupe (R7).}
+    Setup()
+    _reconcileAt = -1
+    _reconcileSecond = False
+    RegisterForSingleUpdate(5.0)
 EndFunction
 
-Function StartTicking()
-    Float poll = IEB_PollSeconds.GetValue()
-    If IEB_Enabled.GetValue() < 1.0
-        poll = 5.0
-    EndIf
-    RegisterForSingleUpdate(poll)
+Function Setup()
+    Debug.OpenUserLog("ErrandBridge")
+    _agents = IEB_IELib.AgentAliases()
+    RegisterForModEvent("IntelEngine_TaskStarted", "OnIETaskStarted")
+    RegisterForModEvent("IntelEngine_TaskEnded", "OnIETaskEnded")
+    RegisterForModEvent("maras_status_changed", "OnMarasStatusChanged")
+    Log(2, "SETUP agents=" + _agents.Length + " enabled=" + IEB_Enabled.GetValueInt())
 EndFunction
 
-Event OnUpdate()
-    _ticks += 1
-    If _ticks == 1 || _ticks % 60 == 0
-        Log("IEB_Main tick " + _ticks + " (shell skeleton)")
-    EndIf
-    StartTicking()
+; ============================================================================ event handlers (request + tick only)
+
+Event OnIETaskStarted(String asEventName, String asTaskType, Float afSlot, Form akSender)
+    RegisterForSingleUpdate(0.1)
 EndEvent
 
-Function Log(String asMsg)
+Event OnIETaskEnded(String asEventName, String asResult, Float afSlot, Form akSender)
+    Actor a = akSender as Actor
+    If a != None
+        StorageUtil.SetIntValue(a, "IEB_EndedEvt", 1)
+    EndIf
+    RegisterForSingleUpdate(0.1)
+EndEvent
+
+Event OnMarasStatusChanged(String asEventName, String asStatus, Float afStatusEnum, Form akSender)
+    {Rank-sync hook 2 (spec §11.14.1). Cheap and stateless, so it runs here rather than in the tick.}
+    IEB_RankSync.OnMarasStatus(akSender as Actor)
+EndEvent
+
+; ============================================================================ worker
+
+Event OnUpdate()
+    GotoState("Working")
+    Tick()
+    GotoState("")
+    ScheduleNext()
+EndEvent
+
+State Working
+    Event OnUpdate()
+        RegisterForSingleUpdate(0.2)    ; a tick is running; try again shortly
+    EndEvent
+EndState
+
+Function ScheduleNext()
+    If IEB_Enabled.GetValueInt() == 1
+        RegisterForSingleUpdate(IEB_PollSeconds.GetValue())
+    Else
+        RegisterForSingleUpdate(5.0)
+    EndIf
+EndFunction
+
+Function Tick()
+    _tick += 1
+    If !EnableTransitions()
+        Return
+    EndIf
+    If _reconcileAt == -1
+        Reconcile()
+        _reconcileAt = _tick + 15        ; second reconcile at about +15 s
+        _reconcileSecond = True
+    ElseIf _reconcileSecond && _tick >= _reconcileAt
+        Reconcile()
+        _reconcileSecond = False
+    EndIf
+    Discover()
+    ReleaseScan()
+    UpkeepAll()
+    If _tick % 5 == 0
+        OrphanSweep()
+        IEB_RankSync.SweepStep(4)
+    EndIf
+EndFunction
+
+; ============================================================================ §9.1 off switch
+
+Bool Function EnableTransitions()
+    {True when the bridge is enabled. Handles the 1 -> 0 and 0 -> 1 transitions once.}
+    Int now = IEB_Enabled.GetValueInt()
+    Int was = StorageUtil.GetIntValue(None, "IEB_WasEnabled", 1)
+    If now == was
+        Return now == 1
+    EndIf
+    StorageUtil.SetIntValue(None, "IEB_WasEnabled", now)
+    If now == 0
+        Disable()
+        Return False
+    EndIf
+    IEB_IELib.RestoreSkipFollower()
+    Log(1, "ENABLE")
+    Return True
+EndFunction
+
+Function Disable()
+    Int i = StorageUtil.FormListCount(None, "IEB_HeldList") - 1
+    While i >= 0
+        Actor a = StorageUtil.FormListGet(None, "IEB_HeldList", i) as Actor
+        If a != None
+            If StorageUtil.GetIntValue(a, "IEB_Lent", 0) == 1
+                IEB_IELib.CancelSlotOf(a)
+                LendRestore(a, "disable")
+            ElseIf StorageUtil.GetIntValue(a, "IEB_Held", 0) == 2
+                IEB_NFFLib.Follow(a)
+                ClearKeys(a)
+                Log(1, "REJOIN_DONE actor=" + a.GetDisplayName() + " reason=disable")
+            ElseIf StorageUtil.GetIntValue(a, "IEB_Held", 0) == 1
+                StorageUtil.SetIntValue(a, "IEB_Recall", 1)
+                Release(a, "disable")
+            EndIf
+        EndIf
+        i -= 1
+    EndWhile
+    IEB_IELib.SaveAndSetSkipFollower()
+    Log(1, "DISABLE")
+EndFunction
+
+; ============================================================================ §5 step 2: discover
+
+Function Discover()
+    Int s = 0
+    While s < _agents.Length
+        Actor a = None
+        If _agents[s] != None
+            a = _agents[s].GetActorReference()
+        EndIf
+        If a != None && !a.IsDead()
+            If IEB_IELib.SlotCountOf(a, _agents) > 1
+                DispatchConflict(a)                                  ; one actor in two agent aliases
+            Else
+                IEB_IELib.CopyTask(a)
+                StorageUtil.SetIntValue(a, "IEB_SeenTask", 1)
+                StorageUtil.SetIntValue(a, "IEB_Absent", 0)
+                StorageUtil.SetIntValue(a, "IEB_InSlot", _tick)
+                StorageUtil.UnsetIntValue(a, "IEB_EndedEvt")           ; seen again: a re-task, not an end
+                Int gate = StorageUtil.GetIntValue(a, "IEB_Gate", 0)
+                Int held = StorageUtil.GetIntValue(a, "IEB_Held", 0)
+                If gate == 0
+                    If IEB_IELib.IsStoryTask(a) && IEB_NFFLib.Seated(a)
+                        DispatchConflict(a)                          ; patch B missing or stale (§6.4)
+                    Else
+                        Classify(a)
+                    EndIf
+                ElseIf held == 2
+                    If IEB_IELib.IsStoryTask(a)
+                        DispatchConflict(a)                          ; a story beat on a rejoin-phase follower
+                    Else
+                        ; §8.4: one continuous hold, no re-park (WFP is already 1)
+                        StorageUtil.SetIntValue(a, "IEB_Held", 1)
+                        Log(1, "TAKE actor=" + a.GetDisplayName() + " reason=retask_from_rejoin")
+                    EndIf
+                EndIf
+            EndIf
+        EndIf
+        s += 1
+    EndWhile
+EndFunction
+
+; ============================================================================ §6.1 / §6.5 classify
+
+Function Classify(Actor a)
+    String who = a.GetDisplayName()
+    Bool seated = IEB_NFFLib.Seated(a)
+    Int cf = IEB_CFLib.RegistryIndex(a)
+    ; 1a: a registry NPC that NFF also seats (imported) - handed to two systems
+    If cf >= 0 && seated
+        Refuse(a, "double_managed")
+        Return
+    EndIf
+    ; 1: NFF-seated
+    If seated
+        Park(a)
+        Return
+    EndIf
+    ; 1b: registry NPC still recruited by its own mod -> Mode 4
+    If cf >= 0 && IEB_CFLib.Recruited(a, cf)
+        If IEB_CFEnabled.GetValueInt() != 1
+            Refuse(a, "cf_disabled")
+            Return
+        EndIf
+        String why = IEB_CFLib.RefuseReason(a, cf)
+        If why != ""
+            Refuse(a, why)
+            Return
+        EndIf
+        TakeMode4(a, cf)
+        Return
+    EndIf
+    ; 2: SA-posted (moved above Intel_WasFollower: gap G5)
+    If IEB_SALib.Present() && IEB_SALib.IsPosted(a)
+        If IEB_LendEnabled.GetValueInt() != 1
+            Refuse(a, "lend_disabled")
+            Return
+        EndIf
+        String reason = IEB_SALib.RefuseReason(a, StorageUtil.GetIntValue(a, "IEB_Origin", 1), IEB_LendStoryPolicy.GetValueInt())
+        If reason != ""
+            Refuse(a, reason)
+            Return
+        EndIf
+        Lend(a)
+        Return
+    EndIf
+    ; 3: was a teammate when IntelEngine took them -> Mode 2
+    If StorageUtil.GetIntValue(a, "Intel_WasFollower", 0) == 1
+        StorageUtil.SetIntValue(a, "IEB_Held", 1)
+        StorageUtil.SetIntValue(a, "IEB_Gate", 1)
+        StorageUtil.SetIntValue(a, "IEB_Mode", 2)
+        StorageUtil.SetIntValue(a, "IEB_Recall", 0)
+        StorageUtil.SetIntValue(a, "IEB_Absent", 0)
+        StorageUtil.FormListAdd(None, "IEB_HeldList", a, False)
+        Log(1, "TAKE actor=" + who + " mode=2")
+        Return
+    EndIf
+    ; 4: otherwise, once per task
+    If StorageUtil.GetIntValue(a, "IEB_SkipLogged", 0) == 0
+        StorageUtil.SetIntValue(a, "IEB_SkipLogged", 1)
+        Log(2, "TAKE_SKIP actor=" + who + " reason=nonfollower")
+    EndIf
+EndFunction
+
+; ============================================================================ §6.2 park (Mode 1)
+
+Function Park(Actor a)
+    If StorageUtil.GetIntValue(a, "IEB_Gate", 0) == 1
+        Return
+    EndIf
+    Float pre = a.GetActorValue("WaitingForPlayer")
+    IEB_NFFLib.Wait(a)                                   ; sync variant only (R1)
+    StorageUtil.SetIntValue(a, "IEB_Held", 1)
+    StorageUtil.SetIntValue(a, "IEB_Gate", 1)
+    StorageUtil.SetIntValue(a, "IEB_Mode", 1)
+    StorageUtil.SetFloatValue(a, "IEB_PreWait", pre)
+    StorageUtil.SetFloatValue(a, "IEB_LastPark", Utility.GetCurrentGameTime())
+    StorageUtil.SetIntValue(a, "IEB_Recall", 0)
+    StorageUtil.SetIntValue(a, "IEB_Absent", 0)
+    StorageUtil.SetFloatValue(a, "IEB_LastWFP", 1.0)
+    StorageUtil.FormListAdd(None, "IEB_HeldList", a, False)
+    Log(1, "TAKE actor=" + a.GetDisplayName() + " mode=1 prewait=" + pre)
+EndFunction
+
+; ============================================================================ §6.3 lend (Mode 3)
+
+Function Lend(Actor a)
+    StorageUtil.SetFloatValue(a, "IEB_SA_PrevWFP", a.GetActorValue("WaitingForPlayer"))
+    Int kind = IEB_SALib.Suspend(a)
+    StorageUtil.SetIntValue(a, "IEB_SA_Kind", kind)
+    StorageUtil.SetIntValue(a, "IEB_Lent", 1)
+    StorageUtil.SetIntValue(a, "IEB_Gate", 1)
+    StorageUtil.SetIntValue(a, "IEB_Mode", 3)
+    StorageUtil.SetIntValue(a, "IEB_Absent", 0)
+    StorageUtil.FormListAdd(None, "IEB_HeldList", a, False)
+    a.EvaluatePackage()
+    Log(1, "LEND actor=" + a.GetDisplayName() + " kind=" + kind)
+EndFunction
+
+; ============================================================================ §6.5 Mode 4 take
+
+Function TakeMode4(Actor a, Int cf)
+    StorageUtil.SetFloatValue(a, "IEB_PreWait", a.GetActorValue("WaitingForPlayer"))
+    IEB_CFLib.Park(a, cf)                                 ; saves IEB_CF_PreGlobal itself for wfp+global
+    StorageUtil.SetIntValue(a, "IEB_Held", 1)
+    StorageUtil.SetIntValue(a, "IEB_Gate", 1)
+    StorageUtil.SetIntValue(a, "IEB_Mode", 4)
+    StorageUtil.SetIntValue(a, "IEB_CF", cf)
+    StorageUtil.SetIntValue(a, "IEB_Recall", 0)
+    StorageUtil.SetIntValue(a, "IEB_Absent", 0)
+    StorageUtil.SetFloatValue(a, "IEB_LastWFP", a.GetActorValue("WaitingForPlayer"))
+    StorageUtil.FormListAdd(None, "IEB_HeldList", a, False)
+    a.EvaluatePackage()
+    IEB_CFLib.CatchupPauseUpdate(IEB_CFPauseCatchup.GetValueInt())
+    Log(1, "TAKE actor=" + a.GetDisplayName() + " mode=4 cf=" + cf)
+EndFunction
+
+; ============================================================================ §6.4 refuse and dispatch conflict
+
+Function Refuse(Actor a, String asReason)
+    IEB_IELib.CancelSlotOf(a)
+    SkyrimNetApi.RegisterEvent("ieb_errand_refused", a.GetDisplayName() + " could not leave " + RefusalPlace(asReason) + \
+        " for that errand.", a, PlayerRef)
+    Log(1, "REFUSE actor=" + a.GetDisplayName() + " reason=" + asReason)
+EndFunction
+
+String Function RefusalPlace(String asReason)
+    If asReason == "war_band"
+        Return "the war band"
+    ElseIf asReason == "steward_visit" || asReason == "on_duty_story"
+        Return "their duties"
+    ElseIf asReason == "sa_wait"
+        Return "the spot they were told to wait at"
+    ElseIf asReason == "sa_busy"
+        Return "what they were already doing"
+    EndIf
+    Return "their post"
+EndFunction
+
+Function DispatchConflict(Actor a)
+    IEB_IELib.CancelSlotOf(a)
+    Utility.Wait(0.5)
+    IEB_IELib.CancelSlotOf(a)
+    If StorageUtil.GetIntValue(a, "IEB_Lent", 0) == 1
+        LendRestore(a, "conflict")
+    ElseIf StorageUtil.GetIntValue(a, "IEB_Held", 0) == 1
+        Release(a, "conflict")
+    EndIf
+    Log(1, "DISPATCH_CONFLICT actor=" + a.GetDisplayName())
+EndFunction
+
+; ============================================================================ §5 step 3: release scan
+
+Function ReleaseScan()
+    Int i = StorageUtil.FormListCount(None, "IEB_HeldList") - 1
+    While i >= 0
+        Actor a = StorageUtil.FormListGet(None, "IEB_HeldList", i) as Actor
+        If a != None
+            Int held = StorageUtil.GetIntValue(a, "IEB_Held", 0)
+            Int lent = StorageUtil.GetIntValue(a, "IEB_Lent", 0)
+            If held == 1 || lent == 1
+                If StorageUtil.GetIntValue(a, "IEB_InSlot", -1) != _tick
+                    StorageUtil.AdjustIntValue(a, "IEB_Absent", 1)
+                EndIf
+                Bool ended = StorageUtil.GetIntValue(a, "IEB_EndedEvt", 0) == 1 && StorageUtil.GetIntValue(a, "IEB_InSlot", -1) != _tick
+                If StorageUtil.GetIntValue(a, "IEB_Absent", 0) >= 2 || ended || a.IsDead()
+                    StorageUtil.UnsetIntValue(a, "IEB_EndedEvt")
+                    If lent == 1
+                        LendRestore(a, "task_end")
+                    ElseIf StorageUtil.GetIntValue(a, "IEB_Mode", 0) == 4
+                        ReleaseMode4(a)
+                    Else
+                        Release(a, "task_end")
+                    EndIf
+                EndIf
+            EndIf
+        Else
+            StorageUtil.FormListRemoveAt(None, "IEB_HeldList", i)
+        EndIf
+        i -= 1
+    EndWhile
+EndFunction
+
+; ============================================================================ §7.1 release (Modes 1 and 2)
+
+Function Release(Actor a, String asWhy)
+    If StorageUtil.GetIntValue(a, "IEB_Held", 0) != 1
+        Return
+    EndIf
+    String who = a.GetDisplayName()
+    Int mode = StorageUtil.GetIntValue(a, "IEB_Mode", 0)
+    If a.IsDead()
+        ClearKeys(a)
+        Log(1, "RELEASE_DEAD actor=" + who)
+        Return
+    EndIf
+    Bool seated = IEB_NFFLib.Seated(a)
+    If mode == 1 && !seated
+        ClearKeys(a)
+        Log(1, "RELEASE_SEATLOST actor=" + who)
+        Return
+    EndIf
+    If mode == 2
+        ; G3: restore the teammate flag only if in CurrentFollowerFaction and WFP != -1; else force it off
+        If InCFF(a) && a.GetActorValue("WaitingForPlayer") != -1.0
+            If !a.IsPlayerTeammate()
+                a.SetPlayerTeammate(True, True)
+                Log(1, "TEAMMATE_WAS_OFF actor=" + who)
+            EndIf
+        ElseIf a.IsPlayerTeammate()
+            a.SetPlayerTeammate(False)
+        EndIf
+    ElseIf seated && !a.IsPlayerTeammate()
+        a.SetPlayerTeammate(True, True)
+        Log(1, "TEAMMATE_WAS_OFF actor=" + who)
+    EndIf
+    SkyrimNetApi.ReinforcePackages(a)
+    StorageUtil.SetFloatValue(a, "IEB_EndedAt", Utility.GetCurrentGameTime())
+    If mode == 2
+        ClearKeys(a)
+        a.EvaluatePackage()
+        Log(1, "RELEASE actor=" + who + " mode=2 why=" + asWhy)
+        Return
+    EndIf
+    Int recall = StorageUtil.GetIntValue(a, "IEB_Recall", 0)
+    If recall == 2 || (StorageUtil.GetFloatValue(a, "IEB_PreWait", 0.0) > 0.0 && recall != 1)
+        IEB_NFFLib.Wait(a)
+        ClearKeys(a)
+        Log(1, "RELEASE_STAY actor=" + who)
+    ElseIf recall == 1 || RejoinTest(a)
+        IEB_NFFLib.Follow(a)
+        ClearKeys(a)
+        Log(1, "RELEASE_FOLLOW actor=" + who)
+    Else
+        StorageUtil.SetIntValue(a, "IEB_Held", 2)          ; Gate stays 1
+        Log(1, "REJOIN_WAIT actor=" + who)
+    EndIf
+    a.EvaluatePackage()
+EndFunction
+
+Bool Function InCFF(Actor a)
+    Faction cff = Game.GetFormFromFile(0x0005C84E, "Skyrim.esm") as Faction
+    Return cff != None && a.GetFactionRank(cff) >= 0
+EndFunction
+
+; ============================================================================ §7.2 rejoin test
+
+Bool Function RejoinTest(Actor a)
+    {U1: unloaded and NFF warp on. U2: loaded, same space, within N and |dZ| <= N/2.}
+    If !a.Is3DLoaded()
+        Return IEB_NFFLib.AllowWarp()
+    EndIf
+    If !SameSpace(a, PlayerRef)
+        Return False
+    EndIf
+    Float n = IEB_RejoinWarpFactor.GetValue() * IEB_NFFLib.WarpRange()
+    Float dz = a.GetPositionZ() - PlayerRef.GetPositionZ()
+    If dz < 0.0
+        dz = -dz
+    EndIf
+    Return a.GetDistance(PlayerRef) <= n && dz <= n / 2.0
+EndFunction
+
+Bool Function SameSpace(Actor a, Actor b)
+    Cell ca = a.GetParentCell()
+    Cell cb = b.GetParentCell()
+    If ca == None || cb == None
+        Return False
+    EndIf
+    If ca.IsInterior() || cb.IsInterior()
+        Return ca == cb
+    EndIf
+    Return a.GetWorldSpace() == b.GetWorldSpace()
+EndFunction
+
+; ============================================================================ §7.3 lend restore
+
+Function LendRestore(Actor a, String asWhy)
+    If StorageUtil.GetIntValue(a, "IEB_Lent", 0) != 1
+        Return
+    EndIf
+    String who = a.GetDisplayName()
+    If IEB_SALib.IsSAFollower(a)
+        ClearKeys(a)
+        Log(1, "LEND_RESTORE_SKIP actor=" + who + " reason=now_follower")
+        Return
+    EndIf
+    Int kind = StorageUtil.GetIntValue(a, "IEB_SA_Kind", 0)
+    IEB_SALib.Restore(a, StorageUtil.GetFloatValue(a, "IEB_SA_PrevWFP", 0.0))
+    a.EvaluatePackage()
+    ClearKeys(a)
+    Log(1, "LEND_RESTORE actor=" + who + " kind=" + kind + " why=" + asWhy)
+EndFunction
+
+; ============================================================================ §6.5 Mode 4 release
+
+Function ReleaseMode4(Actor a)
+    If StorageUtil.GetIntValue(a, "IEB_Held", 0) != 1
+        Return
+    EndIf
+    String who = a.GetDisplayName()
+    Int cf = StorageUtil.GetIntValue(a, "IEB_CF", -1)
+    If a.IsDead()
+        ClearKeys(a)
+        IEB_CFLib.CatchupPauseUpdate(IEB_CFPauseCatchup.GetValueInt())
+        Log(1, "RELEASE_DEAD actor=" + who + " mode=4")
+        Return
+    EndIf
+    If StorageUtil.GetIntValue(a, "IEB_Recall", 0) == 2
+        ClearKeys(a)
+        Log(1, "RELEASE_STAY actor=" + who + " mode=4")
+    Else
+        IEB_CFLib.Unpark(a, cf, StorageUtil.GetFloatValue(a, "IEB_PreWait", 0.0))
+        a.EvaluatePackage()
+        ClearKeys(a)
+        Log(1, "RELEASE_FOLLOW actor=" + who + " mode=4")
+    EndIf
+    ; teammate: recruited and off -> on; dismissed -> what the follower's own mod left (after IntelEngine's restore)
+    If IEB_CFLib.Recruited(a, cf)
+        If !a.IsPlayerTeammate()
+            a.SetPlayerTeammate(True, True)
+            Log(1, "TEAMMATE_WAS_OFF actor=" + who)
+        EndIf
+    ElseIf StorageUtil.HasIntValue(a, "IEB_CF_DismissTM")
+        a.SetPlayerTeammate(StorageUtil.GetIntValue(a, "IEB_CF_DismissTM", 0) == 1)
+        StorageUtil.UnsetIntValue(a, "IEB_CF_DismissTM")
+        Log(1, "CF_UNTEAMMATE actor=" + who)
+    EndIf
+    IEB_CFLib.ReleaseFixups(a, cf)
+    IEB_CFLib.CatchupPauseUpdate(IEB_CFPauseCatchup.GetValueInt())
+EndFunction
+
+; ============================================================================ §5 steps 4-6: upkeep
+
+Function UpkeepAll()
+    Int i = StorageUtil.FormListCount(None, "IEB_HeldList") - 1
+    While i >= 0
+        Actor a = StorageUtil.FormListGet(None, "IEB_HeldList", i) as Actor
+        If a != None
+            Int held = StorageUtil.GetIntValue(a, "IEB_Held", 0)
+            If StorageUtil.GetIntValue(a, "IEB_Lent", 0) == 1
+                LendUpkeep(a)
+            ElseIf held == 1 && StorageUtil.GetIntValue(a, "IEB_Mode", 0) == 4
+                Mode4Upkeep(a)
+            ElseIf held == 1
+                HeldUpkeep(a)
+            ElseIf held == 2
+                RejoinUpkeep(a)
+            EndIf
+        EndIf
+        i -= 1
+    EndWhile
+EndFunction
+
+Function HeldUpkeep(Actor a)
+    Int mode = StorageUtil.GetIntValue(a, "IEB_Mode", 0)
+    Float wfp = a.GetActorValue("WaitingForPlayer")
+    ; G1: external follow = a 1 -> 0 transition, Modes 1 (and 4, in Mode4Upkeep) only
+    If mode == 1
+        If StorageUtil.GetFloatValue(a, "IEB_LastWFP", 1.0) == 1.0 && wfp == 0.0 && StorageUtil.GetIntValue(a, "IEB_Recall", 0) == 0
+            StorageUtil.SetIntValue(a, "IEB_Recall", 1)
+            IEB_IELib.CancelSlotOf(a)
+            Log(1, "CMD_FOLLOW actor=" + a.GetDisplayName())
+        EndIf
+        If !IEB_NFFLib.Seated(a)
+            StorageUtil.SetIntValue(a, "IEB_SeatLost", 1)
+        EndIf
+        RefreshParkTimer(a, wfp)
+    EndIf
+    StorageUtil.SetFloatValue(a, "IEB_LastWFP", wfp)
+EndFunction
+
+Function RefreshParkTimer(Actor a, Float wfp)
+    {G2: Mode 1 only. NFF's wait timer is refreshed by re-parking (R9).}
+    If wfp == 1.0 && Utility.GetCurrentGameTime() - StorageUtil.GetFloatValue(a, "IEB_LastPark", 0.0) > IEB_ParkRefreshHours.GetValue() / 24.0
+        IEB_NFFLib.Wait(a)
+        StorageUtil.SetFloatValue(a, "IEB_LastPark", Utility.GetCurrentGameTime())
+        Log(2, "REPARK actor=" + a.GetDisplayName())
+    EndIf
+EndFunction
+
+Function RejoinUpkeep(Actor a)
+    String who = a.GetDisplayName()
+    Float wfp = a.GetActorValue("WaitingForPlayer")
+    If a.IsDead()
+        ClearKeys(a)
+        Log(1, "REJOIN_CANCELLED actor=" + who + " reason=dead")
+        Return
+    EndIf
+    If !IEB_NFFLib.Seated(a)
+        ClearKeys(a)
+        Log(1, "REJOIN_CANCELLED actor=" + who + " reason=seat_lost")
+        Return
+    EndIf
+    If wfp == 0.0
+        ClearKeys(a)
+        Log(1, "REJOIN_CANCELLED actor=" + who + " reason=player_follow")
+        Return
+    EndIf
+    If !a.Is3DLoaded() && !IEB_NFFLib.AllowWarp()
+        ClearKeys(a)
+        Log(1, "REJOIN_TO_WAIT actor=" + who + " reason=unloaded_nowarp")
+        Return
+    EndIf
+    If RejoinTest(a)
+        IEB_NFFLib.Follow(a)
+        ClearKeys(a)
+        a.EvaluatePackage()
+        Log(1, "REJOIN_DONE actor=" + who)
+        Return
+    EndIf
+    RefreshParkTimer(a, wfp)
+EndFunction
+
+Function LendUpkeep(Actor a)
+    {§7.3 abort triggers: each cancels the slot, then restores.}
+    String why = IEB_SALib.AbortReason(a)
+    If why != ""
+        IEB_IELib.CancelSlotOf(a)
+        LendRestore(a, "abort:" + why)
+        Log(1, "LEND_ABORT actor=" + a.GetDisplayName() + " reason=" + why)
+    EndIf
+EndFunction
+
+Function Mode4Upkeep(Actor a)
+    String who = a.GetDisplayName()
+    Int cf = StorageUtil.GetIntValue(a, "IEB_CF", -1)
+    Float wfp = a.GetActorValue("WaitingForPlayer")
+    If !IEB_CFLib.Recruited(a, cf)
+        StorageUtil.SetIntValue(a, "IEB_CF_DismissTM", a.IsPlayerTeammate() as Int)
+        IEB_IELib.CancelSlotOf(a)
+        Log(1, "CF_DISMISSED actor=" + who)
+        Return
+    EndIf
+    String midtask = IEB_CFLib.RefuseReason(a, cf)
+    If midtask != "" && StorageUtil.GetIntValue(a, "IEB_Recall", 0) == 0
+        StorageUtil.SetIntValue(a, "IEB_Recall", 1)
+        IEB_IELib.CancelSlotOf(a)
+        Log(1, "CF_REFUSE_MIDTASK actor=" + who + " reason=" + midtask)
+        Return
+    EndIf
+    Int outside = IEB_CFLib.ParkUndone(a, cf, StorageUtil.GetFloatValue(a, "IEB_LastWFP", 1.0), wfp)
+    If outside != 0 && StorageUtil.GetIntValue(a, "IEB_Recall", 0) == 0
+        StorageUtil.SetIntValue(a, "IEB_Recall", outside)     ; 1 = follow (park undone), 2 = stay (Inigo told to wait)
+        IEB_IELib.CancelSlotOf(a)
+        Log(1, "CMD_FOLLOW actor=" + who + " mode=4 recall=" + outside)
+    EndIf
+    StorageUtil.SetFloatValue(a, "IEB_LastWFP", wfp)
+EndFunction
+
+; ============================================================================ §9.2 reconcile
+
+Function Reconcile()
+    Log(2, "RECONCILE")
+    Int i = StorageUtil.FormListCount(None, "IEB_HeldList") - 1
+    While i >= 0
+        Actor a = StorageUtil.FormListGet(None, "IEB_HeldList", i) as Actor
+        If a != None
+            Bool inAlias = IEB_IELib.SlotCountOf(a, _agents) > 0
+            Int held = StorageUtil.GetIntValue(a, "IEB_Held", 0)
+            Int mode = StorageUtil.GetIntValue(a, "IEB_Mode", 0)
+            If StorageUtil.GetIntValue(a, "IEB_Lent", 0) == 1
+                If !inAlias
+                    LendRestore(a, "reconcile")
+                ElseIf IEB_SALib.AbortReason(a) == "sa_retake"
+                    IEB_IELib.CancelSlotOf(a)
+                    LendRestore(a, "abort:sa_retake")
+                Else
+                    IEB_SALib.Reassert(a)
+                EndIf
+            ElseIf held == 1 && !inAlias
+                If mode == 4
+                    ReleaseMode4(a)
+                Else
+                    Release(a, "reconcile")
+                EndIf
+            ElseIf held == 1 && !a.IsDead()
+                If mode == 1 && StorageUtil.GetIntValue(a, "IEB_Recall", 0) == 0 && a.GetActorValue("WaitingForPlayer") != 1.0
+                    IEB_NFFLib.Wait(a)
+                    Log(2, "REPARK actor=" + a.GetDisplayName() + " reason=reconcile")
+                ElseIf mode == 4 && StorageUtil.GetIntValue(a, "IEB_Recall", 0) == 0
+                    IEB_CFLib.Park(a, StorageUtil.GetIntValue(a, "IEB_CF", -1))
+                EndIf
+            ElseIf held == 2
+                If a.GetActorValue("WaitingForPlayer") != 1.0
+                    IEB_NFFLib.Wait(a)
+                EndIf
+                If !a.IsPlayerTeammate() && IEB_NFFLib.Seated(a)
+                    a.SetPlayerTeammate(True, True)
+                EndIf
+            EndIf
+        EndIf
+        i -= 1
+    EndWhile
+    IEB_CFLib.CatchupPauseUpdate(IEB_CFPauseCatchup.GetValueInt())
+    IEB_RankSync.SweepStep(4)
+EndFunction
+
+; ============================================================================ §9.3 orphan sweep
+
+Function OrphanSweep()
+    ; held-list hygiene: Gate 0 -> drop
+    Int i = StorageUtil.FormListCount(None, "IEB_HeldList") - 1
+    While i >= 0
+        Actor a = StorageUtil.FormListGet(None, "IEB_HeldList", i) as Actor
+        If a == None || StorageUtil.GetIntValue(a, "IEB_Gate", 0) == 0
+            StorageUtil.FormListRemoveAt(None, "IEB_HeldList", i)
+        ElseIf StorageUtil.GetIntValue(a, "IEB_Lent", 0) == 1 && IEB_IELib.SlotCountOf(a, _agents) == 0
+            LendRestore(a, "orphan")
+        EndIf
+        i -= 1
+    EndWhile
+    ; v1 teammate-orphan rule over the NFF seats
+    Actor[] seats = IEB_NFFLib.SeatedActors()
+    Int s = 0
+    While s < seats.Length
+        Actor f = seats[s]
+        If f != None && !f.IsDead() && !f.IsPlayerTeammate() && StorageUtil.GetIntValue(f, "IEB_Gate", 0) == 0 && \
+           StorageUtil.GetIntValue(f, "IEB_SeenTask", 0) == 1 && IEB_IELib.SlotCountOf(f, _agents) == 0 && \
+           !IEB_NFFLib.Sparring(f) && !StorageUtil.HasIntValue(f, "SeverBrawl_WasNFF")
+            f.SetPlayerTeammate(True, True)
+            StorageUtil.UnsetIntValue(f, "IEB_SeenTask")
+            Log(1, "ORPHAN_FIX actor=" + f.GetDisplayName())
+        EndIf
+        s += 1
+    EndWhile
+EndFunction
+
+; ============================================================================ keys
+
+Function ClearKeys(Actor a)
+    StorageUtil.UnsetIntValue(a, "IEB_Held")
+    StorageUtil.UnsetIntValue(a, "IEB_Lent")
+    StorageUtil.UnsetIntValue(a, "IEB_Gate")
+    StorageUtil.UnsetIntValue(a, "IEB_Mode")
+    StorageUtil.UnsetFloatValue(a, "IEB_PreWait")
+    StorageUtil.UnsetFloatValue(a, "IEB_SA_PrevWFP")
+    StorageUtil.UnsetIntValue(a, "IEB_SA_Kind")
+    StorageUtil.UnsetFloatValue(a, "IEB_LastPark")
+    StorageUtil.UnsetIntValue(a, "IEB_Recall")
+    StorageUtil.UnsetIntValue(a, "IEB_Absent")
+    StorageUtil.UnsetIntValue(a, "IEB_SeatLost")
+    StorageUtil.UnsetStringValue(a, "IEB_TaskType")
+    StorageUtil.UnsetStringValue(a, "IEB_TaskTarget")
+    StorageUtil.UnsetIntValue(a, "IEB_Origin")
+    StorageUtil.UnsetFloatValue(a, "IEB_EndedAt")
+    StorageUtil.UnsetIntValue(a, "IEB_EndedEvt")
+    StorageUtil.UnsetIntValue(a, "IEB_InSlot")
+    StorageUtil.UnsetFloatValue(a, "IEB_LastWFP")
+    StorageUtil.UnsetIntValue(a, "IEB_CF")
+    StorageUtil.UnsetFloatValue(a, "IEB_CF_PreGlobal")
+    StorageUtil.UnsetIntValue(a, "IEB_SkipLogged")
+    StorageUtil.FormListRemove(None, "IEB_HeldList", a, True)
+EndFunction
+
+; ============================================================================ §8.1 CancelCurrentTask -> CancelOrRecall
+
+Function CancelOrRecall(Actor akNPC, Int stayHere)
+    {Bound to the bridge's CancelCurrentTask override (layer ieb.errandbridge). The model picks stayHere.}
+    If akNPC == None
+        Return
+    EndIf
+    String who = akNPC.GetDisplayName()
+    Int held = StorageUtil.GetIntValue(akNPC, "IEB_Held", 0)
+    If held == 0 || IEB_Enabled.GetValueInt() != 1
+        If IEB_IELib.SlotCountOf(akNPC, _agents) == 0 && IEB_NFFLib.Seated(akNPC)
+            ; race: released between action selection and execution
+            If stayHere == 1
+                IEB_NFFLib.Wait(akNPC)
+            Else
+                IEB_NFFLib.Follow(akNPC)
+            EndIf
+            Log(1, "RECALL_REQ actor=" + who + " race=1 stay=" + stayHere)
+            Return
+        EndIf
+        IEB_IELib.PassThroughCancel(akNPC)
+        Log(2, "RECALL_REQ actor=" + who + " passthrough=1")
+        Return
+    EndIf
+    If held == 1
+        If stayHere == 1
+            StorageUtil.SetIntValue(akNPC, "IEB_Recall", 2)
+        Else
+            StorageUtil.SetIntValue(akNPC, "IEB_Recall", 1)
+        EndIf
+        IEB_IELib.CancelSlotOf(akNPC)
+        Log(1, "RECALL_REQ actor=" + who + " stay=" + stayHere)
+    Else
+        ; held == 2: rejoin phase
+        If stayHere == 1
+            ClearKeys(akNPC)
+            Log(1, "REJOIN_TO_WAIT actor=" + who + " reason=told_stay")
+        Else
+            IEB_NFFLib.Follow(akNPC)
+            ClearKeys(akNPC)
+            akNPC.EvaluatePackage()
+            Log(1, "REJOIN_DONE actor=" + who + " reason=recalled")
+        EndIf
+    EndIf
+    RegisterForSingleUpdate(0.1)
+EndFunction
+
+; ============================================================================ logging
+
+Function Log(Int aiLevel, String asMsg)
+    If aiLevel > IEB_LogLevel.GetValueInt()
+        Return
+    EndIf
+    Debug.TraceUser("ErrandBridge", asMsg)
     Debug.Trace("[IEB] " + asMsg)
 EndFunction
