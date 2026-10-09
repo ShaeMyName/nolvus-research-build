@@ -460,6 +460,34 @@ Function IEB_QIWriteProbe(String f)
 EndFunction
 """)
 
+elif G == "e7-narrow":   # [CHANGED in build, Shae 2026-10-09] essential/protected leaders get the attempt and survive
+    edit("IntelEngine_Battle.psc", [(
+"""        ; Patch E7 (quest integrity): never target an actor blocked at tier 2; abort like a missing target
+        If Core.StoryEngine.IEB_StoryBlocked(assTarget, 2)
+""",
+"""        ; Patch E7 (quest integrity): cancel only if busy, committed right now, or able to die and statically
+        ; reserved. The attack is ordinary combat, so essential and protected leaders get the attempt and survive.
+        If Core.StoryEngine.IEB_AssassinationBlocked(assTarget)
+""")])
+    append("IntelEngine_StoryEngine.psc", """
+Bool Function IEB_AssassinationBlocked(Actor a)
+    {Patch E7 (Shae 2026-10-09): IntelEngine's assassination is plain combat (StartCombat; no Kill or flag change),
+     so essential and protected targets survive it. Cancel only for busy targets, targets a running questline is
+     using now (tier 1), or targets that could die and are in reserved_npcs.}
+    If a == None
+        return false
+    EndIf
+    If IEB_DispatchBlocked(a) || IEB_QuestReserved(a, 1)
+        return true
+    EndIf
+    ActorBase b = a.GetActorBase()
+    If a.IsEssential() || b.IsEssential() || b.IsProtected()
+        return false
+    EndIf
+    return JsonUtil.FormListHas(IEB_QIFile(), "reserved_npcs", b)
+EndFunction
+""")
+
 else:
     raise SystemExit("unknown group " + G)
 print("applied", G)

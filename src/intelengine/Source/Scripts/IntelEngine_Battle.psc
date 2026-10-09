@@ -1340,8 +1340,9 @@ Function ManifestEvent(String manifestJson)
             ManifestActive = false
             return
         EndIf
-        ; Patch E7 (quest integrity): never target an actor blocked at tier 2; abort like a missing target
-        If Core.StoryEngine.IEB_StoryBlocked(assTarget, 2)
+        ; Patch E7 (quest integrity): cancel only if busy, committed right now, or able to die and statically
+        ; reserved. The attack is ordinary combat, so essential and protected leaders get the attempt and survive.
+        If Core.StoryEngine.IEB_AssassinationBlocked(assTarget)
             Core.DebugMsg("Battle: assassination target " + leaderName + " is committed to a quest -- aborting")
             assassin.DisableNoWait()
             assassin.Delete()

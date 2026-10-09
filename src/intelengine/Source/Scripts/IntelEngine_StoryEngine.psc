@@ -5323,3 +5323,20 @@ Function IEB_QIWriteProbe(String f)
     JsonUtil.Save(p)
     Debug.Trace("[IEB] quest_integrity probe written: " + n + " forms")
 EndFunction
+
+Bool Function IEB_AssassinationBlocked(Actor a)
+    {Patch E7 (Shae 2026-10-09): IntelEngine's assassination is plain combat (StartCombat; no Kill or flag change),
+     so essential and protected targets survive it. Cancel only for busy targets, targets a running questline is
+     using now (tier 1), or targets that could die and are in reserved_npcs.}
+    If a == None
+        return false
+    EndIf
+    If IEB_DispatchBlocked(a) || IEB_QuestReserved(a, 1)
+        return true
+    EndIf
+    ActorBase b = a.GetActorBase()
+    If a.IsEssential() || b.IsEssential() || b.IsProtected()
+        return false
+    EndIf
+    return JsonUtil.FormListHas(IEB_QIFile(), "reserved_npcs", b)
+EndFunction
