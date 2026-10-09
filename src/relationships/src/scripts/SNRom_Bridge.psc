@@ -444,6 +444,7 @@ Function BeginSpark(Actor akActor, String asReason)
         " have reached an understanding neither has named. " + asReason, 0.0)
 
     Ledger(akActor, "enroll", "", 25, 1, asReason)
+    IEB_WriteRomTrack(akActor)   ; Patch (IEB §11.14.1)
 
     ; Enrollment is what makes a person's character matter, so enrollment is
     ; what authors it. Async - the callback lands whenever the LLM answers;
@@ -1170,6 +1171,7 @@ Function UnsparkActor(Actor akActor)
     ; romance can even be considered. Without this, EnrolledAt is months old and
     ; the gate is already satisfied.
     StorageUtil.SetFloatValue(akActor, "SNRom_EnrolledAt", Utility.GetCurrentGameTime())
+    IEB_WriteRomTrack(akActor)   ; Patch (IEB §11.14.1)
     If was
         Diag(LOG_INFO(), "Un-sparked " + who + " - back on the platonic ladder at tier " + \
             TierOf(akActor) + " with points intact. Spark window reset to now; " + \
@@ -1327,6 +1329,9 @@ Function SyncBondRank(Actor akActor)
     If _bond != None && IsEnrolled(akActor)
         akActor.SetFactionRank(_bond, TierOf(akActor))
     EndIf
+    ; Patch (IEB §11.14.1, S-33): track first, then the one-way vanilla rank sync
+    IEB_WriteRomTrack(akActor)
+    IEB_RankSync.Apply(akActor)
 EndFunction
 
 Function AnnounceTier(Actor akActor, Int aiFrom, Int aiTo, String asKind, String asReason)
@@ -2150,6 +2155,7 @@ Function SetStance(Actor akActor, Int aiStance, String asWord)
         Return
     EndIf
     StorageUtil.SetIntValue(akActor, "SNRom_PlayerStance", aiStance)
+    IEB_WriteRomTrack(akActor)   ; Patch (IEB §11.14.1)
     ; Any stance write settles the outstanding question, including a reopen -
     ; ReopenRomance re-arms it immediately afterwards via CheckRomanceQuestion,
     ; which is the same path a fresh crossing takes. Leaving it set here would
@@ -2271,6 +2277,7 @@ Function EndRomance(Actor akActor, String asReason)
     StorageUtil.UnsetFloatValue(akActor, "SNRom_SparkedAt")
     StorageUtil.UnsetIntValue(akActor, "SNRom_SeedRomantic")
     StorageUtil.SetIntValue(akActor, "SNRom_PlayerStance", STANCE_UNANSWERED())
+    IEB_WriteRomTrack(akActor)   ; Patch (IEB §11.14.1)
     ; Direct write, so it bypasses SetStance and its pending-flag clear. Clear it
     ; here too: an ended romance must not leave a question hanging that the sweep
     ; would keep raising. The spark flag above is already gone, so nothing will
@@ -4697,6 +4704,7 @@ Function SeedRomanticFlag(Actor akActor)
             StorageUtil.SetFloatValue(akActor, "SNRom_SparkedAt", Utility.GetCurrentGameTime())
         EndIf
         StorageUtil.SetIntValue(akActor, "SNRom_PlayerStance", STANCE_ACCEPTED())
+        IEB_WriteRomTrack(akActor)   ; Patch (IEB §11.14.1)
         If changed
             Diag(LOG_INFO(), "Seeding: " + akActor.GetDisplayName() + " is MARRIED to the player - " + \
                 "romantic ladder and player stance set directly from the ceremony, not judged. " + \
@@ -4816,6 +4824,7 @@ Event OnMarasStatusChanged(String asEventName, String asStatus, Float afStatusEn
     If ieSt == "CANDIDATE" || ieSt == "ENGAGED" || ieSt == "MARRIED"
         IEB_EnrollOnCourtship(who)
     EndIf
+    IEB_WriteRomTrack(who)   ; Patch (IEB §11.14.1): commitment may have changed
     If !IsEnrolled(who)
         Return
     EndIf
@@ -7622,6 +7631,7 @@ Function ApplySpark(Actor akActor, String asMoment)
     EndIf
 
     Ledger(akActor, "spark", "", 25, 1, asMoment)
+    IEB_WriteRomTrack(akActor)   ; Patch (IEB §11.14.1)
     Diag(LOG_INFO(), "SPARK: " + akActor.GetDisplayName() + " crossed into romance - " + asMoment)
 EndFunction
 
@@ -8771,4 +8781,26 @@ Function IEB_MarasCatchUp()
         EndWhile
         s += 1
     EndWhile
+EndFunction
+
+; ===========================================================================
+; IEB private patch (component F): rank-sync track (spec §11.14.1)
+; ===========================================================================
+
+Function IEB_WriteRomTrack(Actor akActor)
+    { Patch: StorageUtil IEB_RomTrack, 1 = romantic, 0 = friendship, by ShownTierName's rule:
+      RomanceApplicability == 0 and (sparked with an accepted stance, or CommitmentState >= 2).
+      Read by IEB_RankSync.Apply (Errand Bridge). }
+    If akActor == None
+        Return
+    EndIf
+    Int t = 0
+    If SNRom_Decorators.RomanceApplicability(akActor) == 0
+        If (SNRom_Decorators.IsSparked(akActor) && \
+            StorageUtil.GetIntValue(akActor, "SNRom_PlayerStance", 0) == STANCE_ACCEPTED()) || \
+            CommitmentState(akActor) >= 2
+            t = 1
+        EndIf
+    EndIf
+    StorageUtil.SetIntValue(akActor, "IEB_RomTrack", t)
 EndFunction
