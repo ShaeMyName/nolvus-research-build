@@ -1,0 +1,1205 @@
+Scriptname SNRom_Decorators Hidden
+{ Decorator functions for SkyrimNet.
+
+  DELIBERATELY A STANDALONE HIDDEN SCRIPT, NOT THE QUEST SCRIPT.
+
+  SkyrimNet's documented example registers decorators against a plain script
+  containing Global functions:
+
+      SkyrimNetApi.RegisterDecorator("get_npc_mudcrab_status",
+                                     "MudcrabMod_Decorators",
+                                     "GetMudcrabStatus")
+      String Function GetMudcrabStatus(Actor akActor) ...
+
+  Hosting them as Global functions on a Quest-extending script (SNRom_Bridge)
+  did not work: RegisterDecorator returned rc=0, but lookups failed with
+  "EligibilityChecker: Decorator '<name>' not found". Removing Global instead
+  produced "Papyrus: Failed to find function Dec_PhysicalOk in script
+  SNRom_Bridge" - registry hit, dispatch miss.
+
+  Rather than keep guessing which axis matters, this matches the documented
+  shape exactly: standalone script, Global functions, no quest involvement.
+
+  These read state only. Anything that MUTATES state stays on SNRom_Bridge,
+  where the quest context and its cached fields live.
+
+  EVERY FUNCTION RETURNS String - INCLUDING THE BOOLEAN ONES.
+  Surveyed all 10 registered decorators across Player Needs, Baka, Playwright,
+  iActions and OStimNet: every single one returns String, including Baka's
+  IsInBakaAnimation which is semantically a boolean. Bool-returning decorators
+  register with rc=0 and then fail at lookup/dispatch. This - not Global, and
+  not quest-vs-standalone - was the actual cause. }
+
+String Function IsEnrolled(Actor akActor) Global
+    { Enrollment is SNRom_Enrolled from 2.0 (SNRom_Bridge.IsEnrolled), not
+      "Romantasy has a level for them". }
+    If SNRom_Bridge.IsEnrolled(akActor)
+        Return "true"
+    EndIf
+    Return "false"
+EndFunction
+
+String Function CanBegin(Actor akActor) Global
+    { Hard gates live here, not in an action description, so the model cannot
+      talk its way past receptivity or the attraction floor. }
+    If akActor == None || SNRom_Bridge.IsEnrolled(akActor)
+        Return "false"
+    EndIf
+    ; FOLLOWERS ONLY, ALWAYS: this enrolls, and the policy is that only
+    ; followers enroll without the player asking (design 3.2) - anyone else is
+    ; enrolled by hand. RomanceBeginSpark.yaml's is_follower rule says the same
+    ; as a cheap pre-filter. The setting enrollmentRequireFollower that once
+    ; switched this could never open it - the YAML rule held regardless - and
+    ; went in 2.0.
+    ; SNRom_Bridge.IsFollowing, NOT the bare vanilla flag. SeverActions
+    ; companions set CurrentFollowerFaction without IsPlayerTeammate, and asking
+    ; the narrow question here excluded them from ever beginning a romance -
+    ; the same bug that stopped TalkCandidate/SparkCandidate ever picking them.
+    ; Found by tools\check.ps1, which asserts this shape everywhere.
+    If !SNRom_Bridge.IsFollowing(akActor)
+        Return "false"
+    EndIf
+    ; Orientation lives in RomanceOk, shared with the bond prompt's Lover gate.
+    ; It was duplicated here and there is no version of this where the two
+    ; copies disagreeing is anything but a bug.
+    If !SNRom_Decorators.RomanceOk(akActor)
+        Return "false"
+    EndIf
+    Return "true"
+EndFunction
+
+String Function PhysicalOk(Actor akActor) Global
+    { s = [minTier, attractionCanBypass, emotionalWeight]. Governs SEXUAL
+      intimacy only - affection tracks the emotional bond, or a devout
+      character would refuse to be kissed until married. }
+    If akActor == None
+        Return "false"
+    EndIf
+    ; FORECLOSED PAIRS FIRST, and this used to be the kin check alone - which is
+    ; why the comment below claimed "same bar as RomanceOk" while being nothing
+    ; of the sort. RomanceOk consults orientation; this did not, so the physical
+    ; axis never knew whether the pairing was possible at all.
+    ;
+    ; Measured 2026-09-03 in the live prompt log: Leif, a male follower, was
+    ; handed "you are not available to Haruk that way yet" twice, and any
+    ; platonic follower reaching tier 4 with the default physMinTier of 4 gets
+    ; the POSITIVE desire text - "that has nothing to do with whether you want
+    ; them" - regardless of who they are drawn to. A platonic bond climbs to the
+    ; top of the ladder freely by design, so that is reachable in ordinary play.
+    ;
+    ; Applicability carries the kin guard and its setting, so this is still
+    ; gated on "Never Romance Your Own Children" exactly as before.
+    If SNRom_Decorators.RomanceApplicability(akActor) != 0
+        Return "false"
+    EndIf
+    Int minTier = StorageUtil.GetIntValue(akActor, "SNRom_PhysMinTier", 4)
+    If minTier < 0
+        Return "false"
+    EndIf
+    ; ONLY CASUAL CAN WANT WITHOUT ROMANCE. The author, 2026-09-27: intimacy
+    ; without love is something CASUAL characters do - friends with benefits, a
+    ; first night - and nobody else. Before this, a ROMANTIC or GUARDED
+    ; character judged PLATONIC still became available once the friendship
+    ; alone climbed past her threshold, which a friendship does freely by
+    ; design; she was then told "what you feel is not love... that has nothing
+    ; to do with whether you want them", the CASUAL text, contradicting the
+    ; very disposition that set the threshold.
+    ;
+    ; So ROMANTIC and GUARDED need the romance itself - the spark - and a
+    ; recorded engagement or marriage counts as one, because the game already
+    ; records the commitment the spark would only be inferring.
+    ;
+    ; ROMANTIC MOVES DOWN TO CONFIDANT, same day, same decision. Feelings that
+    ; have begun but not been declared: intimacy after a few evenings, before
+    ; anyone has said "in love" or promised anything. It also unhooks ROMANTIC
+    ; intimacy from the Lover question entirely - a sparked, unanswered romance
+    ; is held at UnansweredRest (1749), which is Confidant - so the player's
+    ; answer about a COMMITMENT stops deciding whether she may want him, which
+    ; is the Nilsine coupling (2026-09-07) removed at the root rather than
+    ; worked around with banked points.
+    ;
+    ; DECIDED BY RANK, NOT BY THE STORED NUMBER. Every ROMANTIC character has
+    ; SNRom_PhysMinTier 4 in her save, and the drift, re-author and repair paths
+    ; all read that number as the word "ROMANTIC". Reinterpreting it here means
+    ; no migration and no second place that can disagree. GUARDED keeps Spouse.
+    Int rank = SNRom_Decorators.IntimacyRank(minTier)       ; 0 casual 1 romantic 2 guarded
+    If rank >= 1
+        If StorageUtil.GetIntValue(akActor, "SNRom_Sparked", 0) != 1 && SNRom_Bridge.CommitmentState(akActor) < 2
+            Return "false"
+        EndIf
+        If rank == 1
+            minTier = 3                                     ; Confidant
+        EndIf
+    EndIf
+    ; THE TIER IS OURS. Someone not enrolled keeps "no tier" (-1), as
+    ; Romantasy's level 0 used to give - never tier 0, which a low minimum
+    ; would pass.
+    Int tier = -1
+    If SNRom_Bridge.IsEnrolled(akActor)
+        tier = SNRom_Bridge.TierOf(akActor)
+    EndIf
+    If tier >= minTier
+        Return "true"
+    EndIf
+    ; BANKED POINTS COUNT TOWARD THE TIER SHE HAS EARNED.
+    ;
+    ; HoldShortOfLover pins an unanswered romance one point below Lover and
+    ; banks the overflow, and it logs "she keeps what she earned" and "the
+    ; waiting cost her nothing" while it does so. This line is where that stopped
+    ; being true. Her stored tier is 3 because of a hold, so a ROMANTIC intimacy
+    ; requirement of tier 4 refused her - and the reason she is at 3 is that the
+    ; PLAYER has not yet been asked whether he accepts an arrangement involving
+    ; other people.
+    ;
+    ; WHICH COUPLES TWO AXES THAT ARE DESIGNED TO BE INDEPENDENT. Intimacy asks
+    ; what THIS relationship must be before she will engage; exclusivity asks how
+    ; one-on-one it has to be. Neither is meant to answer the other. But intimacy
+    ; is expressed as a tier threshold, and the tier ladder has the consent
+    ; question welded across it at 1999 - so "be in love with me first", a fact
+    ; about the two of them, was being enforced by a gate whose whole subject is
+    ; everybody else. Raised by the author 2026-09-07 after Nilsine, ROMANTIC and
+    ; CONVENTIONAL, refused absolutely while her exclusivity band was telling her
+    ; the matter was negotiable.
+    ;
+    ; POINTS + BANKED, DIVIDED, RATHER THAN "IS SHE HELD". Testing banked > 0 and
+    ; assuming Lover would work today, because the hold only ever fires at that
+    ; one boundary - and it would be wrong the moment a second hold is added
+    ; anywhere else on the ladder. Deriving the tier from the total cannot go
+    ; stale that way, and it keeps GUARDED honest: banked points reaching Lover
+    ; must not unlock someone whose requirement is Spouse.
+    ;
+    ; 500 PER TIER is Romantasy's arithmetic, read off its own ledger rather than
+    ; its documentation - see LOVER_MIN. If that ever changes, this changes with
+    ; it, and the constant is the thing to grep for.
+    Int banked = StorageUtil.GetIntValue(akActor, "SNRom_BankedPoints", 0)
+    If banked > 0
+        Int earned = (SNRom_Bridge.PointsOf(akActor) + banked) / 500
+        If earned >= minTier
+            Return "true"
+        EndIf
+    EndIf
+    If StorageUtil.GetIntValue(akActor, "SNRom_PhysAttrBypass", 0) == 1
+        ; The bar was hardcoded 1.5 for as long as nothing wrote the ratio, so
+        ; it was never once compared against a real number. Now that SNRom_Bridge
+        ; feeds it from OCR, make it tunable - the sane setting depends on how
+        ; far through the game the player is, because OCR's numerator grows with
+        ; skills, fame and main-quest progress while its denominator is a fixed
+        ; per-class constant. An early character sits near 0.7; an established
+        ; one clears 2.0 against most NPCs.
+        ;
+        ; 0.0 is a meaningful setting and is why this reads > rather than >=:
+        ; the ratio is 0.0 both when OCR is absent and when the actor has never
+        ; been refreshed, and neither of those is evidence of attraction.
+        Float ratio = StorageUtil.GetFloatValue(akActor, "SNRom_AttractionRatio", 0.0)
+        If ratio > 0.0 && ratio >= SkyrimNetApi.GetConfigFloat(SNRom_Bridge.CFG(), "attractionBypassRatio", 1.5)
+            Return "true"
+        EndIf
+    EndIf
+    Return "false"
+EndFunction
+
+String Function JsonBool(Bool abValue) Global
+    { Emits an unquoted JSON literal so Inja sees a real boolean - "false" as
+      a STRING is truthy, which would put every NPC on the romantic ladder. }
+    If abValue
+        Return "true"
+    EndIf
+    Return "false"
+EndFunction
+
+Bool Function IsSparked(Actor akActor) Global
+    { Selects which ladder 0330_relationships_bond renders: platonic or romantic.
+
+      ONE explicit flag, no inference. SNRom_Sparked is set by BeginSpark and
+      deliberately NOT by AutoEnroll, so the romantic ladder requires that
+      something actually happened.
+
+      There WAS a migration here that treated faction membership as evidence
+      of a past spark, on the reasoning that before this flag existed the only
+      way into ROM_RomanceLevel was a deliberate BeginSpark. Removed
+      2026-07-29. Two reasons:
+
+      1. It was false in practice. Every enrolled NPC on the current save got
+         there through development testing, not through a spark, and Jordis
+         was rendering "something has shifted... sideways glances" over a bond
+         with 0 points and no history.
+      2. It was a permanent trap. ANY route into that faction - another mod, a
+         console command, a future feature - would have read as romance
+         forever, with nothing to distinguish it.
+
+      An inference that quietly asserts a romance is worse than a flag that
+      occasionally has to be set by hand. }
+    If akActor == None
+        Return False
+    EndIf
+    Return StorageUtil.GetIntValue(akActor, "SNRom_Sparked", 0) == 1
+EndFunction
+
+Int Function OrientationBasisToInt(String asWord) Global
+    { Confidence in the orientation value. 0 unknown, 1 inferred, 2 known.
+
+      This exists because of Lynea. She was handed ORIENTATION: WOMEN from a
+      twelve-word bio containing no evidence either way, and that invented
+      answer immediately hard-blocked a romance the player had spent hours
+      building. The bug was not a wrong guess - it was FORCING a guess where
+      the honest answer was "nobody has established this yet".
+
+      Unrecognized input means unknown, which is the permissive branch. }
+    String w = SNRom_Decorators.Upper(SNRom_Decorators.Trim(asWord))
+    If w == "STATED"
+        Return 2
+    ElseIf w == "IMPLIED"
+        Return 1
+    EndIf
+    Return 0
+EndFunction
+
+Bool Function IsPlayerKin(Actor akActor) Global
+    { True if SkyrimNet-Kinship records this actor as the player's child.
+
+      SOFT DEPENDENCY BY CONSTRUCTION. Kinship sets `SNKin_Bound` to 1 on the
+      CHILD actor when it binds them to its roster
+      (`StorageUtil.SetIntValue(akChild, "SNKin_Bound", 1)`), and StorageUtil is
+      a shared namespace, so reading it needs no compile-time reference to
+      Kinship at all. Without Kinship installed the key is absent, the read
+      returns the 0 default, and every gate below behaves exactly as it did
+      before this function existed.
+
+      An Int, not a string, so it survives a save reload.
+
+      DELIBERATELY NOT reading Kinship's JSON store or its `ref.<formid>.child`
+      mapping. Those are its internals and it is free to change them; the
+      per-actor flag is the part another mod can reasonably lean on.
+
+      TWO KEYS, ON PURPOSE, FOR ONE RELEASE.
+
+      `SNKin_IsPlayerChild` (Kinship 1.1.0+) is the correct answer. It is
+      written on every path that establishes child identity - INCLUDING the
+      paths where `BindChildRef` deliberately refuses to bind, which is the case
+      that matters: Fertility Mode reuses one spawned actor across children
+      sharing an appearance archetype, and Kinship would rather leave the second
+      child unbound than give one NPC two identities. That actor is
+      unambiguously the player's child.
+
+      `SNKin_Bound` (Kinship 1.0.0) is the fallback and is WEAKER THAN IT LOOKS.
+      It means "bound to Kinship's roster", not "is the player's child", and in
+      the refused-binding case above it is never written at all - so a read of
+      it alone returns 0 and this guard FAILS OPEN on a real child. Kinship
+      found that; the first version of this function shipped with it.
+
+      Kinship's own `kinship_is_child` decorator already compensates by falling
+      through to a dynamic-ref plus name lookup, so the prompt-side answer has
+      been strictly more correct than this Papyrus-side one. 1.1.0 closes that.
+
+      Drop the `SNKin_Bound` half once Kinship 1.1.0 is a stated requirement.
+      Absent Kinship entirely BOTH read 0 and the guard is inert, which is the
+      intended soft-dependency behavior and unchanged by any of this. }
+    If akActor == None
+        Return False
+    EndIf
+    Return StorageUtil.GetIntValue(akActor, "SNKin_IsPlayerChild", 0) == 1 || \
+           StorageUtil.GetIntValue(akActor, "SNKin_Bound", 0) == 1
+EndFunction
+
+Bool Function KinGuardOn() Global
+    { Whether the player's own children are barred from the romantic and sexual
+      ladders. Named so it cannot case-fold into its own config path - see the
+      note on VoiceLeadSeconds in SNRom_Bridge for what that collision costs.
+
+      Default ON. It costs nothing when Kinship is absent, because IsPlayerKin
+      reads 0 for everyone. }
+    Return SkyrimNetApi.GetConfigBool(SNRom_Bridge.CFG(), "kinshipBlockRomance", True)
+EndFunction
+
+Int Function RomanceApplicability(Actor akActor, Int aiKinGuard = -1) Global
+    { Is the romantic question FORECLOSED for this pair by something outside the
+      character's own disposition? 0 applies, 1 kin, 2 minor, 3 orientation.
+
+      WHY THIS IS NOT RomanceOk. They answer different questions and must not be
+      collapsed:
+
+        RomanceOk      - can this pair cross into Lover? Includes the character's
+                         OWN choice, so an authored "drawn to nobody" refuses.
+        Applicability  - was it ever a live question at all? Only structural
+                         facts, never a preference.
+
+      The distinction earns its keep in the prompt. A character who wants nobody
+      already has text written for her - "this is not something you want, from
+      anyone, and that has been true a long time. It is not damage" - and that is
+      a better line than any generic not-applicable phrasing. She keeps it. What
+      needs the new state is the pair for whom the question never arose: the
+      player's child, a minor, someone whose known orientation does not include
+      this player.
+
+      DERIVED, NEVER STORED, and that is the whole design. Every input is read at
+      call time, so the answer changes the moment the fact does - a child who
+      matures stops being a minor, a bio block changed to "drawn to both" stops
+      foreclosing on the next disposition review. Persisting this would need
+      invalidating, and latched state that nothing invalidates is this mod's most
+      repeated bug: the seed stamp, the marriage snapshot, the assessor's pending
+      slot. There is no SNRom_ key here on purpose.
+
+      ONE PLACE TO ADD A REASON. Callers ask "is it foreclosed", never "is this a
+      child" - the prompt tests the field against 0 and nothing else - so a fourth
+      reason is one branch here and zero edits anywhere else. And one in the
+      dashboard's copy of this function: Display::Applicability in
+      native/src/Display.cpp, line for line, which draws the page. Change one,
+      change both.
+
+      AN INT, NOT A REASON STRING. Papyrus interns strings case-insensitively, so
+      a "kin" literal can ship as "Kin" depending on what else holds the slot in
+      the .pex - the failure documented at length in GetRomance. An Int cannot
+      case-fold. }
+    If akActor == None
+        Return 0
+    EndIf
+    ; KIN IS GATED ON ITS SETTING - "Never Romance Your Own Children". Ungated,
+    ; the setting would be decoration: turning it off would still leave the
+    ; player's children foreclosed here, and the bio would still say so.
+    ; Same gate, same function, as RomanceOk and PhysicalOk already use.
+    ;
+    ; aiKinGuard is that setting already read, 1 or 0, for the one caller that
+    ; must not ask SkyrimNet: the dashboard's refresh, which runs while the game
+    ; is paused (SNRom_Bridge.OnDashboardRefresh). -1, the default every other
+    ; caller takes, reads it here as always.
+    If aiKinGuard < 0
+        aiKinGuard = KinGuardOn() as Int
+    EndIf
+    If aiKinGuard > 0 && SNRom_Decorators.IsPlayerKin(akActor)
+        Return 1
+    EndIf
+    ; MINORS ARE NOT GATED ON A SETTING, deliberately. IsChild is vanilla and
+    ; race-derived, so it needs no mod to answer and it flips on its own if the
+    ; actor ever matures. Kin is a preference about the player's own family and
+    ; reasonably has a switch; this is not the same kind of line and does not get
+    ; one. It also sits ABOVE the marriage override below, which the kin guard
+    ; does for the same reason.
+    If akActor.IsChild()
+        Return 2
+    EndIf
+    ; A RECORDED CEREMONY ANSWERS THE QUESTION. Same precedence RomanceOk gives
+    ; it, and for the same reason: an inferred trait must not be able to tell a
+    ; married couple their marriage was never on the table.
+    If SNRom_Bridge.IsMarriedToPlayer(akActor)
+        Return 0
+    EndIf
+    ; ONLY A KNOWN ORIENTATION CAN FORECLOSE. Unknown and merely inferred both
+    ; pass, exactly as in RomanceOk - an inference colours how she behaves, it
+    ; does not get to declare a storyline was never possible.
+    If StorageUtil.GetIntValue(akActor, "SNRom_OrientationKnown", 0) < 2
+        Return 0
+    EndIf
+    ; 0 none, 1 men, 2 women, 3 any.
+    Int orient = StorageUtil.GetIntValue(akActor, "SNRom_Orientation", 3)
+    If orient == 0
+        Return 0                                ; her own nature; the NEVER branch says it better
+    EndIf
+    Int playerSex = Game.GetPlayer().GetActorBase().GetSex()
+    If orient == 1 && playerSex != 0
+        Return 3
+    ElseIf orient == 2 && playerSex != 1
+        Return 3
+    EndIf
+    Return 0
+EndFunction
+
+Bool Function RomanceOk(Actor akActor) Global
+    { Does this person's orientation permit crossing into Lover with THIS
+      player? Gates the top two rungs of the romantic ladder.
+
+      ONLY a KNOWN orientation can refuse. Unknown and merely inferred both
+      pass: an inference colors how she behaves, it does not get to delete
+      content the player is working toward. A gate that silently removes a
+      storyline had better be standing on a fact. }
+    If akActor == None
+        Return False
+    EndIf
+    ; THE PLAYER'S OWN CHILD IS NEVER A ROMANTIC PROSPECT. This sits ABOVE the
+    ; marriage override deliberately: that override exists to stop an inferred
+    ; trait deleting a real relationship, and nothing should be able to argue
+    ; its way past this one.
+    If KinGuardOn() && SNRom_Decorators.IsPlayerKin(akActor)
+        Return False
+    EndIf
+    ; A RECORDED MARRIAGE OUTRANKS AN AUTHORED TRAIT. Always.
+    ;
+    ; Jarl Elisif the Fair, married to the player through MARAS, was authored
+    ; ORIENTATION: WOMEN with BASIS: STATED - and STATED is the only level that
+    ; is allowed to refuse. Nothing in her profile states any such thing; the
+    ; model inferred it and marked it as fact, the same restrictive-answer-
+    ; without-evidence failure that once returned NEVER for an NPC whose diary
+    ; described going to bed with the player.
+    ;
+    ; The result was that RomanceOk returned FALSE for the player's own wife,
+    ; closing the top two rungs of the ladder and rendering "there is a door in
+    ; it that does not open" at her.
+    ;
+    ; The prompt fix for the hallucination is worth making separately, but this
+    ; must not depend on it: an inference should never be able to overrule a
+    ; ceremony the game recorded. Same principle the spark prompt already
+    ; states - when the established facts of their life answer the question,
+    ; believe them and stop reasoning.
+    If SNRom_Bridge.IsMarriedToPlayer(akActor)
+        Return True
+    EndIf
+    If StorageUtil.GetIntValue(akActor, "SNRom_OrientationKnown", 0) < 2
+        Return True
+    EndIf
+    ; 0 none, 1 men, 2 women, 3 any.
+    Int orient = StorageUtil.GetIntValue(akActor, "SNRom_Orientation", 3)
+    If orient == 0
+        Return False
+    EndIf
+    Int playerSex = Game.GetPlayer().GetActorBase().GetSex()
+    If orient == 1 && playerSex != 0
+        Return False
+    ElseIf orient == 2 && playerSex != 1
+        Return False
+    EndIf
+    Return True
+EndFunction
+
+String Function OrientationWord(Actor akActor) Global
+    { Human-readable form for the bio block. Deliberately returns "" unless
+      the orientation is KNOWN - the block states facts, and an inference is
+      not a fact. Silence is what invites the story to discover it. }
+    If akActor == None
+        Return ""
+    EndIf
+    If StorageUtil.GetIntValue(akActor, "SNRom_OrientationKnown", 0) < 2
+        Return ""
+    EndIf
+    Int o = StorageUtil.GetIntValue(akActor, "SNRom_Orientation", 3)
+    If o == 1
+        Return "men"
+    ElseIf o == 2
+        Return "women"
+    ElseIf o == 0
+        Return "no one"
+    EndIf
+    Return "both men and women"
+EndFunction
+
+Int Function OtherPartners(Actor akActor) Global
+    { Acknowledged romances the player has with someone OTHER than this actor.
+
+      MINUS SELF, which is the whole point: a woman who is one of two partners
+      has ONE other, not two, and telling her otherwise makes her count herself
+      as a rival. The total is cached by RefreshPartnerCount on the housekeeping
+      tick; this only subtracts.
+
+      Reads 0 when nothing has been counted yet, which renders as "no others" -
+      the same thing the prompt said before this field existed, so a missing
+      count changes nothing. }
+    If akActor == None
+        Return 0
+    EndIf
+    Int total = StorageUtil.GetIntValue(None, "SNRom_PartnerCount", 0)
+    If SNRom_Decorators.IsSparked(akActor) && \
+       StorageUtil.GetIntValue(akActor, "SNRom_PlayerStance", 0) == 1
+        total -= 1
+    EndIf
+    If total < 0
+        Return 0
+    EndIf
+    Return total
+EndFunction
+
+String Function GetRomance(Actor akActor) Global
+    { Rich state for prompts. Never call inside a get_nearby_npc_list loop -
+      mod-added decorators only resolve for the current speaker or target. }
+    If akActor == None
+        Return "{\"enrolled\":false}"
+    EndIf
+    If !SNRom_Bridge.IsEnrolled(akActor)
+        Return "{\"enrolled\":false}"
+    EndIf
+    ; OURS: enrollment, the points, and the tier and its name from them.
+    Int pts = SNRom_Bridge.PointsOf(akActor)
+    Int tier = SNRom_Bridge.TierForPoints(pts)
+    Int toNext = ((tier + 1) * 500) - pts
+    ; Explicit booleans, never inlined JsonBool. An inlined call produced the
+    ; Papyrus literal "False" in the authoring context on 2026-08-06, which is
+    ; not valid JSON - and here the consequence would be worse and quieter:
+    ; this whole object is parsed by Inja, so ONE bad token makes every rom.*
+    ; field undefined. The bond prompt reads them through default(), so it would
+    ; not error - every NPC would simply drop to the platonic ladder at tier 0
+    ; and nothing would say why.
+    ; INTS, NOT JSON BOOLEANS. The comment above was right about the danger and
+    ; wrong about the remedy: a hand-written lowercase "true" DOES NOT SURVIVE
+    ; COMPILATION. Papyrus interns strings case-insensitively, so the literal
+    ; folds into whatever casing already holds the slot in the script - source
+    ; says "true", the .pex can say True, and the object ships invalid.
+    ;
+    ; It has been surviving here by luck: SNRom_Decorators.pex happened to hold
+    ; lowercase (true x2 / false x4) while the identical literal folded to
+    ; capitals in SNRom_Bridge.pex on 2026-08-07 and made every authoring
+    ; variable undefined. One capitalised True entering this file would have
+    ; dropped every NPC to the platonic ladder at tier 0 with nothing saying why
+    ; - exactly the failure the old comment predicted, via the mechanism it did
+    ; not know about.
+    ;
+    ; An Int cannot be case-folded. The prompts test == 1.
+    Int sparkedFlag = 0
+    If SNRom_Decorators.IsSparked(akActor)
+        sparkedFlag = 1
+    EndIf
+    Int romanceOkFlag = 0
+    If SNRom_Decorators.RomanceOk(akActor)
+        romanceOkFlag = 1
+    EndIf
+    If toNext < 0
+        toNext = 0
+    EndIf
+    Return "{\"enrolled\":true,\"points\":" + pts + ",\"level\":" + tier + \
+        ",\"levelName\":\"" + SNRom_Bridge.TierName(tier) + "\",\"toNext\":" + toNext + \
+        ",\"ardor\":" + StorageUtil.GetIntValue(akActor, "SNRom_Ardor", 2) + \
+        ",\"exclusivity\":" + StorageUtil.GetIntValue(akActor, "SNRom_Exclusivity", 50) + \
+        ",\"sparked\":" + sparkedFlag + \
+        ",\"romanceOk\":" + romanceOkFlag + \
+        ",\"orientation\":\"" + SNRom_Decorators.OrientationWord(akActor) + "\"" + \
+        ",\"orientationKnown\":" + StorageUtil.GetIntValue(akActor, "SNRom_OrientationKnown", 0) + \
+        ",\"why\":\"" + SNRom_Decorators.JsonEscape(SNRom_Bridge.StoreGetText(akActor, "Why")) + "\"" + \
+        ",\"limit\":\"" + SNRom_Decorators.JsonEscape(SNRom_Bridge.StoreGetText(akActor, "Limit")) + "\"" + \
+        ",\"address\":\"" + SNRom_Decorators.JsonEscape(SNRom_Bridge.StoreGetText(akActor, "Address")) + "\"" + \
+        ",\"romanceNA\":" + SNRom_Decorators.RomanceApplicability(akActor) + \
+        ",\"physMinTier\":" + StorageUtil.GetIntValue(akActor, "SNRom_PhysMinTier", 4) + \
+        ",\"otherPartners\":" + SNRom_Decorators.OtherPartners(akActor) + \
+        ",\"stance\":" + StorageUtil.GetIntValue(akActor, "SNRom_PlayerStance", 0) + "}"
+EndFunction
+
+; ===========================================================================
+; Disposition support - whitelist + case folding
+; ===========================================================================
+
+String Function Upper(String asText) Global
+    { PapyrusUtil's StringUtil has NO ToUpper - only GetLength, GetNthChar,
+      Find, Substring, AsOrd, AsChar and Split. Fold manually so label matching
+      survives whatever casing the model returns. }
+    String out = ""
+    Int i = 0
+    Int n = StringUtil.GetLength(asText)
+    While i < n
+        String c = StringUtil.GetNthChar(asText, i)
+        Int o = StringUtil.AsOrd(c)
+        If o >= 97 && o <= 122
+            c = StringUtil.AsChar(o - 32)
+        EndIf
+        out += c
+        i += 1
+    EndWhile
+    Return out
+EndFunction
+
+String Function NameCore(String asName) Global
+    { Upper-folds a name and strips every NON-LETTER from BOTH ENDS, for
+      comparing a model's echoed NAME: against the NPC we actually asked about.
+
+      Written 2026-08-07. Bryling's assessments were being answered correctly
+      and thrown away anyway: the model replied with
+
+          NAME: "Bryling",
+
+      - JSON habit bleeding into a labeled-line format - so the guard compared
+      '"BRYLING",' against 'BRYLING', called it a mismatch, and discarded every
+      single assessment she generated. The response was RIGHT. The comparison
+      was too literal.
+
+      Only the ENDS are trimmed, so internal spaces, hyphens and apostrophes
+      survive: "Svana Far-Shield" and "Jarl Elisif the Fair" still compare
+      intact, and two genuinely different NPCs still cannot collide. That
+      matters - this guard is the only thing stopping a response about a nearby
+      NPC from rewriting someone else's disposition permanently, so it must be
+      loosened exactly this far and no further.
+
+      Empty in, empty out. Callers treat an empty core as "no echo present"
+      rather than as a mismatch. }
+    String up = Upper(asName)
+    Int n = StringUtil.GetLength(up)
+    Int first = 0
+    While first < n && !IsLetterOrd(StringUtil.AsOrd(StringUtil.GetNthChar(up, first)))
+        first += 1
+    EndWhile
+    Int last = n - 1
+    While last > first && !IsLetterOrd(StringUtil.AsOrd(StringUtil.GetNthChar(up, last)))
+        last -= 1
+    EndWhile
+    If first > last
+        Return ""
+    EndIf
+    Return StringUtil.Substring(up, first, (last - first) + 1)
+EndFunction
+
+Bool Function IsLetterOrd(Int aiOrd) Global
+    { A-Z only. NameCore upper-folds before calling this, so lowercase never
+      reaches here. }
+    Return aiOrd >= 65 && aiOrd <= 90
+EndFunction
+
+String Function IntimacyWordFromTier(Int aiMinTier) Global
+    { Reverse of IntimacyToMinTier, for showing a companion's authored intimacy
+      back to the model in BuildCircle. Kept next to the forward mapper so the
+      two are read together; if one gains a value the other must too. }
+    If aiMinTier < 0
+        Return "NEVER"
+    ElseIf aiMinTier >= 5
+        Return "GUARDED"
+    ElseIf aiMinTier == 4
+        Return "ROMANTIC"
+    EndIf
+    Return "CASUAL"
+EndFunction
+
+Int Function IntimacyRank(Int aiMinTier) Global
+    { Intimacy as a LADDER, most open to most closed: 0 casual, 1 romantic,
+      2 guarded, 3 never.
+
+      Needed because the stored form is a minimum tier and NEVER is -1, so the
+      stored numbers do not sort. Drift has to move exactly one rung at a time
+      and cannot do that arithmetic on a value where the most closed answer is
+      also the smallest. }
+    If aiMinTier < 0
+        Return 3
+    ElseIf aiMinTier >= 5
+        Return 2
+    ElseIf aiMinTier == 4
+        Return 1
+    EndIf
+    Return 0
+EndFunction
+
+Int Function MinTierFromRank(Int aiRank) Global
+    { Inverse of IntimacyRank. Values must match IntimacyToMinTier exactly - if
+      one gains a rung the other two must too. }
+    If aiRank >= 3
+        Return -1
+    ElseIf aiRank == 2
+        Return 5
+    ElseIf aiRank == 1
+        Return 4
+    EndIf
+    Return 2
+EndFunction
+
+String Function ReplaceAll(String asText, String asFind, String asWith) Global
+    { StringUtil has no Replace either. }
+    String out = ""
+    String rest = asText
+    Int at = StringUtil.Find(rest, asFind)
+    While at >= 0
+        out += StringUtil.Substring(rest, 0, at) + asWith
+        rest = StringUtil.Substring(rest, at + StringUtil.GetLength(asFind))
+        at = StringUtil.Find(rest, asFind)
+    EndWhile
+    Return out + rest
+EndFunction
+
+String Function Trim(String asText) Global
+    String t = asText
+    While StringUtil.GetLength(t) > 0 && StringUtil.GetNthChar(t, 0) == " "
+        t = StringUtil.Substring(t, 1)
+    EndWhile
+    While StringUtil.GetLength(t) > 0 && StringUtil.GetNthChar(t, StringUtil.GetLength(t) - 1) == " "
+        t = StringUtil.Substring(t, 0, StringUtil.GetLength(t) - 1)
+    EndWhile
+    Return t
+EndFunction
+
+; ===========================================================================
+; Authored-disposition mappers
+;
+; These translate the LLM's labeled words into the StorageUtil values the
+; gates read. Every one of these keys was READ-ONLY until 2026-07-28 - read
+; with a default and never written by anything - so every NPC silently shared
+; one hardcoded personality: pansexual, sex only at Lover tier, no attraction
+; bypass, ardor 2, exclusivity 50. The gates existed; the data did not.
+;
+; Unrecognized input returns the SAFE value, never the permissive one. A model
+; that answers unexpectedly must not accidentally unlock intimacy.
+; ===========================================================================
+
+Int Function OrientationToInt(String asWord) Global
+    { 0 none, 1 men, 2 women, 3 any. Matches SNRom_Decorators.CanBegin.
+
+      TWO VOCABULARIES ACCEPTED, on purpose.
+
+      The prompt now asks for ATTRACTED_TO_MEN / ATTRACTED_TO_WOMEN /
+      ATTRACTED_TO_BOTH / ATTRACTED_TO_NEITHER, because the old bare MEN/WOMEN
+      answers are the SAME TOKENS as the subject's own gender. Elisif came back
+      WOMEN/STATED six times out of six - while married to a male player, with
+      a diary full of loving him, and eventually with the prompt explicitly
+      saying "this is NOT their own gender". Every other NPC answered ANY. The
+      working theory is slot-filling from her unusually long first-person,
+      heavily gendered diary, and directional tokens remove the collision.
+
+      The old words stay accepted because a model that ignores the new
+      vocabulary and answers WOMEN must still parse as WOMEN. Falling through
+      to the default would turn a visible wrong answer into a silent one, and
+      the authored word is logged either way, so keeping them costs no signal. }
+    String w = SNRom_Decorators.Upper(SNRom_Decorators.Trim(asWord))
+    If w == "ATTRACTED_TO_MEN" || w == "MEN"
+        Return 1
+    ElseIf w == "ATTRACTED_TO_WOMEN" || w == "WOMEN"
+        Return 2
+    ElseIf w == "ATTRACTED_TO_BOTH" || w == "ANY" || w == "BOTH"
+        Return 3
+    ElseIf w == "ATTRACTED_TO_NEITHER" || w == "NONE" || w == "NEITHER"
+        Return 0
+    EndIf
+    Return 3   ; unreadable answer: leave romance possible, the pre-existing default
+EndFunction
+
+Int Function IntimacyToMinTier(String asWord) Global
+    { Feeds SNRom_PhysMinTier. -1 means never, otherwise the tier at which
+      sexual intimacy becomes possible at all. }
+    String w = SNRom_Decorators.Upper(SNRom_Decorators.Trim(asWord))
+    If w == "NEVER"
+        Return -1
+    ElseIf w == "GUARDED"
+        Return 5   ; settled bond only
+    ElseIf w == "ROMANTIC"
+        Return 4   ; in love first
+    ElseIf w == "CASUAL"
+        Return 2   ; close enough to trust, love not required
+    EndIf
+    Return 4       ; unreadable answer: the conservative middle
+EndFunction
+
+Int Function IntimacyToBypass(String asWord) Global
+    { Feeds SNRom_PhysAttrBypass - THE Sapphire switch. Only CASUAL lets raw
+      attraction stand in for tier: someone who keeps everyone at arm's length
+      and may never reach Lover can still want someone in their bed. }
+    If SNRom_Decorators.Upper(SNRom_Decorators.Trim(asWord)) == "CASUAL"
+        Return 1
+    EndIf
+    Return 0
+EndFunction
+
+Int Function WeightToPoints(String asWord) Global
+    { Conversational weight -> points. A tier is 500, which is the scale every
+      number here is set against.
+
+      The MODEL NEVER SEES THESE NUMBERS. It answers with a word describing
+      what happened; Papyrus decides what that is worth. That separation is
+      deliberate - asked for a number the model inflates (ten NPCs answered
+      "3" on a 0-4 scale), and it has no way to know what 40 means against an
+      economy it cannot see.
+
+      LANDMARK is 350 - most of a tier - because two people explicitly and
+      mutually deciding to be partners is not a small event and scoring it
+      like one is the thing that makes these systems feel fake. It is gated
+      hard in Papyrus instead: see the landmark cooldown in ApplyTalkAward.
+
+      Unknown words return 0. A garbled answer must move nothing. }
+    String w = SNRom_Decorators.Upper(SNRom_Decorators.Trim(asWord))
+    If w == "SMALL"
+        Return 10
+    ElseIf w == "REAL"
+        Return 40
+    ElseIf w == "MAJOR"
+        Return 120
+    ElseIf w == "LANDMARK"
+        Return 350
+    ; ── The downward half, added 2026-08-04 ──────────────────────────────────
+    ; Until now every weight was non-negative, so a bond could only ever
+    ; improve. A breakup conversation would most likely have read as "two people
+    ; explicitly redefining their relationship" and scored LANDMARK: +350.
+    ;
+    ; DELIBERATELY ASYMMETRIC MAGNITUDES. SETBACK is the mirror of REAL, not of
+    ; MAJOR, because the common case is an argument and an argument is not a
+    ; wound. 40 against a 500-point tier is recoverable in one good conversation,
+    ; which is the point - one disagreement about which road to take must not
+    ; put a relationship in danger.
+    ;
+    ; RUPTURE mirrors LANDMARK exactly, because it IS a landmark: the day two
+    ; people stop being what they were is as defining as the day they started.
+    ElseIf w == "SETBACK"
+        Return -40
+    ElseIf w == "RUPTURE"
+        Return -350
+    EndIf
+    Return 0
+EndFunction
+
+Int Function ArdorToInt(String asWord) Global
+    { How demonstrative she is, 0-4. Authored as a WORD, not a number.
+
+      It was a 0-4 scale and came back 3 for TEN CONSECUTIVE NPCs. An
+      unanchored numeric range has no meaning to answer against, so everything
+      lands middle-high and the axis measures nothing. Intimacy and
+      exclusivity varied over the same ten, so this was the scale's fault
+      rather than the model's.
+
+      Words carry their own definition. "Reserved" and "intense" are things a
+      person can be recognized as; 1 and 4 are not. The stored value stays an
+      int because PhysicalOk and the spark calibration want to compare it. }
+    String w = SNRom_Decorators.Upper(SNRom_Decorators.Trim(asWord))
+    If w == "RESERVED"
+        Return 0
+    ElseIf w == "MEASURED"
+        Return 1
+    ElseIf w == "WARM"
+        Return 2
+    ElseIf w == "OPEN"
+        Return 3
+    ElseIf w == "INTENSE"
+        Return 4
+    EndIf
+    ; Older saves and any model that answers with a digit anyway.
+    Return SNRom_Decorators.ClampInt(asWord, 0, 4, 2)
+EndFunction
+
+String Function ArdorWord(Int aiArdor) Global
+    { Inverse, for the spark assessment - it calibrates far better against
+      "reserved" than against "1". }
+    If aiArdor <= 0
+        Return "reserved and undemonstrative"
+    ElseIf aiArdor == 1
+        Return "measured, showing little"
+    ElseIf aiArdor == 2
+        Return "warm but not effusive"
+    ElseIf aiArdor == 3
+        Return "open about what she feels"
+    EndIf
+    Return "intense and unmistakable"
+EndFunction
+
+Int Function ExclusivityToInt(String asWord) Global
+    { How much they need to be the only one, 0-100. Authored as a WORD.
+
+      SAME FIX AS ArdorToInt, AND FOR THE SAME REASON - this axis was simply
+      missed when that one was converted. It stayed "0 (untroubled by others)
+      to 100 (cannot share)": two anchors, both endpoints, nothing in between.
+
+      The log settled it. Over the twenty most recent authorings, ARDOR - words
+      since the conversion - came back 0,1,2,3,4 with every value represented.
+      EXCLUSIVITY came back 100 seventeen times out of twenty. Same NPCs, same
+      model, same run, same prompt; the only difference was the scale. Across
+      all 102 authorings on record, 45 are exactly 100.
+
+      100 is "cannot share under any circumstance". It is the most extreme
+      answer on the axis and it was the modal one, landing on people the same
+      response had just called RESERVED - someone who gives almost nothing away
+      being simultaneously and maximally possessive. That is not a character,
+      it is a scale with no middle.
+
+      Values are seeds, not buckets: drift moves this by 20 a review, so the
+      stored int keeps its full 0-100 resolution and only the FIRST answer
+      comes from this table.
+
+      TOLERANT IS THE OLD SPELLING OF ACCEPTING, kept because it costs nothing
+      and a model that reaches for either must land on the same number.
+
+      THE AXIS MEASURES A DEMAND, NOT AN ATTACHMENT, and the first vocabulary
+      blurred that. "POSSESSIVE - needs to be the only one; a rival would wound
+      them" reads as a description of how deeply someone loves, so the model
+      answered it for anyone deeply in love. Re-authoring three long-established
+      followers returned POSSESSIVE three times out of three - and ARDOR, which
+      is well spread over twenty other authorings, pinned to INTENSE on the same
+      three. Two axes moving together like that means they were being read as one
+      question.
+
+      The author's own case settled it: followers who have long known the player
+      has other partners, are at peace with it, and intend to have no one else
+      themselves. Wholly devoted, entirely undemanding. Under the old wording
+      that is POSSESSIVE, which is exactly backwards - so the prompt now asks
+      only what they require OF the player, and says outright that their own
+      fidelity is not a demand on anybody.
+
+      Digits still parse, for older saves and any model that ignores the
+      vocabulary - a visible wrong answer beats a silently defaulted one. }
+    String w = SNRom_Decorators.Upper(SNRom_Decorators.Trim(asWord))
+    If w == "UNTROUBLED"
+        Return 0
+    ElseIf w == "ACCEPTING" || w == "TOLERANT"
+        Return 25
+    ElseIf w == "CONVENTIONAL"
+        Return 50
+    ElseIf w == "POSSESSIVE"
+        Return 75
+    ElseIf w == "CONSUMING"
+        Return 100
+    EndIf
+    Return SNRom_Decorators.ClampInt(asWord, 0, 100, 50)
+EndFunction
+
+Int Function ClampInt(String asText, Int aiLow, Int aiHigh, Int aiFallback) Global
+    { Papyrus has no TryParse: a non-numeric string casts to 0, which is a
+      LEGAL value for both ardor and exclusivity and so cannot be distinguished
+      from a real answer. Verify the text is digits before trusting it. }
+    String t = SNRom_Decorators.Trim(asText)
+    Int n = StringUtil.GetLength(t)
+    If n == 0
+        Return aiFallback
+    EndIf
+    Int i = 0
+    While i < n
+        Int o = StringUtil.AsOrd(StringUtil.GetNthChar(t, i))
+        If o < 48 || o > 57
+            Return aiFallback
+        EndIf
+        i += 1
+    EndWhile
+    Int v = t as Int
+    If v < aiLow
+        Return aiLow
+    ElseIf v > aiHigh
+        Return aiHigh
+    EndIf
+    Return v
+EndFunction
+
+String Function SexWord(Int aiSex) Global
+    If aiSex == 1
+        Return "female"
+    EndIf
+    Return "male"
+EndFunction
+
+String Function FieldValue(String asResponse, String asKey) Global
+    { Pulls "KEY: value" out of a labeled-line response. Labeled lines are
+      used instead of JSON because Papyrus parses them trivially and small
+      models produce them far more reliably than nested structures. }
+    Int at = StringUtil.Find(asResponse, asKey)
+    Int skip = StringUtil.GetLength(asKey)
+    If at < 0
+        ; Tolerate QUOTED keys. A model that drifts into JSON writes 'WHY': or
+        ; "WHY": and the plain lookup misses every field, so a COMPLETE and
+        ; correct response is discarded as truncated. Happened twice in a row
+        ; for Svana Far-Shield, who fell back to a generic archetype both times.
+        ;
+        ; The root cause was use_structured_outputs on the LLM variant and that
+        ; is fixed, so this is belt-and-braces - but it costs two Finds on a
+        ; path that has already failed, and the failure it prevents is silent.
+        String bare = StringUtil.Substring(asKey, 0, StringUtil.GetLength(asKey) - 1)
+        String alt = bare + "':"
+        at = StringUtil.Find(asResponse, alt)
+        skip = StringUtil.GetLength(alt)
+        If at < 0
+            alt = bare + "\":"
+            at = StringUtil.Find(asResponse, alt)
+            skip = StringUtil.GetLength(alt)
+        EndIf
+    EndIf
+    If at < 0
+        Return ""
+    EndIf
+    Int start = at + skip
+    String rest = StringUtil.Substring(asResponse, start)
+    Int nl = StringUtil.Find(rest, "\n")
+    If nl < 0
+        nl = StringUtil.Find(rest, StringUtil.AsChar(10))
+    EndIf
+    If nl >= 0
+        rest = StringUtil.Substring(rest, 0, nl)
+    EndIf
+    Return Unquote(rest)
+EndFunction
+
+String Function DayOfStamp(String asEntry) Global
+    { The DAY part of a bracketed timestamp, or "" if there is no stamp.
+
+      Timestamps render as "[11:27 PM, Middas, 14th of Morning Star, 4E 202]".
+      The clock time is deliberately DISCARDED and only the day kept, because
+      the whole point is to tell separate days apart: two citations from the
+      same evening carry different clock times and must not count as two
+      occasions.
+
+      Everything from the first comma to the closing bracket is the day. That
+      keeps the weekday, the date and the year together, so "14th of Morning
+      Star" and "15th of Morning Star" differ while "11:27 PM" and "11:53 PM"
+      on the same date collapse to one. }
+    Int open = StringUtil.Find(asEntry, "[")
+    If open < 0
+        Return ""
+    EndIf
+    Int close = StringUtil.Find(asEntry, "]")
+    If close <= open
+        Return ""
+    EndIf
+    String stamp = StringUtil.Substring(asEntry, open + 1, close - open - 1)
+    Int comma = StringUtil.Find(stamp, ",")
+    If comma < 0
+        Return SNRom_Decorators.Upper(SNRom_Decorators.Trim(stamp))
+    EndIf
+    Return SNRom_Decorators.Upper(SNRom_Decorators.Trim( \
+        StringUtil.Substring(stamp, comma + 1)))
+EndFunction
+
+Int Function CountOccasions(String asText) Global
+    { How many DISTINCT DAYS a drift verdict actually cited.
+
+      A COUNT OF ENTRIES WAS NOT ENOUGH. The first version counted
+      bar-separated fragments, and the very first verdict under it returned
+      three - all describing one evening, none carrying a date, none naming a
+      separate moment. Counting separators only ever measures whether the model
+      can type a bar.
+
+      What makes an occasion distinct is WHEN it happened, so that is what gets
+      counted: entries without a copied timestamp are ignored entirely, and
+      entries sharing a day count once. A single night subdivided into three
+      vivid phrasings now scores 1 and is discarded, which is the whole point.
+
+      THE STRUCTURAL FIX, and it exists because two rounds of prose tightening
+      did nothing. Across three subjects the assessor answered from SALIENCE
+      rather than from pattern: vivid material nearby produced YES, thin
+      material produced NO, and neither had anything to do with whether a
+      behavior had recurred. Sybille's verdict was a paraphrase of a talk award
+      that had fired seconds earlier, on a different axis entirely.
+
+      Returns a COUNT rather than a Bool so the caller can log how many were
+      cited; "cited 1" and "cited none" are different failures and the log
+      should be able to say which.
+
+      Capped at eight days tracked. Nothing needs more than two to pass, the
+      array is a fixed size because Papyrus has no set, and a model listing
+      nine dated citations has already answered the question. }
+    String t = SNRom_Decorators.Trim(asText)
+    If t == "" || SNRom_Decorators.Upper(t) == "NONE"
+        Return 0
+    EndIf
+    String[] days = Utility.CreateStringArray(8, "")
+    Int found = 0
+    String rest = t + "|"
+    Int at = StringUtil.Find(rest, "|")
+    While at >= 0 && found < 8
+        String entry = SNRom_Decorators.Trim(StringUtil.Substring(rest, 0, at))
+        String day = SNRom_Decorators.DayOfStamp(entry)
+        If day != ""
+            Bool seen = False
+            Int i = 0
+            While i < found
+                If days[i] == day
+                    seen = True
+                EndIf
+                i += 1
+            EndWhile
+            If !seen
+                days[found] = day
+                found += 1
+            EndIf
+        EndIf
+        rest = StringUtil.Substring(rest, at + 1)
+        at = StringUtil.Find(rest, "|")
+    EndWhile
+    Return found
+EndFunction
+
+Bool Function PatternIsWatching(String asPattern) Global
+    { True if a drift PATTERN rests on what the NPC merely WATCHED.
+
+      PAPYRUS, NOT PROSE - and this one was earned. The drift prompt excluded
+      witnessed events from the start. After the first live review cited them
+      anyway, the exclusion was restated with emphasis, given its own section
+      saying a characterisation is not a pattern, and armed with two explicit
+      pre-write tests. The very next run on the same NPC produced the same
+      answer and used the word "witness" in it.
+
+      That is the fourth time this project has tightened a threshold in wording
+      and had the model reason straight past it. The tenure gate went into
+      Papyrus for exactly this reason; so does this.
+
+      FAILS SAFE. A match discards the verdict, and a discarded verdict means no
+      change - which is already the expected answer, so a false positive costs
+      nothing but a review that will come round again. That asymmetry is why a
+      blunt word list is acceptable here and would not be if it gated an award.
+
+      Deliberately NOT matching "others" on its own. "He has repeatedly chosen
+      her over others" is a pattern ABOUT the two of them and must survive.
+      Every needle below describes the NPC in the role of onlooker. }
+    String p = SNRom_Decorators.Upper(asPattern)
+    If StringUtil.Find(p, "WITNESS") >= 0
+        Return True
+    ElseIf StringUtil.Find(p, "OBSERV") >= 0
+        Return True
+    ElseIf StringUtil.Find(p, "WATCH") >= 0
+        Return True
+    ElseIf StringUtil.Find(p, "BYSTANDER") >= 0
+        Return True
+    ElseIf StringUtil.Find(p, "ONLOOKER") >= 0
+        Return True
+    ElseIf StringUtil.Find(p, "OVERHEARD") >= 0
+        Return True
+    ElseIf StringUtil.Find(p, "SPECTAT") >= 0
+        Return True
+    ElseIf StringUtil.Find(p, "INTIMACY OF OTHERS") >= 0
+        Return True
+    EndIf
+    Return False
+EndFunction
+
+String Function Unquote(String asValue) Global
+    { Strips JSON punctuation a drifting model wraps around a VALUE.
+
+      The quoted-KEY tolerance above was only half the problem. A model that
+      slips into JSON writes both sides of the pair, and a weight arriving as
+      LANDMARK wrapped in quotes with a trailing comma matches no weight, no
+      orientation and no intimacy word - so a correct answer scores nothing and
+      the log line reads as though the model simply declined.
+
+      Abelone lost a genuine 350-point defining moment to exactly this on
+      2026-08-09, and it looked like the landmark cooldown had fired. It had
+      not - the downgrade line was absent. 3 of 126 verdicts in that save came
+      back this way: rare, silent, and worth a few Finds to catch.
+
+      SAFE ON PROSE. WHY and LIMIT are sentences; removing a MATCHED pair of
+      wrapping quotes, or one trailing comma, cannot change their meaning.
+      Internal quotation is untouched because only the first and last
+      characters are ever considered. }
+    String v = Trim(asValue)
+    Int n = StringUtil.GetLength(v)
+    If n == 0
+        Return v
+    EndIf
+    If StringUtil.GetNthChar(v, n - 1) == ","
+        v = Trim(StringUtil.Substring(v, 0, n - 1))
+        n = StringUtil.GetLength(v)
+    EndIf
+    If n >= 2
+        String f = StringUtil.GetNthChar(v, 0)
+        String l = StringUtil.GetNthChar(v, n - 1)
+        If (f == "\"" && l == "\"") || (f == "'" && l == "'")
+            v = Trim(StringUtil.Substring(v, 1, n - 2))
+        EndIf
+    EndIf
+    Return v
+EndFunction
+
+String Function JsonEscape(String asText) Global
+    { Raw LLM output goes into a JSON log line verbatim, and into the authoring
+      CONTEXT object - quotes, newlines, backslashes or control characters in
+      it would corrupt either. }
+    ; Hardened 2026-08-06. It handled quotes and newlines and nothing else,
+    ; which is enough for a log line and NOT enough for the authoring context:
+    ; that is a single JSON object, so one bad character anywhere makes the
+    ; WHOLE thing unparseable and every variable silently undefined.
+    ;
+    ; Backslash was missing entirely and is the dangerous one - a trailing
+    ; backslash escapes the closing quote and swallows the rest of the object.
+    ; TAB and the other C0 control characters are invalid unescaped inside a
+    ; JSON string, and LLM prose reaches here by way of the disposition store,
+    ; so none of it is under our control.
+    ;
+    ; Removing rather than escaping, deliberately: this is prose destined for a
+    ; prompt, so a lost backslash costs nothing, while emitting an escaped pair
+    ; and relying on both ends to agree is one more thing to get wrong.
+    ; NEVER loop AsChar(0..31) here. That was the first attempt and it broke
+    ; authoring completely: AsChar(0) is the null character, which Papyrus
+    ; yields as an EMPTY string, so the first iteration became
+    ; ReplaceAll(s, "", " ") - replacing the empty string. That faults, and
+    ; because it faults inside AuthorDisposition's context construction the
+    ; whole function dies AFTER _pendingActor is set and BEFORE the send, which
+    ; leaves the authoring slot held forever and every later request queued
+    ; behind a request that will never complete.
+    ;
+    ; Tab, LF and CR are the only control characters that realistically appear
+    ; in LLM prose, and they are named explicitly so nothing has to be derived
+    ; from a character code again.
+    String s = asText
+    s = ReplaceAll(s, "\\", "")
+    s = ReplaceAll(s, "\"", "'")
+    s = ReplaceAll(s, StringUtil.AsChar(9), " ")
+    s = ReplaceAll(s, StringUtil.AsChar(10), " ")
+    s = ReplaceAll(s, StringUtil.AsChar(13), " ")
+    Return s
+EndFunction

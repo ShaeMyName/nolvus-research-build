@@ -1,0 +1,38 @@
+customCategory: intel_travel
+name: CancelCurrentTask
+description: >
+  Stop your current active task entirely.
+
+  Use when:
+  - Someone tells you to stop, wait, hold on, come back, or stay
+  - You decide the task is no longer worth doing
+  - You need to follow someone (cancel task first, then follow)
+
+  You don't need this before starting a new task — new tasks replace the current one automatically.
+
+  Does NOT cancel scheduled tasks — those still trigger at their scheduled time.
+  To adjust speed without stopping, use ChangeSpeed instead.
+
+questEditorId: IntelEngine
+scriptName: IntelEngine_Core
+executionFunctionName: CancelCurrentTask
+
+parameterMapping:
+  - type: speaker
+    name: akNPC
+    description: You (the NPC cancelling)
+
+eligibilityRules:
+  - conditions:
+      - decoratorName: is_in_combat
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true
+
+eventString: "{{ actor.name }} cancelled their task"
+isShortLived: true
+enabled: true
+defaultPriority: 7
+tags: []

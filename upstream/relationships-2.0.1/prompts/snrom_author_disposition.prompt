@@ -1,0 +1,327 @@
+[ system ]
+{# ══════════════════════════════════════════════════════════════════════════
+   Disposition authoring — asks the LLM what this specific person values.
+
+   SECTION MARKERS ARE LOAD-BEARING. `[ system ]` must be the FIRST line, and
+   at least one marker must be present. SkyrimNet renders the template and
+   then splits the result into a chat messages array on these markers; a
+   prompt with no markers renders perfectly and yields ZERO messages, and the
+   call dies in CustomPromptUtils.cpp with
+
+       DispatchCustomPromptToLLM: LLM returned empty response:
+       Messages array is empty. Cannot send request with no messages.
+
+   which surfaces to Papyrus as the utterly generic "LLM returned empty
+   response". Nothing reaches the provider, so openrouter_input.log stays
+   silent and it looks exactly like a provider or variant fault. It is not.
+   Markers are documented in WORKFLOW_PROMPTS.md §4.4 as "main prompts only" —
+   they must NOT appear in character_bio submodules, only in top-level prompts
+   like this one.
+
+   Other design notes:
+   - NO LIKES OR DISLIKES from 2.0 (the author, 2026-09-30). They named
+     game statistics ("Dungeons Cleared"); the catalogue, its
+     rotation and the frequency budget went with them. Phase 5 brings
+     preferences back on the mod's own vocabulary.
+   - Labeled lines, not JSON. Papyrus parses "WHY: ..." trivially;
+     nested JSON it does not. Small models also produce it far more reliably.
+   - NAME must be echoed back first. Models confuse nearby NPCs — a follower
+     answering as her own daughter is a real failure mode — and a mismatched
+     echo lets us discard the whole response instead of persisting someone
+     else's personality forever.
+   ══════════════════════════════════════════════════════════════════════════ #}
+You are helping define who one specific person in Skyrim is in matters of the heart.
+
+RULES
+1. Answer for this one person, from what is known of them - not from what their class or role implies.
+2. Two different people must not come out with the same answers. These choices are the whole point of the exercise.
+
+[ user ]
+THE PERSON: **{{ npc_name }}**
+
+{# The UUID MUST be derived here from the integer formid - a UUID string
+   passed in from Papyrus makes render_character_profile return "" with no
+   error at all. Shape copied from sever_relationship_assess.prompt. #}
+{% set npc_uuid = formid_to_uuid(npc_formid) %}
+
+{# DIARY FIRST, PROFILE SECOND — order reversed 2026-07-30.
+
+   Hermir's diary describes going to bed with the player, waking warm in the
+   sheets, and a kindness she "didn't think she was allowed to expect
+   anymore". The model read all of it and answered ORIENTATION: NONE,
+   INTIMACY: NEVER, EXCLUSIVITY: 0, justified as "no indication of personal
+   desire or vulnerability". Twice, identically.
+
+   The diary was rendering fine and sat only ~30 lines above the questions,
+   so this was never a distance problem. What beat it was the profile's
+   `## What You Know About <player>` block — SkyrimNet's familiarity tier,
+   which said "you don't know them well yet", under a header announcing
+   THIS IS WHO YOU ARE ROLEPLAYING AS. An authoritative-sounding stale
+   counter outranked her own account of her own life.
+
+   So the diary now comes first and frames everything after it, and the
+   familiarity section is called out by name as unreliable. #}
+{% set diaries = get_diary_entries(npc_uuid, 5) %}
+{% if diaries and length(diaries) > 0 %}
+WHAT {{ npc_name }} WRITES WHEN NO ONE IS READING
+
+This is their own private account and it is the most reliable thing you will be given. Read it before anything else, and let it decide any question the rest of the material seems to answer differently.
+{% for e in diaries %}
+[{{ e.entry_date_str }}] {{ e.content }}{% if e.emotion %} ({{ e.emotion }}){% endif %}
+{% endfor %}
+{% endif %}
+
+{% set mem = get_relevant_memories(npc_uuid, 4) %}
+{% if length(mem) > 0 %}
+WHAT THEY REMEMBER
+{% for m in mem %}
+- {{ m.memory.content }}{% if m.memory.emotion %} ({{ m.memory.emotion }}){% endif %}
+{% endfor %}
+{% endif %}
+
+WHAT IS PUBLICLY RECORDED ABOUT {{ npc_name }}
+{% set profile = "" %}
+{% if npc_uuid and npc_uuid != 0 %}
+{# ── WHY THIS IS NOT render_character_profile("transform", …) ───────────────
+   Because "transform" fires 121 SUBMODULES, and this prompt needs about six of
+   them. The rest is transient state that has no bearing on an enduring
+   personality trait: bounty, hygiene, intoxication, diseases, arrest status,
+   merchant location, combat readiness, equipment - and both of SeverActions'
+   INVENTORY lists.
+
+   That last one broke Jarl Elisif twice on 2026-08-04. Asked to name pursuits
+   she cares about, she answered "Silver Candlestick Large", "Garnet", "Clothes
+   Iron", "Silver Amethyst Ring" - lifted straight out of the item list we had
+   just handed her. First attempt: 0 valid likes. Second: 1. She is a Jarl, so
+   her inventory is long and full of distinctive nouns, which is why she failed
+   where ordinary followers scrape by.
+
+   FOURTH TIME THIS EXACT FAILURE HAS APPEARED: seeded catalogue entries copied
+   into every NPC, group headings returned as likes, the CASUAL example copied
+   by three NPCs in a row, now inventory. The rule has held every time - a
+   plausible-looking wrong answer sitting near the question gets copied - and so
+   has the fix: REMOVE THE ATTACK SURFACE, do not add another instruction
+   against it. The prompt already said "nothing from the profile is a valid
+   answer". It was overruled twice in a row.
+
+   The bio_* modes each resolve to exactly ONE submodule, so this composes the
+   material that actually bears on the question and nothing else.
+
+   TWO PROBLEMS THIS ALSO DELETES, both previously fought with prose:
+     - The "THIS IS WHO YOU ARE ROLEPLAYING AS" heading comes from
+       0010_header, which fires on full/thoughts/transform and NOT on bio_*.
+       That heading is why the model intermittently answered in character
+       instead of answering the question.
+     - "What You Know About" and "Your Bond With" are likewise transform-only,
+       so the two paragraphs below warning the model to disregard them are now
+       describing text it will never see. Left in place deliberately: harmless
+       if absent, and load-bearing again the moment anyone widens this back. #}
+{# ONE LINE, and '+' not '~'. Inja is not Jinja2: '~' appears ZERO times in any
+   shipped prompt while '+' is used for concatenation throughout
+   dynamic_character_bio.prompt, and no shipped prompt spans a {% set %} across
+   lines. Both were unverified guesses on the first draft - the same mistake as
+   `is defined` the day before, which is why this now gets checked against a
+   working example every time. No "\n" literals either: each submodule brings
+   its own surrounding whitespace, and escape handling is one more thing that
+   would be assumed rather than known. #}
+{% set profile = render_character_profile("bio_summary", npc_uuid) + render_character_profile("bio_background", npc_uuid) + render_character_profile("bio_personality", npc_uuid) + render_character_profile("bio_aspirations", npc_uuid) + render_character_profile("bio_occupation", npc_uuid) + render_character_profile("bio_relationships", npc_uuid) %}
+
+{# -- SEVERACTIONS BIO BLOCKS: THE MOST DIRECT EVIDENCE THIS CALL EVER GETS --
+   SeverActions removed the bioslot feature in 3.9.11 and REVIVED it (issue
+   #425) as a single native decorator, custom_bio_blocks(uuid), fed by an
+   importable library. Confirmed live 2026-08-30: the decorator registers
+   through PublicAPI, and 8 of 9 followers in range carried applied blocks.
+
+   WHY IT IS CALLED HERE RATHER THAN ARRIVING ON ITS OWN. Its submodule,
+   0040_severactions_bio_blocks, gates on full/thoughts/transform and NOT on
+   bio_*. The profile above is six bio_* modes, so none of this reaches this
+   call without asking for it - the same gap 0010_header has, documented above.
+   The Papyrus comment at the send site claimed these arrived "for free" via
+   the character profile. They never did, under either design.
+
+   THE GUARD IS NOT DECORATIVE. An unrecognised decorator does not throw here -
+   measured 2026-08-30 - it renders its own source text verbatim, so an
+   unguarded call against 3.9.11 would paste literal template syntax into a
+   prompt the model then reads. is_plugin_loaded, never exists(): exists()
+   tests a CONTEXT VARIABLE and never a function, so it would guard nothing. #}
+{% set bioblocks = "" %}
+{% if is_plugin_loaded("SeverActions.esp") %}
+{% set bioblocks = custom_bio_blocks(npc_uuid) %}
+{% endif %}
+{% endif %}
+{% if profile and profile != "" %}
+{{ profile }}
+
+TWO THINGS IN THE PROFILE ABOVE ARE NOT EVIDENCE ABOUT THEM.
+
+Its "What You Know About" section is generated from a counter of interactions, not from what has actually happened between them. It routinely reports that two people barely know each other while their own diary describes years of intimacy. **Where it disagrees with anything above, it is simply wrong — disregard it.**
+
+Any "Your Bond With" or "What Moves You" section is this system's own earlier output about them. Treating it as input would let one guess harden into a fact.
+{% else %}
+{{ npc_bio }}
+{% endif %}
+
+{% if bioblocks and bioblocks != "" %}
+WHAT SOMEONE DELIBERATELY ESTABLISHED ABOUT {{ npc_name }}
+
+{{ bioblocks }}
+
+THIS OUTRANKS THE PROFILE ABOVE. Everything else here was inferred from a bio; this was chosen for this person on purpose. Where the two disagree, this wins.
+
+BLOCKS TITLED FOR THESE FIELDS ARE DIRECT ANSWERS, AND THEY WIN. A block whose title begins `Attachment:`, `Expression:`, `Drawn To:` or `Limit:` was written to answer one of the questions below and applied to this person deliberately. On its own field it outranks everything - the bio, your own reading, and any number of other blocks pointing the other way. Twenty blocks describing what someone enjoys do not outvote one block stating how much they show; they are answers to different questions and only one of them was aimed at this one.
+
+Where no such block exists for a field, weigh everything normally and decide for yourself.
+
+IT IS EVIDENCE, NOT SUBJECT MATTER. It is phrased in the vocabulary of intimacy because that is the library it comes from - but you are authoring a disposition, not a bedroom. Read through the surface to the person. A block naming who they are drawn to settles ORIENTATION outright. A block saying they form deep lasting attachments and value commitment is direct testimony on EXCLUSIVITY. A block calling them reserved, shy, bold or openly expressive is testimony on ARDOR. A block listing what they will not do is where a LIMIT may already be stated.
+
+DO NOT RESTATE ANY OF IT. The WHY and the LIMIT are one line each, in their own voice, about how they love. Someone who has never seen this section must not be able to reconstruct it from what you write.
+{% endif %}
+
+{% if circle and circle != "" %}
+TRAVELING WITH {{ player.name }} NOW, OR RECENTLY
+{{ circle }}
+
+These are the people {{ npc_name }} stands beside, most recent first, and the player sees them together. Whatever you decide must not read as a variation on one of the others - above all not the same answer to who they are in matters of the heart. If your first instinct matches one of the above, treat that as a reason to look at their profile again rather than as confirmation.
+
+They are not interchangeable with the person standing next to them. That is the entire point of being asked.
+{% endif %}
+
+{# ── An established fact, passed from Papyrus, not inferred from prose ──────
+   npc_married comes from the vanilla PlayerMarriedFaction and MARAS directly.
+   It is here because the profile above may be silent on it: with dynamic bio
+   updates disabled the static bio is all there is, and it does not record who
+   the NPC married. Elisif was authored ORIENTATION: WOMEN / BASIS: STATED
+   twice out of three attempts on exactly that silence.
+
+   Placed immediately before the questions, because position beats instruction
+   in this engine. #}
+WHAT THE WORLD ACTUALLY RECORDS
+{% if npc_married == 1 %}
+{{ npc_name }} and {{ player.name }} ARE married. This is recorded, not claimed.
+{% else if npc_engaged == 1 %}
+{{ npc_name }} and {{ player.name }} ARE engaged. This is recorded, not claimed.
+{% else %}
+{{ npc_name }} is NOT married and NOT engaged to {{ player.name }}. That is the record, whatever anything below says.
+{% endif %}
+
+NOTHING BELOW CAN OVERRULE THAT LINE. The character profile you are about to read is assembled by a separate system that infers and embellishes, and it invents relationship states: on this save it described two followers as the player's "fiancee" while the marriage system recorded no engagements at all. Diary entries can repeat the same invention, because they are generated from the same material.
+
+So if a profile or a diary calls them betrothed, promised, engaged, a fiancee, a wife or a husband, and the line above does not, THE LINE ABOVE IS RIGHT. Read everything else for what actually passed between the two of them - that part is trustworthy and is why you are being shown it - but do not let a borrowed title decide how far along they are.
+
+{% if npc_married == 1 %}
+**{{ npc_name }} IS MARRIED TO {{ player.name }}, who is {{ player.gender }}. This is a completed marriage the game records, not a rumor and not something to weigh.**
+
+It settles the orientation question by itself. Whatever you might otherwise have guessed, this person married {{ player.name }} — so `SEXUAL_ORIENTATION` must be an answer that INCLUDES {{ player.name }}, and the basis for it is `STATED`, because their marriage states it.
+
+Do not reason past this, and do not treat a quiet profile as evidence against it. A bio that fails to mention a marriage is an incomplete bio, not an unmarried character.
+
+It settles nothing else. How much they show (`ARDOR`), what closeness requires of them (`INTIMACY`), what they ask of {{ player.name }} about other partners (`EXCLUSIVITY`) and what they refuse (`LIMIT`) are all still open — married people are as various in those as anyone. A marriage is not a personality.
+{% endif %}
+
+
+
+
+Answer four questions about who {{ npc_name }} is in matters of the heart and body. These are independent - wanting no romance does not mean wanting no intimacy, and the reverse is equally true.
+
+SEXUAL_ORIENTATION - who they could fall for: `ATTRACTED_TO_MEN`, `ATTRACTED_TO_WOMEN`, `ATTRACTED_TO_BOTH`, or `ATTRACTED_TO_NEITHER` (not drawn to anyone that way).
+  This is who they are drawn TO, never what they are themselves. A woman who loves men answers `ATTRACTED_TO_MEN`.
+
+SEXUAL_ORIENTATION_BASIS - **how much you actually know**, and this matters more than the answer:
+- `STATED` - the material above establishes it. Only use this when it is genuinely there.
+- `IMPLIED` - the material strongly suggests it without saying so.
+- `UNKNOWN` - nothing above establishes it. **This is the correct and expected answer for most characters.** People do not announce this, and you have almost certainly not been told.
+
+Do NOT invent an orientation to seem decisive. Answering `UNKNOWN` leaves the question open for play to settle, which is what should happen. Answering `STATED` on a guess permanently forecloses a story the player may be in the middle of. When in doubt, `ATTRACTED_TO_BOTH` with `UNKNOWN`.
+
+INTIMACY - what physical closeness requires of them:
+- `NEVER` - not interested in sex with anyone, at any point
+- `GUARDED` - only within a committed, settled bond
+- `ROMANTIC` - once real feelings have begun, even before anything is declared or promised
+- `CASUAL` - strong attraction is reason enough; it need not be love
+
+{# HOW OFTEN WAS TAKEN OUT OF THIS AXIS, 2026-09-24. It used to own "appetite
+   ... how often they want it" along with every other physical signal, which
+   was right while the only such signals were what someone enjoys in bed. The
+   arousal library adds blocks that answer exactly "how often" - Appetite,
+   Stirred By, Cooled By - and read here they would turn every character who
+   runs hot into CASUAL and every one seldom stirred into GUARDED: the same
+   archetype collapse the Attachment blocks exist to prevent. How often and
+   what first are separate facts about a person. #}
+THIS AXIS OWNS THE PHYSICAL SIGNALS ABOUT READINESS. Adventurousness, performance, what someone enjoys in bed - all of it is evidence HERE and not for `ARDOR`. It answers one question and only one: how much emotional ground has to exist first.
+
+{# THE EXAMPLE PAIR WAS REMOVED, 2026-09-28. This paragraph used to go on
+   "Someone who runs hot may still wait to be in love; someone seldom stirred
+   may need nothing more than attraction" - a plausible answer placed beside
+   the question, the failure prompt-lessons records three times over. Vivienne
+   Onis carries Appetite: Runs Hot, and was re-authored ROMANTIC with Swinging,
+   Threesome and Addictions: Sex among her blocks; her previous authoring,
+   without that sentence, said CASUAL. The rule stays; the illustration goes,
+   and the paragraph now also says what DOES bear on this axis. #}
+HOW OFTEN THEY WANT IT IS A DIFFERENT QUESTION. A block beginning `Appetite:`, `Stirred By:` or `Cooled By:` describes how readily desire comes and what wakes or quiets it, not what must be true before they act on it. Those blocks are not the answer to `INTIMACY`, nor to `ARDOR`.
+
+WHO THEY SLEEP WITH, AND ON WHAT TERMS, IS THIS QUESTION. Many partners, swinging, threesomes, sex with no strings, sex sought as a need in itself, flirtation that expects to be taken up by near-strangers - that is someone for whom attraction is reason enough, and it points to `CASUAL`. Signals that the person must come first - sex only inside a bond, fidelity as a condition, desire that waits on trust - point the other way.
+
+`GUARDED` AND `ROMANTIC` ARE DIFFERENT ANSWERS, and the difference is not degree. `GUARDED` waits for a settled, committed bond - the arrangement has to be safe before the person can be. `ROMANTIC` waits for feelings, which routinely arrive long before any arrangement does. Someone who would go to bed with a person they had begun to fall for but promised nothing to is `ROMANTIC`. Between those two, `ROMANTIC` is the ordinary human answer and `GUARDED` is chosen too often; if you are reaching for `GUARDED`, check that it is the commitment they need and not the feeling. This compares those two only - it is not a reason to prefer `ROMANTIC` over `CASUAL`.
+
+ARDOR - how much of what they feel actually shows: `RESERVED` (gives almost nothing away), `MEASURED` (shows little, and rarely first), `WARM` (openly fond, without display), `OPEN` (says what they feel plainly), or `INTENSE` (unmistakable, and they do not try to hide it).
+
+PHYSICAL APPETITE IS NOT ARDOR. Someone can be adventurous, uninhibited and utterly demonstrative in bed and still be measured about saying what they feel. Someone who gives almost nothing away physically can be unmistakable about love. None of those signals is this axis's evidence. This one asks a single question: how legible are their FEELINGS to the person they are aimed at.
+
+THESE TWO AXES VARY INDEPENDENTLY, AND THE COMBINATION IS WHAT MAKES SOMEONE SPECIFIC RATHER THAN A TYPE. Physically open and emotionally guarded is a real person. So is physically reserved and emotionally unmistakable. Do not let one answer decide the other - if both landed at the same end of their scales, go back and check the evidence said so twice, rather than once in two places.
+
+EXCLUSIVITY - what they ask OF {{ player.name }} about other partners. This is the one question here that is NOT about the strength of their feeling. It asks only what they require of {{ player.name }} - never how much they care, and never how faithful they are themselves.
+
+- `UNTROUBLED` - content for {{ player.name }} to have other partners; it genuinely does not trouble them
+- `ACCEPTING` - would rather be the only one, but has accepted that they are not, and does not hold it against them
+- `CONVENTIONAL` - expects to be the only one, the way most people do
+- `POSSESSIVE` - asks to be the only one, and a rival would be a real injury
+- `CONSUMING` - cannot share at all; another partner would end it
+
+It reduces to one question: does it trouble them that {{ player.name }} has, or may have, other partners? Nothing else about the relationship bears on it.
+
+Someone wholly devoted to {{ player.name }}, who intends to have no one else themselves, may still be `UNTROUBLED` or `ACCEPTING`. Their own fidelity is not a demand on anybody. Someone who has long known that {{ player.name }} has other partners and is at peace with it is `ACCEPTING` or `UNTROUBLED`, however much they love them.
+
+WANTING TO BELONG IS NOT THE SAME AS WANTING TO OWN, and the two are easy to read as one. Wanting to be wholly {{ player.name }}'s - to be claimed, kept, or owned by them, gladly and completely - says nothing whatever about whether anyone else may be theirs too. Someone who asks to be his entirely and asks nothing back is `UNTROUBLED`. Devotion, surrender, worship and a wish to be possessed are answers to ARDOR and WHY. They are never answers to this.
+
+LIMIT - one line this person does not cross, whatever they feel and however much they are pressed.
+
+Everything else here describes what someone wants. This describes what they refuse, and it is the only field that does. Without it a character has no standing to say no, and being asked repeatedly becomes a way to wear them down - which is not a character, it is the absence of one.
+
+It must not be the WHY restated in the negative. If the limit protects the same thing the why says they have already surrendered, that is one idea written twice - it reads as self-contradiction rather than depth. The limit should concern something the why has not already settled.
+A limit belongs to THIS person and comes out of the material above: their circumstances, their history, what they have already lost, what they are responsible for, what they believe. It need not concern sex at all. Someone may refuse a thing that costs them nothing and yield on a thing that costs them everything, and that asymmetry is what makes them legible as a person rather than a difficulty setting.
+
+Do not write a rule that would be true of almost anyone. Write the one that is true of them. And do not soften it: a limit that bends under pressure is not a limit, and writing it as though it might is worse than leaving the field out.
+
+{# NO WORKED EXAMPLES HERE, deliberately. There used to be two - one
+   illustrating CASUAL, one GUARDED - and the CASUAL one was the vivid,
+   memorable half. Three consecutive NPCs then came back CASUAL/ardor 3, with
+   one of them describing herself in her own WHY as holding "emotional
+   distance as a default", which is not CASUAL at all. She was echoing the
+   example instead of reading the profile.
+
+   Third time this exact failure has appeared: seeded catalogue entries copied
+   into every NPC, group headings returned as answers, now this. A named valid
+   answer sitting next to the question gets copied. State the rule, never the
+   answer. #}
+Judge these from who this person actually is, reading the material above. The four answers are independent - one does not imply another, and a guess at one must not drag the others along with it. Two different people should not come out with the same profile; if they do, you are describing a category rather than a person.
+
+**THE RESTRICTIVE ANSWERS REQUIRE EVIDENCE. Absence of evidence is not one.**
+
+`NEVER`, `RESERVED`, `UNTROUBLED` and `CONSUMING` are claims about who they ARE, not about what you could not find. Most profiles say nothing at all about someone's private life — that is normal, and it does not mean the answer is no.
+
+- Answer `NEVER` only if the material establishes they are genuinely not interested in sex with anyone. Not because it never comes up.
+- Answer `RESERVED` only if they are actually described as guarded or undemonstrative. Not because you were not told how they express themselves.
+- Answer `CONSUMING` or `UNTROUBLED` only if the material establishes it. BOTH ends of that axis are strong claims - one that they could never share, one that they genuinely would not mind. Being told nothing about it makes them `CONVENTIONAL`, not either extreme.
+
+If the material is thin, answer with what is ordinary for a person like them — most people are somewhere in the middle on all of these. A wrong restrictive answer is not neutral: it permanently forecloses parts of their story, and unlike a wrong permissive one, nothing in play can ever open it back up.
+
+Answer in exactly this form and nothing else:
+
+NAME: {{ npc_name }}
+SEXUAL_ORIENTATION: <ATTRACTED_TO_MEN|ATTRACTED_TO_WOMEN|ATTRACTED_TO_BOTH|ATTRACTED_TO_NEITHER>   <- if a `Drawn To:` block was applied, COPY ITS ANSWER. `Men`=ATTRACTED_TO_MEN, `Women`=ATTRACTED_TO_WOMEN, `Both`=ATTRACTED_TO_BOTH, `No One`=ATTRACTED_TO_NEITHER. The block is the answer; do not read past it to their history.
+SEXUAL_ORIENTATION_BASIS: <STATED|IMPLIED|UNKNOWN>   <- `STATED` whenever a `Drawn To:` block was applied - someone established it on purpose.
+INTIMACY: <NEVER|GUARDED|ROMANTIC|CASUAL>   <- if a `Drawn To:` block named an orientation this is not that question; this one is how much feeling must come first. Every physical signal in the blocks is evidence HERE, except how often desire comes: `Appetite:`, `Stirred By:` and `Cooled By:` blocks are not this answer. Who they sleep with and on what terms IS this answer: many partners, swinging, threesomes, no-strings sex or sex sought as a need point to CASUAL.
+ARDOR: <RESERVED|MEASURED|WARM|OPEN|INTENSE>   <- if an `Expression:` block was applied, COPY ITS ANSWER. `Measured, Shows Little`=MEASURED, `Warm but Not Effusive`=WARM, `Open About What They Feel`=OPEN, `Intense and Unmistakable`=INTENSE, `Reserved and Undemonstrative`=RESERVED. Twenty blocks about what they enjoy in bed do not change this number.
+EXCLUSIVITY: <UNTROUBLED|ACCEPTING|CONVENTIONAL|POSSESSIVE|CONSUMING>   <- if an `Attachment:` block was applied, COPY ITS ANSWER. `Untroubled by Others`=UNTROUBLED, `Accepts Others Easily`=ACCEPTING, `Expects the Usual Arrangement`=CONVENTIONAL, `Needs to Be the Only One`=POSSESSIVE, `Cannot Share at All`=CONSUMING. The block is the answer; do not read past it to the bio. With NO block applied, CONVENTIONAL is the ordinary answer and the one most people deserve - it is the societal norm, not a weak reading. CONSUMING is the rarest answer here and describes someone for whom a rival ends the relationship outright, not someone who would merely mind very much; do not reach for it because the bio is passionate.
+WHY: <one short sentence, in third person, on what these say about them>
+LIMIT: <one short sentence, in third person, on a line they will not cross>
