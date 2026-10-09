@@ -1271,10 +1271,7 @@ Function RemoveAllPackages(Actor akActor, Bool evaluate = true)
     ; IntelEngine fully owns. For targets (fetched/escorted NPCs), use
     ; RemoveIntelPackages() instead to preserve SkyrimNet packages.
     ; Pass evaluate=false when adding a new package immediately after (prevents brief base-AI gap)
-    ActorUtil.ClearPackageOverride(akActor)
-    If evaluate
-        akActor.EvaluatePackage()
-    EndIf
+    RemoveIntelPackages(akActor, evaluate)
 EndFunction
 
 Function RemoveIntelPackages(Actor akActor, Bool evaluate = true)
