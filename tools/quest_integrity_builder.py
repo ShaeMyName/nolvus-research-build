@@ -28,9 +28,9 @@ SERANA_EXPECT = ("dawnguard.esm", 0x005044)
 
 
 def form_string(plugin, local_id):
-    """PapyrusUtil JsonUtil form string. INFERRED from PapyrusUtil.dll literals ("0x", "|");
-    exact match against a FormListAdd-written list is test Q-9 (in game)."""
-    return "0x%X|%s" % (local_id, plugin)
+    """PapyrusUtil JsonUtil form string: lowercase hex local ID, then the plugin name
+    (VERIFIED Q-9, 2026-10-09: FormListAdd wrote '0x15d24|Skyrim.esm'; light plugins use 12-bit IDs)."""
+    return "0x%x|%s" % (local_id, plugin)
 
 
 def plugin_path(name):
