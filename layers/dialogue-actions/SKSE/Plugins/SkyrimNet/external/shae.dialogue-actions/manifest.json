@@ -1,0 +1,15 @@
+{
+  "id": "shae.dialogue-actions",
+  "type": "bundle",
+  "title": "Dialogue Actions Conduct (private)",
+  "tagline": "Stricter rules for when NPCs run vanilla dialogue scripts.",
+  "description": "Component C of the Errand Bridge build (spec \u00a711.2, \u00a711.12.2, \u00a711.14.3, \u00a76.5 CF-1). Replaces the TriggerDialogueLine description (components/dialogue_action.prompt) with clear-intent, clarify, decline-and-steer and consequential-line rules, and blacklists follower-command, marriage, RDO, Serana and custom-follower dialogue scripts so those go through gated actions only. Private; never published.",
+  "author": "shae",
+  "tags": [
+    "dialogue"
+  ],
+  "nsfw": false,
+  "icon": "sparkles",
+  "version": "1.0.0",
+  "min_skyrimnet_version": "0.25.0"
+}

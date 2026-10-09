@@ -1,0 +1,12 @@
+kind: lists
+name: Follower commands go through actions only
+description: >-
+  Keeps the LLM from firing the vanilla follower wait, follow, dismiss, trade and favor lines
+  (quest DialogueFollower, including RDO's overrides of its lines) and NFF's controller lines.
+  With NFF installed those scripts act on the follower the player last activated, not on the
+  speaker, so an AI-fired line can command the wrong follower or un-park one away on an errand.
+  Follower commands go through SeverActions' and the Errand Bridge's gated actions instead.
+  Pressing E and choosing the line yourself is unaffected.
+blacklist:
+  - DialogueFollower
+  - nwsFollowerController

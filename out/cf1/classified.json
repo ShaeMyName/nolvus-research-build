@@ -1,0 +1,3240 @@
+[
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x04EA51",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x038022",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Follow",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x04EA51",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x074161",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Follow",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x04EA51",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x074162",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Follow",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x04EA51",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x025507",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Follow",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x04EA51",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x038024",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Follow",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x04EA51",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x038023",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Follow",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x04EA51",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0038BD",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Follow",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x04EA51",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0038BE",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Follow",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x04EA51",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0038BF",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Follow",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x04EA51",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x020C82",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Follow",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x04EA51",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x020C83",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Follow",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x04EA51",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x020C84",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Follow",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x04EA51",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x025508",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Follow",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x04EA51",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x025509",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Follow",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x04EA51",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x02550A",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Follow",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x00184D",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0E0C5E",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__020E0C5E",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x00184D",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x068448",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__HorseName",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x00184D",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x06B591",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__HorseName",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x00184D",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x06B592",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__HorseName",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x00184D",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x06B593",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__HorseName",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x00184D",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x06B594",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__HorseName",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x00184D",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x06B597",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__HorseName",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x00184D",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0888C4",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__HorseName",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x00184D",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0888C5",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__HorseName",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x00184D",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0888C6",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__HorseName",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "wait",
+  "dial": "inigo.esp|0x04EA58",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0038C7",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Wait",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "wait",
+  "dial": "inigo.esp|0x04EA58",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x07D9DB",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Wait",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "wait",
+  "dial": "inigo.esp|0x04EA58",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x07D9DC",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Wait",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "wait",
+  "dial": "inigo.esp|0x04EA58",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x07D9DD",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Wait",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "wait",
+  "dial": "inigo.esp|0x04EA58",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x02E225",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Wait",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "wait",
+  "dial": "inigo.esp|0x04EA58",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x02ECEF",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Wait",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "wait",
+  "dial": "inigo.esp|0x04EA58",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x02ECF0",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Wait",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "wait",
+  "dial": "inigo.esp|0x04EA58",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0038C8",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Wait",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "wait",
+  "dial": "inigo.esp|0x04EA58",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0038C9",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Wait",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "wait",
+  "dial": "inigo.esp|0x04EA58",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0038CA",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Wait",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "wait",
+  "dial": "inigo.esp|0x04EA58",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0038CB",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Wait",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "wait",
+  "dial": "inigo.esp|0x04EA58",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0038CC",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Wait",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "wait",
+  "dial": "inigo.esp|0x04EA58",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x020C89",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Wait",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "wait",
+  "dial": "inigo.esp|0x04EA58",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x020C8A",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Wait",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "wait",
+  "dial": "inigo.esp|0x04EA58",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x020C8B",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Wait",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "wait",
+  "dial": "inigo.esp|0x04EA58",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0038CD",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Wait",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "dismiss",
+  "dial": "inigo.esp|0x04EA4B",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0A5A20",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__020A5A20",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "dismiss",
+  "dial": "inigo.esp|0x04EA4B",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0A5A1F",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__020A5A1F",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "dismiss",
+  "dial": "inigo.esp|0x04EA4B",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0A5A1E",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__DismissToLang",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "dismiss",
+  "dial": "inigo.esp|0x04EA4B",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x002881",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Dismiss",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "dismiss",
+  "dial": "inigo.esp|0x04EA4B",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x002DEA",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Dismiss",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "dismiss",
+  "dial": "inigo.esp|0x04EA4B",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x002DE9",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Dismiss",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "dismiss",
+  "dial": "inigo.esp|0x04EA4B",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0A5A21",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__020A5A21",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "dismiss",
+  "dial": "inigo.esp|0x04EA4B",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0A5A22",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__020A5A22",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "dismiss",
+  "dial": "inigo.esp|0x04EA4B",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x034F82",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Dismiss",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Inigo",
+  "role": "recruit",
+  "dial": "inigo.esp|0x04EFC8",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x0BD60E",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF_GoodByeLangCabScene",
+  "src": "psc",
+  "follower_calls": [
+   "setplayerteammate"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Inigo",
+  "role": "recruit",
+  "dial": "inigo.esp|0x04EFC8",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x002880",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Recruit",
+  "src": "psc",
+  "follower_calls": [
+   "setplayerteammate"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Inigo",
+  "role": "recruit",
+  "dial": "inigo.esp|0x04EFC8",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x002DE7",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Recruit",
+  "src": "psc",
+  "follower_calls": [
+   "setplayerteammate"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Inigo",
+  "role": "recruit",
+  "dial": "inigo.esp|0x04EFC8",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x002883",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Recruit",
+  "src": "psc",
+  "follower_calls": [
+   "setplayerteammate"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Inigo",
+  "role": "recruit",
+  "dial": "inigo.esp|0x04EFC8",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x002DE8",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Recruit",
+  "src": "psc",
+  "follower_calls": [
+   "setplayerteammate"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Inigo",
+  "role": "recruit",
+  "dial": "inigo.esp|0x009B3C",
+  "quest": "inigo.esp|0x0012DF",
+  "info": "inigo.esp|0x009B3D",
+  "plugin": "Inigo.esp",
+  "tif": "INI__TIF__Accept",
+  "src": "psc",
+  "follower_calls": [
+   "setplayerteammate"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x00592F",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__0500592F",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x07F230",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__0507F230",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x07F231",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__0507F231",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x7125F3",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__047125F3",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x7125F4",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__047125F4",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x7125F5",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__047125F5",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x7125F6",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__047125F6",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x7125F7",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__047125F7",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x7125F8",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__047125F8",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x7125F9",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__047125F9",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x7125FA",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__047125FA",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x7125FB",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__047125FB",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x7125FC",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__047125FC",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x7125FD",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__047125FD",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x7125FE",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__047125FE",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x7125FF",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__047125FF",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x712600",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__04712600",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x712601",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__04712601",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x07F234",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__0507F234",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x07F232",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__0507F232",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x07F233",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__0507F233",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x00592C",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__0500592C",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x43359A",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__0543359A",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x43359B",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__0543359B",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x43359C",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__0543359C",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x43359D",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__0543359D",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x43359E",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__0543359E",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x433598",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__05433598",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x433599",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__05433599",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x43359F",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__0543359F",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x4335A0",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__054335A0",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x870800",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__05870800",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x870801",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__05870801",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x870802",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__05870802",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x870803",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__05870803",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x870804",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__05870804",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x870805",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__05870805",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x870806",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__05870806",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x870808",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__05870808",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x870809",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__05870809",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x87080A",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__0587080A",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x87080B",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__0587080B",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x87080C",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__0587080C",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x87080D",
+  "plugin": "Lucien.esp",
+  "tif": "JR0_TIF__0587080D",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x4335A1",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__054335A1",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "dismiss",
+  "dial": "lucien.esp|0x005924",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x005925",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__05005925",
+  "src": "psc",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "dismiss",
+  "dial": "lucien.esp|0x005922",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x005926",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__05005926",
+  "src": "psc",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "dismiss",
+  "dial": "lucien.esp|0x005922",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x4F9043",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__054F9043",
+  "src": "psc",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "dismiss",
+  "dial": "lucien.esp|0x005922",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x3A56A6",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__053A56A6",
+  "src": "psc",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "dismiss",
+  "dial": "lucien.esp|0x005922",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x4F9044",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__054F9044",
+  "src": "psc",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "dismiss",
+  "dial": "lucien.esp|0x005922",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x3A56A7",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__053A56A7",
+  "src": "psc",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Lucien",
+  "role": "recruit",
+  "dial": "lucien.esp|0x00FB4E",
+  "quest": "lucien.esp|0x00591E",
+  "info": "lucien.esp|0x00FB4F",
+  "plugin": "Lucien.esp",
+  "tif": "JR_TIF__0500FB4F",
+  "src": "psc",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Remiel",
+  "role": "wait+follow",
+  "dial": "hlioremi.esp|0x02E119",
+  "quest": "hlioremi.esp|0x014C11",
+  "info": "hlioremi.esp|0x02E11B",
+  "plugin": "HLIORemi.esp",
+  "tif": "HLIO_TIF__0702E11B",
+  "src": "psc",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Remiel",
+  "role": "wait+follow",
+  "dial": "hlioremi.esp|0x02E119",
+  "quest": "hlioremi.esp|0x014C11",
+  "info": "hlioremi.esp|0x02E11A",
+  "plugin": "HLIORemi.esp",
+  "tif": "HLIO_TIF__0702E11A",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Remiel",
+  "role": "wait+follow",
+  "dial": "hlioremi.esp|0x02E119",
+  "quest": "hlioremi.esp|0x014C11",
+  "info": "hlioremi.esp|0x43CEBE",
+  "plugin": "HLIORemi.esp",
+  "tif": "HLIO_TIF__0543CEBE",
+  "src": "psc",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Remiel",
+  "role": "dismiss",
+  "dial": "hlioremi.esp|0x02E123",
+  "quest": "hlioremi.esp|0x014C11",
+  "info": "hlioremi.esp|0x02E124",
+  "plugin": "HLIIRemiLOTD.esp",
+  "tif": "HLIO_TIF__0702E124",
+  "src": "psc",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Remiel",
+  "role": "dismiss",
+  "dial": "hlioremi.esp|0x02E123",
+  "quest": "hlioremi.esp|0x014C11",
+  "info": "hlioremi.esp|0x43CEB8",
+  "plugin": "HLIIRemiLOTD.esp",
+  "tif": "HLIO_TIF__0543CEB8",
+  "src": "psc",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Remiel",
+  "role": "dismiss",
+  "dial": "hlioremi.esp|0x02E123",
+  "quest": "hlioremi.esp|0x014C11",
+  "info": "hlioremi.esp|0x43CEB7",
+  "plugin": "HLIIRemiLOTD.esp",
+  "tif": "HLIO_TIF__0543CEB7",
+  "src": "psc",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Remiel",
+  "role": "dismiss",
+  "dial": "hlioremi.esp|0x02E123",
+  "quest": "hlioremi.esp|0x014C11",
+  "info": "hlioremi.esp|0x43CEB6",
+  "plugin": "HLIIRemiLOTD.esp",
+  "tif": "HLIO_TIF__0543CEB6",
+  "src": "psc",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Remiel",
+  "role": "recruit",
+  "dial": "hlioremi.esp|0x02E116",
+  "quest": "hlioremi.esp|0x014C11",
+  "info": "hlioremi.esp|0x1308EB",
+  "plugin": "HLIORemi.esp",
+  "tif": "HLIO_TIF__071308EB",
+  "src": "psc",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "wait",
+  "dial": "katana.esp|0x5EF55D",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0x95BAFB",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0495BAFB",
+  "src": "pex",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "wait",
+  "dial": "katana.esp|0x5EF55D",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0x62C17A",
+  "plugin": "Katana.esp",
+  "tif": "AK69KatanaWait1",
+  "src": "pex",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "wait",
+  "dial": "katana.esp|0x5EF55D",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xFA0818",
+  "plugin": "Katana.esp",
+  "tif": "AK69TIF__05FA0818",
+  "src": "pex",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "wait",
+  "dial": "katana.esp|0x5EF55D",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xFA0819",
+  "plugin": "Katana.esp",
+  "tif": "AK69TIF__05FA0819",
+  "src": "pex",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "wait",
+  "dial": "katana.esp|0x5EF55D",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xA9AC63",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05A9AC63",
+  "src": "pex",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "wait",
+  "dial": "katana.esp|0x5EF55D",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xFA081A",
+  "plugin": "Katana.esp",
+  "tif": "AK69TIF__05FA081A",
+  "src": "pex",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "follow",
+  "dial": "katana.esp|0x5EF557",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0x5EF558",
+  "plugin": "Katana.esp",
+  "tif": "AK69KatanaFollowWaitResponse1",
+  "src": "pex",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "follow",
+  "dial": "katana.esp|0x5EF557",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xB2D3DD",
+  "plugin": "Katana.esp",
+  "tif": "AK69KatanaFollowWaitResponse2",
+  "src": "pex",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "follow",
+  "dial": "katana.esp|0x5EF557",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xB2D3DE",
+  "plugin": "Katana.esp",
+  "tif": "AK69KatanaFollowWaitResponse3",
+  "src": "pex",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "follow",
+  "dial": "katana.esp|0x5EF557",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xB2D3DF",
+  "plugin": "Katana.esp",
+  "tif": "AK69KatanaFollowWaitResponse4",
+  "src": "pex",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "dismiss",
+  "dial": "katana.esp|0x5EA44E",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0x96ADFF",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0496ADFF",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "dismiss",
+  "dial": "katana.esp|0x5EA44E",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xDE3B0A",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05DE3B0A",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "dismiss",
+  "dial": "katana.esp|0x5EA44E",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0x5EA44F",
+  "plugin": "Katana.esp",
+  "tif": "AK69KatanaDismissResponse1",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "dismiss",
+  "dial": "katana.esp|0x5EA44E",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0x4ED6E4",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__044ED6E4",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "dismiss",
+  "dial": "katana.esp|0x5EA44E",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0x5EA450",
+  "plugin": "Katana.esp",
+  "tif": "AK69KatanaDismissResponse2",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "dismiss",
+  "dial": "katana.esp|0x5EA44E",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xB282DB",
+  "plugin": "Katana.esp",
+  "tif": "AK69KatanaDismissResponse3",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "dismiss",
+  "dial": "katana.esp|0x5EA44E",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xF68CDD",
+  "plugin": "Katana.esp",
+  "tif": "AK69TIF__05F68CDD",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "dismiss",
+  "dial": "katana.esp|0x5EA44E",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0x76B79F",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0476B79F",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "dismiss",
+  "dial": "katana.esp|0x5EA44E",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0x95BAFE",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0495BAFE",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "dismiss",
+  "dial": "katana.esp|0x5EA44E",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0x7F821F",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__057F821F",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "dismiss",
+  "dial": "katana.esp|0x5EA44E",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0x7F8220",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__057F8220",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "dismiss",
+  "dial": "katana.esp|0x5EA44E",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xB282DC",
+  "plugin": "Katana.esp",
+  "tif": "AK69KatanaDismissResponse4",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "dismiss",
+  "dial": "katana.esp|0x5EA44E",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xA9AC5E",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05A9AC5E",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "dismiss",
+  "dial": "katana.esp|0x5EA44E",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xA9AC5F",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05A9AC5F",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "recruit",
+  "dial": "katana.esp|0x5EF552",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0x5EF553",
+  "plugin": "Katana.esp",
+  "tif": "AK69KatanaFollowResponse1",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "recruit",
+  "dial": "katana.esp|0x5EF552",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xF68CDE",
+  "plugin": "Katana.esp",
+  "tif": "AK69TIF__05F68CDE",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "recruit",
+  "dial": "katana.esp|0x5EF552",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0x5EF554",
+  "plugin": "Katana.esp",
+  "tif": "AK69KatanaFollowResponse2",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "recruit",
+  "dial": "katana.esp|0x5EF552",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0x5EF555",
+  "plugin": "Katana.esp",
+  "tif": "AK69KatanaFollowResponse3",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "recruit",
+  "dial": "katana.esp|0x5EF552",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xDFD096",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05DFD096",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "recruit",
+  "dial": "katana.esp|0x5EF552",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xDFD0C3",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05DFD0C3",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "recruit",
+  "dial": "katana.esp|0x5EF552",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xDFD0C4",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05DFD0C4",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "recruit",
+  "dial": "katana.esp|0x5EF552",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xDFD0C5",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05DFD0C5",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "recruit",
+  "dial": "katana.esp|0x5EF552",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xDFD0C6",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05DFD0C6",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Katana",
+  "role": "recruit",
+  "dial": "katana.esp|0x5EF552",
+  "quest": "katana.esp|0x00AA04",
+  "info": "katana.esp|0xDFD0C7",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05DFD0C7",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "wait",
+  "dial": "katana.esp|0x1C8608",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0x1C8609",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__041C8609",
+  "src": "pex",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "wait",
+  "dial": "katana.esp|0x1C8608",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0xA9AC76",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05A9AC76",
+  "src": "pex",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "wait",
+  "dial": "katana.esp|0x1C8608",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0xA9AC73",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05A9AC73",
+  "src": "pex",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "wait",
+  "dial": "katana.esp|0x1C8608",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0xA9AC74",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05A9AC74",
+  "src": "pex",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "wait",
+  "dial": "katana.esp|0x1C8608",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0xA9AC75",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05A9AC75",
+  "src": "pex",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "follow",
+  "dial": "katana.esp|0x1C8602",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0x1C8603",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__041C8603",
+  "src": "pex",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "follow",
+  "dial": "katana.esp|0x1C8602",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0xA9AC6F",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05A9AC6F",
+  "src": "pex",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "follow",
+  "dial": "katana.esp|0x1C8602",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0xA9AC83",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05A9AC83",
+  "src": "pex",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "dismiss",
+  "dial": "katana.esp|0x1C860B",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0x1C860C",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__041C860C",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "dismiss",
+  "dial": "katana.esp|0x1C860B",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0x89B40A",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0489B40A",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "dismiss",
+  "dial": "katana.esp|0x1C860B",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0x89B40B",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0489B40B",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "dismiss",
+  "dial": "katana.esp|0x1C860B",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0x89B40C",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0489B40C",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "dismiss",
+  "dial": "katana.esp|0x1C860B",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0x89B40D",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0489B40D",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "dismiss",
+  "dial": "katana.esp|0x1C860B",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0xA9AC64",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05A9AC64",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "dismiss",
+  "dial": "katana.esp|0x1C860B",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0xA9AC65",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05A9AC65",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "recruit",
+  "dial": "katana.esp|0x1C85FF",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0xE6C92D",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05E6C92D",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "recruit",
+  "dial": "katana.esp|0x1C85FF",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0x1C8600",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__041C8600",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "recruit",
+  "dial": "katana.esp|0x1C85FF",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0xA9AC6E",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05A9AC6E",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "recruit",
+  "dial": "katana.esp|0x1C85FF",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0xA9AC81",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05A9AC81",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "recruit",
+  "dial": "katana.esp|0x1C85FF",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0xA9AC82",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05A9AC82",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "recruit",
+  "dial": "katana.esp|0x1C85FF",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0xDE3B1F",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05DE3B1F",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "recruit",
+  "dial": "katana.esp|0x1C85FF",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0xE021E8",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05E021E8",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "recruit",
+  "dial": "katana.esp|0x1C85FF",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0xE021E9",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05E021E9",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "recruit",
+  "dial": "katana.esp|0x1C85FF",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0xE021EA",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05E021EA",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "recruit",
+  "dial": "katana.esp|0x1C85FF",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0xE021EB",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05E021EB",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Megara",
+  "role": "recruit",
+  "dial": "katana.esp|0x1C85FF",
+  "quest": "katana.esp|0x1AF0EA",
+  "info": "katana.esp|0xE021EC",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__05E021EC",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "wait",
+  "dial": "katana.esp|0xFEF857",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BEF0",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BEF0",
+  "src": "pex",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "wait",
+  "dial": "katana.esp|0xFEF857",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BEF1",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BEF1",
+  "src": "pex",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "wait",
+  "dial": "katana.esp|0xFEF857",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BEF2",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BEF2",
+  "src": "pex",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "wait",
+  "dial": "katana.esp|0xFEF857",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BEF3",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BEF3",
+  "src": "pex",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "wait",
+  "dial": "katana.esp|0xFEF857",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x2F6B31",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__052F6B31",
+  "src": "pex",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "wait",
+  "dial": "katana.esp|0xFEF857",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x2F6B32",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__052F6B32",
+  "src": "pex",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "follow",
+  "dial": "katana.esp|0xFEF84F",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BEDE",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BEDE",
+  "src": "pex",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "follow",
+  "dial": "katana.esp|0xFEF84F",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BEDF",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BEDF",
+  "src": "pex",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "follow",
+  "dial": "katana.esp|0xFEF84F",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BEE0",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BEE0",
+  "src": "pex",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "follow",
+  "dial": "katana.esp|0xFEF84F",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BEE1",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BEE1",
+  "src": "pex",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "follow",
+  "dial": "katana.esp|0xFEF84F",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BEE2",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BEE2",
+  "src": "pex",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "dismiss",
+  "dial": "katana.esp|0xFEF853",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BEE6",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BEE6",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "dismiss",
+  "dial": "katana.esp|0xFEF853",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BEE7",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BEE7",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "dismiss",
+  "dial": "katana.esp|0xFEF853",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BEE8",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BEE8",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "dismiss",
+  "dial": "katana.esp|0xFEF853",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BEE9",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BEE9",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "dismiss",
+  "dial": "katana.esp|0xFEF853",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x2F6B2D",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__052F6B2D",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "recruit",
+  "dial": "katana.esp|0xFEF84D",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x0F1E75",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__050F1E75",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "recruit",
+  "dial": "katana.esp|0xFEF84D",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BED8",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BED8",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "recruit",
+  "dial": "katana.esp|0xFEF84D",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BED9",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BED9",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "recruit",
+  "dial": "katana.esp|0xFEF84D",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BEDA",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BEDA",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "recruit",
+  "dial": "katana.esp|0xFEF84D",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BEDB",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BEDB",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "recruit",
+  "dial": "katana.esp|0xFEF84D",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BEDC",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BEDC",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Shale",
+  "role": "recruit",
+  "dial": "katana.esp|0xFEF84D",
+  "quest": "katana.esp|0xA883AD",
+  "info": "katana.esp|0x22BEDD",
+  "plugin": "Katana.esp",
+  "tif": "AK69_TIF__0522BEDD",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Auri",
+  "role": "recruit",
+  "dial": "018auri.esp|0x50E0C6",
+  "quest": "018auri.esp|0x508FC2",
+  "info": "018auri.esp|0x006958",
+  "plugin": "018Auri.esp",
+  "tif": "TIF__07006958",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Auri",
+  "role": "recruit",
+  "dial": "018auri.esp|0x50E0C6",
+  "quest": "018auri.esp|0x508FC2",
+  "info": "018auri.esp|0x1FCDDF",
+  "plugin": "018Auri.esp",
+  "tif": "TIF__041FCDDF",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Auri",
+  "role": "recruit",
+  "dial": "018auri.esp|0x50E0C6",
+  "quest": "018auri.esp|0x508FC2",
+  "info": "018auri.esp|0x1FCDE0",
+  "plugin": "018Auri.esp",
+  "tif": "TIF__041FCDE0",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Auri",
+  "role": "recruit",
+  "dial": "018auri.esp|0x50E0C6",
+  "quest": "018auri.esp|0x508FC2",
+  "info": "018auri.esp|0x201EE2",
+  "plugin": "018Auri.esp",
+  "tif": "TIF__04201EE2",
+  "src": "pex",
+  "follower_calls": [
+   "setfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Auri",
+  "role": "follow+wait",
+  "dial": "018auri.esp|0x50E0C8",
+  "quest": "018auri.esp|0x508FC2",
+  "info": "018auri.esp|0x010B5D",
+  "plugin": "018Auri.esp",
+  "tif": "TIF__07010B5D",
+  "src": "pex",
+  "follower_calls": [
+   "followerfollow"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Auri",
+  "role": "follow+wait",
+  "dial": "018auri.esp|0x50E0C8",
+  "quest": "018auri.esp|0x508FC2",
+  "info": "018auri.esp|0x010B5F",
+  "plugin": "018Auri.esp",
+  "tif": "TIF__07010B5F",
+  "src": "pex",
+  "follower_calls": [
+   "followerwait"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Auri",
+  "role": "rest",
+  "dial": "018auri.esp|0x50E0CA",
+  "quest": "018auri.esp|0x508FC2",
+  "info": "018auri.esp|0x52C6E2",
+  "plugin": "018Auri.esp",
+  "tif": "A18__TIF__0552C6E2",
+  "src": "pex",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Auri",
+  "role": "dismiss",
+  "dial": "018auri.esp|0x50E0D0",
+  "quest": "018auri.esp|0x508FC2",
+  "info": "018auri.esp|0x369B7A",
+  "plugin": "018Auri.esp",
+  "tif": "TIF__05369B7A",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Auri",
+  "role": "dismiss",
+  "dial": "018auri.esp|0x50E0D0",
+  "quest": "018auri.esp|0x508FC2",
+  "info": "018auri.esp|0x00BA5A",
+  "plugin": "018Auri.esp",
+  "tif": "TIF__0700BA5A",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Auri",
+  "role": "dismiss",
+  "dial": "018auri.esp|0x50E0D0",
+  "quest": "018auri.esp|0x508FC2",
+  "info": "018auri.esp|0x201EE3",
+  "plugin": "018Auri.esp",
+  "tif": "TIF__04201EE3",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Auri",
+  "role": "dismiss",
+  "dial": "018auri.esp|0x50E0D0",
+  "quest": "018auri.esp|0x508FC2",
+  "info": "018auri.esp|0x201EE4",
+  "plugin": "018Auri.esp",
+  "tif": "TIF__04201EE4",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Auri",
+  "role": "dismiss",
+  "dial": "018auri.esp|0x50E0D0",
+  "quest": "018auri.esp|0x508FC2",
+  "info": "018auri.esp|0x201EE6",
+  "plugin": "018Auri.esp",
+  "tif": "TIF__04201EE6",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Auri",
+  "role": "dismiss",
+  "dial": "018auri.esp|0x50E0D0",
+  "quest": "018auri.esp|0x508FC2",
+  "info": "018auri.esp|0x201EE5",
+  "plugin": "018Auri.esp",
+  "tif": "TIF__04201EE5",
+  "src": "pex",
+  "follower_calls": [
+   "dismissfollower"
+  ],
+  "category_covers": true
+ },
+ {
+  "npc": "Serana",
+  "role": "follow",
+  "dial": "dawnguard.esm|0x01508C",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x012190",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__02012190",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "follow",
+  "dial": "dawnguard.esm|0x01508C",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x004A4E",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__01004A4E",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "follow",
+  "dial": "dawnguard.esm|0x01508C",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x01A910",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__0101A910",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "follow",
+  "dial": "dawnguard.esm|0x01508C",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x01A911",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__0101A911",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "follow",
+  "dial": "dawnguard.esm|0x01508C",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x004A52",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__01004A52",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "follow",
+  "dial": "dawnguard.esm|0x01508C",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x01508E",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__0101508E",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "wait",
+  "dial": "dawnguard.esm|0x01508D",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x01508F",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__0101508F",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "wait",
+  "dial": "dawnguard.esm|0x01508D",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x01A90B",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__0101A90B",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "wait",
+  "dial": "dawnguard.esm|0x01508D",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x01A90C",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__0101A90C",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "wait",
+  "dial": "dawnguard.esm|0x01508D",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x0183B6",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__010183B6",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "wait",
+  "dial": "dawnguard.esm|0x01508D",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x01A90D",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__0101A90D",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "wait",
+  "dial": "dawnguard.esm|0x01508D",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x01A90E",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__0101A90E",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "dismiss",
+  "dial": "dawnguard.esm|0x01508B",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x015A93",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__01015A93",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "dismiss",
+  "dial": "dawnguard.esm|0x01508B",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x012FE6",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__02012FE6",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "dismiss",
+  "dial": "dawnguard.esm|0x01508B",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x012FE7",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__02012FE7",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "dismiss",
+  "dial": "dawnguard.esm|0x01508B",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x012FE8",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__02012FE8",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "dismiss",
+  "dial": "dawnguard.esm|0x01508B",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x012FE9",
+  "plugin": "Unofficial Skyrim Special Edition Patch.esp",
+  "tif": "DLC1_TIF__02012FE9",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "dismiss",
+  "dial": "dawnguard.esm|0x01508B",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x012EB9",
+  "plugin": "Unofficial Skyrim Special Edition Patch.esp",
+  "tif": "DLC1_TIF__02012EB9",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "dismiss",
+  "dial": "dawnguard.esm|0x01508B",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x012EBA",
+  "plugin": "Unofficial Skyrim Special Edition Patch.esp",
+  "tif": "DLC1_TIF__02012EBA",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "dismiss",
+  "dial": "dawnguard.esm|0x01508B",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x012EBC",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__02012EBC",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "dismiss",
+  "dial": "dawnguard.esm|0x01508B",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x01A905",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__0101A905",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "dismiss",
+  "dial": "dawnguard.esm|0x01508B",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x01A906",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__0101A906",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "dismiss",
+  "dial": "dawnguard.esm|0x01508B",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x01A907",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__0101A907",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "dismiss",
+  "dial": "dawnguard.esm|0x01508B",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x01A908",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__0101A908",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "dismiss",
+  "dial": "dawnguard.esm|0x01508B",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x01A909",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__0101A909",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "dismiss",
+  "dial": "dawnguard.esm|0x01508B",
+  "quest": "dawnguard.esm|0x002B6E",
+  "info": "dawnguard.esm|0x01A90A",
+  "plugin": "Dawnguard.esm",
+  "tif": "DLC1_TIF__0101A90A",
+  "src": "psc",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "nff_import",
+  "dial": "nwsfollowerframework.esp|0x016EAF",
+  "quest": "nwsfollowerframework.esp|0x00434F",
+  "info": "nwsfollowerframework.esp|0x122748",
+  "plugin": "nwsFollowerFramework.esp",
+  "tif": "nwsFollower_Import",
+  "src": "pex",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "nff_import",
+  "dial": "nwsfollowerframework.esp|0x016EAF",
+  "quest": "nwsfollowerframework.esp|0x00434F",
+  "info": "nwsfollowerframework.esp|0x2151B8",
+  "plugin": "nwsFollowerFramework.esp",
+  "tif": "nwsFollower_Import",
+  "src": "pex",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "nff_import",
+  "dial": "nwsfollowerframework.esp|0x016EAF",
+  "quest": "nwsfollowerframework.esp|0x00434F",
+  "info": "nwsfollowerframework.esp|0x11FFAE",
+  "plugin": "nwsFollowerFramework.esp",
+  "tif": "nwsFollower_Import",
+  "src": "pex",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "nff_export",
+  "dial": "nwsfollowerframework.esp|0x11FFAC",
+  "quest": "nwsfollowerframework.esp|0x00434F",
+  "info": "nwsfollowerframework.esp|0x016EC7",
+  "plugin": "nwsFollowerFramework.esp",
+  "tif": "nwsFollower_Export",
+  "src": "pex",
+  "follower_calls": [],
+  "category_covers": false
+ },
+ {
+  "npc": "Serana",
+  "role": "nff_export",
+  "dial": "nwsfollowerframework.esp|0x11FFAC",
+  "quest": "nwsfollowerframework.esp|0x00434F",
+  "info": "nwsfollowerframework.esp|0x512970",
+  "plugin": "nwsFollowerFramework.esp",
+  "tif": "nwsFollower_Export",
+  "src": "pex",
+  "follower_calls": [],
+  "category_covers": false
+ }
+]

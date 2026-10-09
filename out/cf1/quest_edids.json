@@ -1,0 +1,11 @@
+{
+ "018auri.esp|0x508FC2": "018AuriController",
+ "dawnguard.esm|0x002B6E": "DLC1NPCMentalModel",
+ "hlioremi.esp|0x014C11": "HLIORemiFollower",
+ "inigo.esp|0x0012DF": "InigofollowerDialogue",
+ "katana.esp|0x00AA04": "AK69KatanaFollowQuest",
+ "katana.esp|0x1AF0EA": "AK69MegaraFollowQuest",
+ "katana.esp|0xA883AD": "AK69ShaleFollowQuest",
+ "lucien.esp|0x00591E": "JRLucienFollower",
+ "nwsfollowerframework.esp|0x00434F": "nwsFollowerController"
+}

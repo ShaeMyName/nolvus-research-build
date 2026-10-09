@@ -1,0 +1,14 @@
+{
+  "id": "shae.child-safety",
+  "type": "bundle",
+  "title": "Child Safety Guards (private)",
+  "tagline": "Private: SeverActions Undress, UnequipArmor and SitOrLayDown never offered to a child speaker.",
+  "description": "Component I of the Errand Bridge build (spec 11.10.2 P4). Same-path copies of three SeverActions 4.2.0 actions, each with one more eligibility rule on SkyrimNet's native child check; SitOrLayDown also carries the Errand Bridge gate. Private; never published.",
+  "author": "shae",
+  "version": "1.0.0",
+  "min_skyrimnet_version": "0.25.0",
+  "nsfw": false,
+  "mods": [
+    { "required": true, "file": "SeverActions.esp", "name": "SeverActions" }
+  ]
+}

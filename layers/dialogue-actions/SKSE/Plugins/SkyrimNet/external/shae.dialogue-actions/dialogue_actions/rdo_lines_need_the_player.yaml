@@ -1,0 +1,26 @@
+kind: lists
+name: RDO lines with side effects need the player
+description: >-
+  Keeps the LLM from firing Relationship Dialogue Overhaul lines whose scripts change game
+  state: recruiting followers (RDO's generic recruit lines, and Gelebor, Isran and Valerica's
+  own follower quests), the Teldryn hire, the gift menu and its empty-offer counter (which
+  can drop the NPC to Rival), the Kaie and Grelka confrontations (hostility, gold), and the
+  spouse-store line that makes the speaker a permanent merchant. Follower commands go
+  through SeverActions' and the Errand Bridge's gated actions instead. Pressing E and
+  choosing the line yourself is unaffected. (Decision S-33; evidence
+  investigation/round8/rdo_interaction.md section 5.)
+  RDO_DefaultRecruit and RDO_StartSpouseStore are script names, not quests: test DA-9 checks
+  that a script name matches the way TIF__ names do. If it does not, replace them with the
+  quests a_RDOGenericFollowerDialogue (already listed), DialogueFavorGeneric and
+  DLC2DialogueTelMithryn, and the 25 aa_RDO*NonHate quests.
+blacklist:
+  - a_RDOGenericFollowerDialogue
+  - RDO_DefaultRecruit
+  - aa_RDODLC1Gelebor
+  - aa_RDODLC1Isran
+  - aa_RDODLC1Valerica
+  - DLC2HirelingQuest
+  - a_RDOMiscSharedInfoDialogue
+  - a_RDOKaieConfrontPlayer
+  - a_RDOFreeformRiftenGrelka
+  - RDO_StartSpouseStore

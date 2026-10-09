@@ -1,0 +1,14 @@
+kind: lists
+name: Engagement and marriage need the player's own yes
+description: >-
+  Keeps the LLM from firing the dialogue scripts that move someone to engaged or married:
+  MARAS's engage and reconcile-accept lines (quest TTM_Dialogues) and the vanilla marriage
+  quests MARAS drives. A dialogue script fired by the AI has no confirmation box, so these
+  could complete an engagement without the player's explicit acceptance. MARAS's own
+  AcceptMarriageProposal action stays available and asks the player first. Pressing E and
+  choosing the line yourself is unaffected. (Spec 11.12.2, decision S-22.)
+blacklist:
+  - TTM_Dialogues
+  - RelationshipMarriage
+  - RelationshipMarriageBreakUp
+  - RelationshipMarriageWedding

@@ -1,0 +1,22 @@
+{
+  "errors": [],
+  "files": 1,
+  "not_checked": [
+    "decorator names, arities and values (users register their own; every call is listed under unresolved)",
+    "action questEditorId / scriptName / executionFunctionName existence (needs game data)",
+    "eventType membership is a warning only (the game is the only source of the list)"
+  ],
+  "ok": true,
+  "plugin_id": "shae.discretion",
+  "shadows": [],
+  "unresolved": [
+    {
+      "code": "UNRESOLVED",
+      "col": 37,
+      "file": "submodules/user_final_instructions/0705_ieb_discretion",
+      "line": 1,
+      "message": "variable 'is_player' not found"
+    }
+  ],
+  "warnings": []
+}

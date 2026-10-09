@@ -1,0 +1,9 @@
+kind: lists
+name: Serana's own lines need the player
+description: >-
+  Keeps the LLM from firing any dialogue script of Serana's controller quest (DLC1NPCMentalModel,
+  Dawnguard 0x002B6E): her own follow, wait and dismiss lines and everything else that quest owns.
+  Her follow state is read by the Errand Bridge (spec 6.5); an AI-fired line would change it behind
+  the bridge's back. Pressing E and choosing the line yourself is unaffected. (Spec 6.5, S-22 pattern.)
+blacklist:
+  - DLC1NPCMentalModel

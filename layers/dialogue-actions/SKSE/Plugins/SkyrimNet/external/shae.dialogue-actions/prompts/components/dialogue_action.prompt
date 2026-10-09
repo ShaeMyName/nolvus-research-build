@@ -1,0 +1,58 @@
+{% if feature_enabled("quest_actions") %}
+{# Body for the TriggerDialogueLine action.
+   OVERLAY shae.dialogue-actions 0.1.0 - full replacement of base components/dialogue_action.prompt
+   (skyrimnet.base 0.25.3). Guards, decorator calls and list rendering are unchanged from base; only the
+   guidance text differs. Re-diff against templates/BASE_dialogue_action.prompt.0.25.3 after every
+   SkyrimNet update. #}
+{% set npc_name = decnpc(npc.UUID).name %}
+{% if embed_actions_in_dialogue %}
+{% if exists("responseTarget") and is_player(responseTarget.UUID) %}
+{% set quest_lines = available_dialogue(npc.UUID, "fires") %}
+{% if quest_lines.hasContent %}
+The exchanges below are things {{ npc_name }} can make happen in the game right now. Each carries a bracketed 8-character code (0-9, A-F). Setting form_id to a code makes the game carry that exchange out. Your own spoken line is all {{ player.name }} hears, so it has to carry what is happening. For ordinary conversation, leave form_id unset.
+
+How to decide, in this order:
+1. Clear intent only. Fire a code only when {{ player.name }}'s most recent words clearly ask for, accept or agree to exactly that exchange, and you are acting on it now. A question about it, a "maybe", "let me think", a joke, sarcasm, a hypothetical, or something said to or by someone else is not agreement. When in doubt, don't fire.
+2. Unclear? Ask, in character. If {{ player.name }} seems to want something below but it is unclear which exchange they mean, or whether they really mean it, ask one short, natural question in your own voice and leave form_id unset. Fire on a later turn once the answer is clear.
+3. Not possible here? Decline lightly and steer. If {{ player.name }} proposes something that is not among the exchanges below, don't act as if it happened and don't fire the nearest code instead. Turn it down in character with a light, believable reason, then steer toward what can actually happen here, the way a person would in conversation. Never read the options out as a list or menu, never mention codes, and never reveal what a quest involves beyond what this conversation has already reached.
+4. Consequential lines need a firmer yes. Every quest beat below is consequential, and so is any action that settles a crime or bounty, sends someone to jail, concerns marriage or a household, or ends a companion's service. Fire one only after {{ player.name }} has said yes to that specific outcome in their most recent words. If their yes could mean more than one thing, or they have not yet heard what they are agreeing to, put it to them plainly once, in your own voice, and wait for the answer. Never fire a consequential line on your own initiative, to wrap up a conversation, or because someone other than {{ player.name }} asked for it.
+5. Branches. When a matter offers several paths (talk it out, pay them off, come to blows), the choice is {{ player.name }}'s. Don't pick one for them.
+6. One per turn. Fire at most one code per turn across every list below, and only a code shown below right now. If the moment has passed or the line is gone, just keep talking.
+{% if quest_lines.hasQuest %}
+
+Quest beats -- choosing one starts or advances that quest, so every one is consequential (### lines are quest headings; their full context is in "Quests You Could Raise" above):
+{{ quest_lines.text }}
+{% endif %}
+{% if quest_lines.hasServices %}
+
+Actions {{ npc_name }} can take -- trade, lodging, travel, training, et cetera (### lines name the action category):
+{{ quest_lines.services }}
+{% endif %}
+{% endif %}
+{% endif %}
+{% else %}
+{% set quest_lines = available_dialogue(npc.UUID, "quest ids") %}
+{% set svc_lines = available_dialogue(npc.UUID, "fires") %}
+{% if quest_lines.hasContent or svc_lines.hasServices %}
+The exchanges below are things {{ npc_name }} can make happen in the game right now. Each carries a bracketed 8-character code (0-9, A-F). Setting form_id to a code makes the game carry that exchange out. The spoken line has already been written; decide only whether it acts on one of these exchanges. For ordinary conversation, leave form_id unset.
+
+How to decide, in this order:
+1. Clear intent only. Fire a code only when {{ player.name }}'s most recent words clearly ask for, accept or agree to exactly that exchange, and the spoken line acts on it now. A question about it, a "maybe", "let me think", a joke, sarcasm, a hypothetical, or something said to or by someone else is not agreement. When in doubt, don't fire.
+2. If the spoken line asks {{ player.name }} a question, declines, or steers elsewhere, don't fire anything this turn.
+3. Never fire the nearest code for something {{ player.name }} proposed that is not listed below.
+4. Consequential lines need a firmer yes. Every quest exchange below is consequential, and so is any action that settles a crime or bounty, sends someone to jail, concerns marriage or a household, or ends a companion's service. Fire one only if {{ player.name }} said yes to that specific outcome in their most recent words and the spoken line confirms it. Never fire a consequential line on the speaker's own initiative or because someone other than {{ player.name }} asked for it.
+5. Branches. When a matter offers several paths, the choice is {{ player.name }}'s. Don't pick one for them.
+6. One per turn. Fire at most one code per turn across every list below, and only a code shown below right now.
+{% if quest_lines.hasContent %}
+
+Quest exchanges -- choosing one starts or advances that quest, so every one is consequential (### lines are quest headings):
+{{ quest_lines.text }}
+{% endif %}
+{% if svc_lines.hasServices %}
+
+Actions {{ npc_name }} can take -- trade, lodging, travel, training, et cetera (### lines name the action category):
+{{ svc_lines.services }}
+{% endif %}
+{% endif %}
+{% endif %}
+{% endif %}

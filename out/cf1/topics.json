@@ -1,0 +1,8266 @@
+[
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x04EA51",
+  "found": true,
+  "quest": "inigo.esp|0x0012DF",
+  "dial_edid": "InigoDialogueFollowerFollowTopic",
+  "infos": [
+   {
+    "info": "inigo.esp|0x038022",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Follow",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074161",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Follow",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074162",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Follow",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x025507",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Follow",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038024",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Follow",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038023",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Follow",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0038BD",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Follow",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0038BE",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Follow",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0038BF",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Follow",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x020C82",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Follow",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x020C83",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Follow",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x020C84",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Follow",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x025508",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Follow",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x025509",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Follow",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02550A",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Follow",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Inigo",
+  "role": "follow",
+  "dial": "inigo.esp|0x00184D",
+  "found": true,
+  "quest": "inigo.esp|0x0012DF",
+  "dial_edid": "",
+  "infos": [
+   {
+    "info": "inigo.esp|0x0E0C5E",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__020E0C5E",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A38",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x068448",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__HorseName",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B591",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__HorseName",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B592",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__HorseName",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B593",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__HorseName",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B594",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__HorseName",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B597",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__HorseName",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B595",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B596",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0888C4",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__HorseName",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0888C5",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__HorseName",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0888C6",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__HorseName",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01EBBB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AA0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037A9D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02E213",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02E214",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BFD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07DE81",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07DE82",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07F9CF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C87",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x072FAC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x072FAD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x072FAE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x072FAF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CA9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CAA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CA8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CA1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C89",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C9B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C95",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C8C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C8D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C9D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C9E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C98",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C96",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C9A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C8A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C8B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C91",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C8E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C92",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C8F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C93",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C97",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C94",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CA2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CA3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CA4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CA5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CA6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x087787",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x087CEC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x087CED",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x087CEF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05E018",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07FF3D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x072F72",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x072F73",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0866F3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0866F5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0866F6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x072F6B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x072F6C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x072F6D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x072F6E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x072F6F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x072F70",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x062266",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x062265",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x072F71",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0866F4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5C0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07FF3E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B599",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B59F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5A2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5A5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5A8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5AC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5B1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5AF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07F9D6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x087219",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0C9F83",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0C9F85",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0C9F86",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0C9F84",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5BE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06E705",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5BF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0947EA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05463E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06BB29",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06BB28",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B598",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B59E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5A1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5A4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5A9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5A7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5AB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5AE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5B2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05463F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06BB2A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5BB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B59D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5A0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5A3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5A6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5AA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5AD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5B0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5B3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5B4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5B5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5B6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5B7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5B9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5BC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5BD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B5BA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074147",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B59A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B59B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06B59C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07DE7F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05E019",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x062258",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x062260",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x062261",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x062262",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x062263",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x062264",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x062259",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06225A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06225B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06225C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06225D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06225E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06225F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05E027",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05E023",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05E01B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C73",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05E01C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05E017",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05E01F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05E024",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05E021",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05E01E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C71",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C70",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C72",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05E026",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05E022",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05E025",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05E020",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0820C5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074167",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05E01D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05E01A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05D522",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05D521",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x087CEE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C99",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C90",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C9C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C9F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CA0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CA7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C88",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05D527",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05D529",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x08721A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x08721F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x069FD1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x069FD2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x069FD3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x087220",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x087221",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x08721B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x08721C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x08721D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x08721E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CAB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CAC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CAD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CAE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CAF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CB2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CB4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086CB3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x069FD7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x069FD8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x069FD9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C7B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C7F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C80",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0DF13D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0DF13E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0DF13F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C81",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C82",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C83",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C84",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C85",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C86",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C7D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C7E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C7C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C78",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C79",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C7A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C76",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C77",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C74",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C75",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x062269",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06226A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06226B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06226C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06226D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x060721",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x060722",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x060723",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05D523",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05D524",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07FF46",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C69",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C6A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C6B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C6C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C6E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074165",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C6F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074166",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C5C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C5D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C5E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C5F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C60",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C61",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06C60B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C63",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C64",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C65",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C62",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x086C68",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0866ED",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0866EE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0866EF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07FF44",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07FF45",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0835DD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0A6A6E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0CF1A1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0835DF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0835DE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0835E0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07F9D0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07FF3C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07F9D2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07F9D3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07F9D4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07F9D5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07F9D7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07DE83",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07DE84",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07DE80",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BFC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BFE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BFB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BF4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BF5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BF6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BF7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BF8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BF9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BFA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BE9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BEA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BE3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BE4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BE5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BE6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BE8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BE7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BD9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BDA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BDB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BDC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BDD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BDE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BE0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BDF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BE1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076BE2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x075B87",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x075B88",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x075B8D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x075B8E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x075B8F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x075B91",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x075B92",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x075B90",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x075B8A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076657",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076659",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07665A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076658",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07665B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07665C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x075B8B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07665E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07665F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076660",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076661",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x075B8C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076662",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076663",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076664",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x076665",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074506",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07450C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AAB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074530",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074520",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07452A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074521",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074522",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074523",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074528",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074525",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074526",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074527",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074524",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074529",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07452B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07452C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07452D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07452E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07452F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07450D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07450E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07450F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074510",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074511",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074512",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074513",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074519",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074514",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074516",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074517",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074515",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074518",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07451B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07451C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07451D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07451E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07451F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07451A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074507",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074508",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074509",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07450A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07450B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0744F8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0744F7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0744F9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0744FA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0744FB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0744FC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0744FD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074501",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074502",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074503",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074504",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074505",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0744FE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0744FF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074500",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06C12F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0473CF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0473D0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0448A2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DBD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DBE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0CE6B3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x04025D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x04025C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x04025F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x04025E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x040260",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x040261",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x040262",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DA0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DA5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DA6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DA7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DA8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DA9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DAB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DAC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DB2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0DDBAC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0DDBAD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0DDBAB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DB3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DB4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DB6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x03C6FA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x03C6FC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x03C6FB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x03C6FD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0947EB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x039B25",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x039B33",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x039B32",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038AF3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038AF4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038AF5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038AF6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038AF8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038AF7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038AF9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038AFA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038AFC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038AFB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x03858C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038AEF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038AF0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038AF1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038AF2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AA5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AA6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AA7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AA9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AAA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AA8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AAC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AAD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AAF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AB0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AB1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AB2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AB3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AB4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AAE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AA1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AA2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AA4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037AA3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037A9F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x037A9E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x030340",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0473D1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07DF76",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02ECEB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02ECF3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02ECF4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01EBBF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02CC78",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02CC79",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02CC7A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x027B08",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02CC62",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0407CA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02FDCE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02FDD7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02FDD8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02C13F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02C140",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02C141",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02C142",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02C147",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02C148",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02C14A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02C6B8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02C6B9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02C6BA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02C6BB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DC1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DC2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AAD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AC6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AB8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AB4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026ABD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026ABE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026ABF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AC0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02759D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02759E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AC2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0275A0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026ABC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02759F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AC3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AC4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AC5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AB7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026ABA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AB3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026ABB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AB9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AB6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AB2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AB1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AB5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AC7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AC1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02759B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02759C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AC8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AC9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AAE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AB0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02759A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x026AAF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0275A2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0275A3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0275A4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00F24A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00F24B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD11",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD12",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00F24C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD17",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD26",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD18",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD19",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD1A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD1B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD1C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD1D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD1E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0407C9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD1F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD20",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x015933",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x015934",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x015935",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x015936",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x015937",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x015938",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x015939",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01593A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01593B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD23",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD24",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD21",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD22",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01593C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01593D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01593E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD14",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD15",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00FD16",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01742D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01742E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01742F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01B039",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01B03A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01B03B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01B03C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01B03D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01B03E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01B03F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1A0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1A1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1A4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1A5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1A2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1A7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1A8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1A9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1AA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1AB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1AC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1AD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1AE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1B0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1B1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1A6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x001858",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x006FCF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007AB4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1CC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x015930",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074A93",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074A95",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074A9D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074A96",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074A9E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074A97",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074A98",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074A99",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074A9A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074A9B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074A9C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074A94",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x015932",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1CD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1CF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1D0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1D1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x001850",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E736",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E739",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E735",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00184E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074148",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1AF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007537",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1B2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007538",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007539",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00B0D1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01EBB4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01EBB0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01EBB9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01EBB5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01EBB6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01EBB7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01EBB8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01EBB1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01EBB2",
+    "plugin": "At Your Own Pace - Inigo Patch.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01EBB3",
+    "plugin": "At Your Own Pace - Inigo Patch.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012308",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1B3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1B4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1B5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1B6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0D0755",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0D0756",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0D0757",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1B7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01EBBA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01230A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01230B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01230C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01230D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01230E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012309",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01230F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012DE7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012310",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012DE5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012DE6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01EBBC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012313",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012314",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012315",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012316",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x05EB5A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012317",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012318",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x013E1D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012319",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01231A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DC6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DC7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DC8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DC9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DCA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DCB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x043DCC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01231B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x013E1B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06A55D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x06A55E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x001855",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x017444",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x013E1E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x013E20",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1B8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122F9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122FA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x001852",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x001853",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x001854",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1B9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01231C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01EBBE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x001851",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122FF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1BA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00B0D6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x001856",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x001857",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x001859",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00184F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x006FCC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x006FCB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012307",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x006FCD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x006FCE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x03C182",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x03C6E6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x03C6E5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x03C6E8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x03C6E7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x006FD0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x006FD1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x006FD2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x006FD3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01B043",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01B044",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01B045",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01B047",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01B048",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01B046",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00753A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00753D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00753C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x039B23",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x039B24",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00753E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00753F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007540",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007541",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007543",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007542",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007544",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007545",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007546",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00CC09",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007548",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007AB1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007549",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00754A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00754B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00CC00",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00CC02",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00CC03",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00CC04",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00CC05",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00CC06",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00CC07",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00754C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00754D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00754E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00B0CE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00B0CF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x010D5D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x010D5E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0112C2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0112C3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00B0D3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00B0D4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00B0D5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007AB6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00CC01",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007AB8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x039B2E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007ABA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007ABB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00B0CD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00CC08",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007ABD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007ABE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007ABC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00B0D0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00B0CC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00B0CB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0729BB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0729BC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0729BD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0729BE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0729BF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007547",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007AB5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E734",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E73D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E73E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E73F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E740",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E741",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x039B26",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x039B27",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x039B28",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x039B29",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x039B2B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x039B2C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x039B2D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x039B2A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E737",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E738",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1BB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1BC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1BD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x031E6A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1BE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1BF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01593F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x015940",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1C0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1C1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1C2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1C3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1C4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1C5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1C6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1C7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1C8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1C9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1CA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00E1CB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007AB7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007AB9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007ABF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007AC0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x007AC1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0CE147",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0CE148",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0CE6AB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0CE6AC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0CE6AD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00BB9D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00BB9E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00BB9F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00BBA0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00BBA1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00BBA2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00BBA4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00BBA5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00BBA6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00BBA7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00BBA8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00BBA9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00BBAA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00BBAB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00BBAC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00BBAD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0CE13F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0CE140",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0CE141",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0CE142",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0CE144",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0CE145",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0CE143",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0CE146",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C110",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C111",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C112",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C113",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C114",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07D9E8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C116",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C117",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C118",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C119",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C11A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C11B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C11C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C11D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C11E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C11F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C129",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C120",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x074146",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C122",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C123",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C124",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C125",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C126",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C127",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C128",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C12A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C12B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C12C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C12D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C12E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C12F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C130",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C131",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0E8903",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07D9DE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07D9DF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07D9E0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07D9E1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07D9E2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07D9E3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07D9E4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07D9EC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07D9ED",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07D9EE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07D9E5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07D9E6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07D9E7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00C132",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00CBFC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00CBFD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00CBFE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00CBFF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECA4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECA5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECA6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECA7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECA8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECA9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECAA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECAB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECAC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECAD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x072FAB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0A6A73",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0CF1A3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECAE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECAF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECB0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECB1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECB3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECB4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECB6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECB7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECB8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECBA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECBB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECBC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECBD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECBE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECBF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02123D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02123E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02123F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x021240",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x021241",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x021242",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x021243",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122FB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122FC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122FD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122FE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01743C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01743D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01743E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01743F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x017440",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x017443",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECCE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x017441",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x017442",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x017445",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x017446",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x017437",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x017439",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01743B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x017438",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x01743A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x017431",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x017432",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x017433",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x017434",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x017435",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x017436",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECC0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECC1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECC2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECC3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECC4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECC6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECC8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECC7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECC5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECC9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECCA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECCB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECCC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECCD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECCF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECD0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECD1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECD2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECD3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECD4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECD5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECD6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECD7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECD8",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECD9",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECDA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECDB",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECDC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECDD",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECDE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECDF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECE0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECE1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECE2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0729C1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECE4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECE5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECE6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x00ECE7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02CC69",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02CC6F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02CC70",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02CC71",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02CC73",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02CC74",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02CC77",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02CC75",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02CC76",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02CC72",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02CC6A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02CC6B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02CC6C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122F0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122EF",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122F1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122ED",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122EE",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122EA",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122EC",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122F2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122F3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122F4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122F5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0122F6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012302",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012304",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012301",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012305",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x012306",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038025",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038026",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x038027",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x013E19",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x013E10",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x013E11",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x013E12",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x013E13",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x013E14",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x013E15",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x013E16",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x013E17",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x013E18",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x013E1A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x014383",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x014384",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x015920",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0729C0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x015921",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x015922",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A2B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0D12E0",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0D12E1",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0D12E2",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0D12E3",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0D12E4",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0D12E5",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0D12E6",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0D12E7",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A2C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A2D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A2E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A2F",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A31",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A32",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A33",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A34",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A35",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A36",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A37",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A39",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A3A",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A3B",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A3C",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A3D",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x018A3E",
+    "plugin": "Inigo.esp",
+    "tif": "",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Inigo",
+  "role": "wait",
+  "dial": "inigo.esp|0x04EA58",
+  "found": true,
+  "quest": "inigo.esp|0x0012DF",
+  "dial_edid": "InigoDialogueFollowerWaitTopic1",
+  "infos": [
+   {
+    "info": "inigo.esp|0x0038C7",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Wait",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07D9DB",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Wait",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07D9DC",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Wait",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x07D9DD",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Wait",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02E225",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Wait",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02ECEF",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Wait",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x02ECF0",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Wait",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0038C8",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Wait",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0038C9",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Wait",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0038CA",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Wait",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0038CB",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Wait",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0038CC",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Wait",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x020C89",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Wait",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x020C8A",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Wait",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x020C8B",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Wait",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0038CD",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Wait",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Inigo",
+  "role": "dismiss",
+  "dial": "inigo.esp|0x04EA4B",
+  "found": true,
+  "quest": "inigo.esp|0x0012DF",
+  "dial_edid": "InigoDialogueFollowerDismissTopic",
+  "infos": [
+   {
+    "info": "inigo.esp|0x0A5A20",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__020A5A20",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0A5A1F",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__020A5A1F",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0A5A1E",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__DismissToLang",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x002881",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Dismiss",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x002DEA",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Dismiss",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x002DE9",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Dismiss",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0A5A21",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__020A5A21",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x0A5A22",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__020A5A22",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x034F82",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Dismiss",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Inigo",
+  "role": "recruit",
+  "dial": "inigo.esp|0x04EFC8",
+  "found": true,
+  "quest": "inigo.esp|0x0012DF",
+  "dial_edid": "InigoDialogueFirstRecruitTopic",
+  "infos": [
+   {
+    "info": "inigo.esp|0x0BD60E",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF_GoodByeLangCabScene",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x002880",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Recruit",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x002DE7",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Recruit",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x002883",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Recruit",
+    "deleted": false
+   },
+   {
+    "info": "inigo.esp|0x002DE8",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Recruit",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Inigo",
+  "role": "recruit",
+  "dial": "inigo.esp|0x009B3C",
+  "found": true,
+  "quest": "inigo.esp|0x0012DF",
+  "dial_edid": "InigofollowerDialoguejustdontshoot",
+  "infos": [
+   {
+    "info": "inigo.esp|0x009B3D",
+    "plugin": "Inigo.esp",
+    "tif": "INI__TIF__Accept",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Lucien",
+  "role": "follow",
+  "dial": "lucien.esp|0x00592E",
+  "found": true,
+  "quest": "lucien.esp|0x00591E",
+  "dial_edid": "JRLucienFollowerFollowMeFollow",
+  "infos": [
+   {
+    "info": "lucien.esp|0x00592F",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__0500592F",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x07F230",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__0507F230",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x07F231",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__0507F231",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x7125F3",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__047125F3",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x7125F4",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__047125F4",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x7125F5",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__047125F5",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x7125F6",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__047125F6",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x7125F7",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__047125F7",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x7125F8",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__047125F8",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x7125F9",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__047125F9",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x7125FA",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__047125FA",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x7125FB",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__047125FB",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x7125FC",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__047125FC",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x7125FD",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__047125FD",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x7125FE",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__047125FE",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x7125FF",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__047125FF",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x712600",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__04712600",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x712601",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__04712601",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x07F234",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__0507F234",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x07F232",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__0507F232",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x07F233",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__0507F233",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Lucien",
+  "role": "wait",
+  "dial": "lucien.esp|0x00592B",
+  "found": true,
+  "quest": "lucien.esp|0x00591E",
+  "dial_edid": "JRLucienFollowerWaitHere",
+  "infos": [
+   {
+    "info": "lucien.esp|0x00592C",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__0500592C",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x43359A",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__0543359A",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x43359B",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__0543359B",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x43359C",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__0543359C",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x43359D",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__0543359D",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x43359E",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__0543359E",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x433598",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__05433598",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x433599",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__05433599",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x43359F",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__0543359F",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x4335A0",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__054335A0",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x870800",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__05870800",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x870801",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__05870801",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x870802",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__05870802",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x870803",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__05870803",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x870804",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__05870804",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x870805",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__05870805",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x870806",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__05870806",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x870808",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__05870808",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x870809",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__05870809",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x87080A",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__0587080A",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x87080B",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__0587080B",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x87080C",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__0587080C",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x87080D",
+    "plugin": "Lucien.esp",
+    "tif": "JR0_TIF__0587080D",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x4335A1",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__054335A1",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Lucien",
+  "role": "dismiss",
+  "dial": "lucien.esp|0x005924",
+  "found": true,
+  "quest": "lucien.esp|0x00591E",
+  "dial_edid": "JRLucienFollowerDismissNegotiate",
+  "infos": [
+   {
+    "info": "lucien.esp|0x005925",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__05005925",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Lucien",
+  "role": "dismiss",
+  "dial": "lucien.esp|0x005922",
+  "found": true,
+  "quest": "lucien.esp|0x00591E",
+  "dial_edid": "JRLucienFollowerDismissGoodbye",
+  "infos": [
+   {
+    "info": "lucien.esp|0x005923",
+    "plugin": "Lucien.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x005926",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__05005926",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x4F9043",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__054F9043",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x3A56A6",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__053A56A6",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x4F9044",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__054F9044",
+    "deleted": false
+   },
+   {
+    "info": "lucien.esp|0x3A56A7",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__053A56A7",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Lucien",
+  "role": "recruit",
+  "dial": "lucien.esp|0x00FB4E",
+  "found": true,
+  "quest": "lucien.esp|0x00591E",
+  "dial_edid": "JRLucienFollowerRecruitFollowMe",
+  "infos": [
+   {
+    "info": "lucien.esp|0x00FB4F",
+    "plugin": "Lucien.esp",
+    "tif": "JR_TIF__0500FB4F",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Remiel",
+  "role": "wait+follow",
+  "dial": "hlioremi.esp|0x02E119",
+  "found": true,
+  "quest": "hlioremi.esp|0x014C11",
+  "dial_edid": "HLIORemiFollowerWaiterea1",
+  "infos": [
+   {
+    "info": "hlioremi.esp|0x02E11B",
+    "plugin": "HLIORemi.esp",
+    "tif": "HLIO_TIF__0702E11B",
+    "deleted": false
+   },
+   {
+    "info": "hlioremi.esp|0x02E11A",
+    "plugin": "HLIORemi.esp",
+    "tif": "HLIO_TIF__0702E11A",
+    "deleted": false
+   },
+   {
+    "info": "hlioremi.esp|0x43CEBE",
+    "plugin": "HLIORemi.esp",
+    "tif": "HLIO_TIF__0543CEBE",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Remiel",
+  "role": "dismiss",
+  "dial": "hlioremi.esp|0x02E123",
+  "found": true,
+  "quest": "hlioremi.esp|0x014C11",
+  "dial_edid": "HLIORemiFollowerDismissa1",
+  "infos": [
+   {
+    "info": "hlioremi.esp|0x02E124",
+    "plugin": "HLIIRemiLOTD.esp",
+    "tif": "HLIO_TIF__0702E124",
+    "deleted": false
+   },
+   {
+    "info": "hlioremi.esp|0x43CEB8",
+    "plugin": "HLIIRemiLOTD.esp",
+    "tif": "HLIO_TIF__0543CEB8",
+    "deleted": false
+   },
+   {
+    "info": "hlioremi.esp|0x43CEB7",
+    "plugin": "HLIIRemiLOTD.esp",
+    "tif": "HLIO_TIF__0543CEB7",
+    "deleted": false
+   },
+   {
+    "info": "hlioremi.esp|0x43CEB6",
+    "plugin": "HLIIRemiLOTD.esp",
+    "tif": "HLIO_TIF__0543CEB6",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Remiel",
+  "role": "recruit",
+  "dial": "hlioremi.esp|0x02E116",
+  "found": true,
+  "quest": "hlioremi.esp|0x014C11",
+  "dial_edid": "HLIORemiFollowerFollowa1",
+  "infos": [
+   {
+    "info": "hlioremi.esp|0x1308EA",
+    "plugin": "HLIORemi.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "hlioremi.esp|0x1308EB",
+    "plugin": "HLIORemi.esp",
+    "tif": "HLIO_TIF__071308EB",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Katana",
+  "role": "wait",
+  "dial": "katana.esp|0x5EF55D",
+  "found": true,
+  "quest": "katana.esp|0x00AA04",
+  "dial_edid": "AK69KatanaWaitTopic",
+  "infos": [
+   {
+    "info": "katana.esp|0x95BAFB",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0495BAFB",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x62C17A",
+    "plugin": "Katana.esp",
+    "tif": "AK69KatanaWait1",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xFA0818",
+    "plugin": "Katana.esp",
+    "tif": "AK69TIF__05FA0818",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xFA0819",
+    "plugin": "Katana.esp",
+    "tif": "AK69TIF__05FA0819",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xA9AC63",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05A9AC63",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xFA081A",
+    "plugin": "Katana.esp",
+    "tif": "AK69TIF__05FA081A",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x7C11DF",
+    "plugin": "Katana.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xFA081B",
+    "plugin": "Katana.esp",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xA9AC62",
+    "plugin": "Katana.esp",
+    "tif": "",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Katana",
+  "role": "follow",
+  "dial": "katana.esp|0x5EF557",
+  "found": true,
+  "quest": "katana.esp|0x00AA04",
+  "dial_edid": "AK69KatanaFollowWaitTopic",
+  "infos": [
+   {
+    "info": "katana.esp|0x5EF558",
+    "plugin": "Katana.esp",
+    "tif": "AK69KatanaFollowWaitResponse1",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xB2D3DD",
+    "plugin": "Katana.esp",
+    "tif": "AK69KatanaFollowWaitResponse2",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xB2D3DE",
+    "plugin": "Katana.esp",
+    "tif": "AK69KatanaFollowWaitResponse3",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xB2D3DF",
+    "plugin": "Katana.esp",
+    "tif": "AK69KatanaFollowWaitResponse4",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Katana",
+  "role": "dismiss",
+  "dial": "katana.esp|0x5EA44E",
+  "found": true,
+  "quest": "katana.esp|0x00AA04",
+  "dial_edid": "AK69KatanaDismissTopic",
+  "infos": [
+   {
+    "info": "katana.esp|0x96ADFF",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0496ADFF",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xDE3B0A",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05DE3B0A",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x5EA44F",
+    "plugin": "Katana.esp",
+    "tif": "AK69KatanaDismissResponse1",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x4ED6E4",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__044ED6E4",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x5EA450",
+    "plugin": "Katana.esp",
+    "tif": "AK69KatanaDismissResponse2",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xB282DB",
+    "plugin": "Katana.esp",
+    "tif": "AK69KatanaDismissResponse3",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xF68CDD",
+    "plugin": "Katana.esp",
+    "tif": "AK69TIF__05F68CDD",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x76B79F",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0476B79F",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x95BAFE",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0495BAFE",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x7F821F",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__057F821F",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x7F8220",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__057F8220",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xB282DC",
+    "plugin": "Katana.esp",
+    "tif": "AK69KatanaDismissResponse4",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xA9AC5E",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05A9AC5E",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xA9AC5F",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05A9AC5F",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Katana",
+  "role": "recruit",
+  "dial": "katana.esp|0x5EF552",
+  "found": true,
+  "quest": "katana.esp|0x00AA04",
+  "dial_edid": "AK69KatanaFollowTopic",
+  "infos": [
+   {
+    "info": "katana.esp|0x5EF553",
+    "plugin": "Katana.esp",
+    "tif": "AK69KatanaFollowResponse1",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xF68CDE",
+    "plugin": "Katana.esp",
+    "tif": "AK69TIF__05F68CDE",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x5EF554",
+    "plugin": "Katana.esp",
+    "tif": "AK69KatanaFollowResponse2",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x5EF555",
+    "plugin": "Katana.esp",
+    "tif": "AK69KatanaFollowResponse3",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xDFD096",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05DFD096",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xDFD0C3",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05DFD0C3",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xDFD0C4",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05DFD0C4",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xDFD0C5",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05DFD0C5",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xDFD0C6",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05DFD0C6",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xDFD0C7",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05DFD0C7",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Megara",
+  "role": "wait",
+  "dial": "katana.esp|0x1C8608",
+  "found": true,
+  "quest": "katana.esp|0x1AF0EA",
+  "dial_edid": "AK69MegaraWaitTopic",
+  "infos": [
+   {
+    "info": "katana.esp|0x1C8609",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__041C8609",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xA9AC76",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05A9AC76",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xA9AC73",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05A9AC73",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xA9AC74",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05A9AC74",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xA9AC75",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05A9AC75",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Megara",
+  "role": "follow",
+  "dial": "katana.esp|0x1C8602",
+  "found": true,
+  "quest": "katana.esp|0x1AF0EA",
+  "dial_edid": "AK69MegaraFollowWaitTopic",
+  "infos": [
+   {
+    "info": "katana.esp|0x1C8603",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__041C8603",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xA9AC6F",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05A9AC6F",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xA9AC83",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05A9AC83",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Megara",
+  "role": "dismiss",
+  "dial": "katana.esp|0x1C860B",
+  "found": true,
+  "quest": "katana.esp|0x1AF0EA",
+  "dial_edid": "AK69MegaraDismissTopic",
+  "infos": [
+   {
+    "info": "katana.esp|0x1C860C",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__041C860C",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x89B40A",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0489B40A",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x89B40B",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0489B40B",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x89B40C",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0489B40C",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x89B40D",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0489B40D",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xA9AC64",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05A9AC64",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xA9AC65",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05A9AC65",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Megara",
+  "role": "recruit",
+  "dial": "katana.esp|0x1C85FF",
+  "found": true,
+  "quest": "katana.esp|0x1AF0EA",
+  "dial_edid": "AK69MegaraFollowTopic",
+  "infos": [
+   {
+    "info": "katana.esp|0xE6C92D",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05E6C92D",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x1C8600",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__041C8600",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xA9AC6E",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05A9AC6E",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xA9AC81",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05A9AC81",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xA9AC82",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05A9AC82",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xDE3B1F",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05DE3B1F",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xE021E8",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05E021E8",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xE021E9",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05E021E9",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xE021EA",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05E021EA",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xE021EB",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05E021EB",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0xE021EC",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__05E021EC",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Shale",
+  "role": "wait",
+  "dial": "katana.esp|0xFEF857",
+  "found": true,
+  "quest": "katana.esp|0xA883AD",
+  "dial_edid": "AK69ShaleWaitTopic",
+  "infos": [
+   {
+    "info": "katana.esp|0x22BEF0",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BEF0",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x22BEF1",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BEF1",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x22BEF2",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BEF2",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x22BEF3",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BEF3",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x2F6B31",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__052F6B31",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x2F6B32",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__052F6B32",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Shale",
+  "role": "follow",
+  "dial": "katana.esp|0xFEF84F",
+  "found": true,
+  "quest": "katana.esp|0xA883AD",
+  "dial_edid": "AK69ShaleFollowWaitTopic",
+  "infos": [
+   {
+    "info": "katana.esp|0x22BEDE",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BEDE",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x22BEDF",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BEDF",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x22BEE0",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BEE0",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x22BEE1",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BEE1",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x22BEE2",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BEE2",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Shale",
+  "role": "dismiss",
+  "dial": "katana.esp|0xFEF853",
+  "found": true,
+  "quest": "katana.esp|0xA883AD",
+  "dial_edid": "AK69ShaleSendHomeTopic",
+  "infos": [
+   {
+    "info": "katana.esp|0x22BEE6",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BEE6",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x22BEE7",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BEE7",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x22BEE8",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BEE8",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x22BEE9",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BEE9",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x2F6B2D",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__052F6B2D",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Shale",
+  "role": "recruit",
+  "dial": "katana.esp|0xFEF84D",
+  "found": true,
+  "quest": "katana.esp|0xA883AD",
+  "dial_edid": "AK69ShaleFollowTopic",
+  "infos": [
+   {
+    "info": "katana.esp|0x0F1E75",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__050F1E75",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x22BED8",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BED8",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x22BED9",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BED9",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x22BEDA",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BEDA",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x22BEDB",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BEDB",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x22BEDC",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BEDC",
+    "deleted": false
+   },
+   {
+    "info": "katana.esp|0x22BEDD",
+    "plugin": "Katana.esp",
+    "tif": "AK69_TIF__0522BEDD",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Auri",
+  "role": "recruit",
+  "dial": "018auri.esp|0x50E0C6",
+  "found": true,
+  "quest": "018auri.esp|0x508FC2",
+  "dial_edid": "018AuriControllerFollowA1",
+  "infos": [
+   {
+    "info": "018auri.esp|0x006958",
+    "plugin": "018Auri.esp",
+    "tif": "TIF__07006958",
+    "deleted": false
+   },
+   {
+    "info": "018auri.esp|0x1FCDDF",
+    "plugin": "018Auri.esp",
+    "tif": "TIF__041FCDDF",
+    "deleted": false
+   },
+   {
+    "info": "018auri.esp|0x1FCDE0",
+    "plugin": "018Auri.esp",
+    "tif": "TIF__041FCDE0",
+    "deleted": false
+   },
+   {
+    "info": "018auri.esp|0x201EE2",
+    "plugin": "018Auri.esp",
+    "tif": "TIF__04201EE2",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Auri",
+  "role": "follow+wait",
+  "dial": "018auri.esp|0x50E0C8",
+  "found": true,
+  "quest": "018auri.esp|0x508FC2",
+  "dial_edid": "018AuriControllerWaitA1",
+  "infos": [
+   {
+    "info": "018auri.esp|0x010B5D",
+    "plugin": "018Auri.esp",
+    "tif": "TIF__07010B5D",
+    "deleted": false
+   },
+   {
+    "info": "018auri.esp|0x010B5F",
+    "plugin": "018Auri.esp",
+    "tif": "TIF__07010B5F",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Auri",
+  "role": "rest",
+  "dial": "018auri.esp|0x50E0CA",
+  "found": true,
+  "quest": "018auri.esp|0x508FC2",
+  "dial_edid": "018AuriControllerRestA1",
+  "infos": [
+   {
+    "info": "018auri.esp|0x52C6E2",
+    "plugin": "018Auri.esp",
+    "tif": "A18__TIF__0552C6E2",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Auri",
+  "role": "dismiss",
+  "dial": "018auri.esp|0x50E0D0",
+  "found": true,
+  "quest": "018auri.esp|0x508FC2",
+  "dial_edid": "018AuriControllerDismissA1",
+  "infos": [
+   {
+    "info": "018auri.esp|0x369B7A",
+    "plugin": "018Auri.esp",
+    "tif": "TIF__05369B7A",
+    "deleted": false
+   },
+   {
+    "info": "018auri.esp|0x00BA5A",
+    "plugin": "018Auri.esp",
+    "tif": "TIF__0700BA5A",
+    "deleted": false
+   },
+   {
+    "info": "018auri.esp|0x201EE3",
+    "plugin": "018Auri.esp",
+    "tif": "TIF__04201EE3",
+    "deleted": false
+   },
+   {
+    "info": "018auri.esp|0x201EE4",
+    "plugin": "018Auri.esp",
+    "tif": "TIF__04201EE4",
+    "deleted": false
+   },
+   {
+    "info": "018auri.esp|0x201EE6",
+    "plugin": "018Auri.esp",
+    "tif": "TIF__04201EE6",
+    "deleted": false
+   },
+   {
+    "info": "018auri.esp|0x201EE5",
+    "plugin": "018Auri.esp",
+    "tif": "TIF__04201EE5",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Serana",
+  "role": "follow",
+  "dial": "dawnguard.esm|0x01508C",
+  "found": true,
+  "quest": "dawnguard.esm|0x002B6E",
+  "dial_edid": "DLC1NPCMentalModelFollowMeTopic",
+  "infos": [
+   {
+    "info": "dawnguard.esm|0x01A90F",
+    "plugin": "Dawnguard.esm",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x01218E",
+    "plugin": "Dawnguard.esm",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x01218D",
+    "plugin": "Dawnguard.esm",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x01218F",
+    "plugin": "Dawnguard.esm",
+    "tif": "",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x012190",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__02012190",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x004A4E",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__01004A4E",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x01A910",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__0101A910",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x01A911",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__0101A911",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x004A52",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__01004A52",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x01508E",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__0101508E",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Serana",
+  "role": "wait",
+  "dial": "dawnguard.esm|0x01508D",
+  "found": true,
+  "quest": "dawnguard.esm|0x002B6E",
+  "dial_edid": "DLC1NPCMentalModelWaitHereTopic",
+  "infos": [
+   {
+    "info": "dawnguard.esm|0x01508F",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__0101508F",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x01A90B",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__0101A90B",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x01A90C",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__0101A90C",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x0183B6",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__010183B6",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x01A90D",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__0101A90D",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x01A90E",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__0101A90E",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Serana",
+  "role": "dismiss",
+  "dial": "dawnguard.esm|0x01508B",
+  "found": true,
+  "quest": "dawnguard.esm|0x002B6E",
+  "dial_edid": "DLC1NPCMentalModelDismissTopic",
+  "infos": [
+   {
+    "info": "dawnguard.esm|0x015A93",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__01015A93",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x012FE6",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__02012FE6",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x012FE7",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__02012FE7",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x012FE8",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__02012FE8",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x012FE9",
+    "plugin": "Unofficial Skyrim Special Edition Patch.esp",
+    "tif": "DLC1_TIF__02012FE9",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x012EB9",
+    "plugin": "Unofficial Skyrim Special Edition Patch.esp",
+    "tif": "DLC1_TIF__02012EB9",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x012EBA",
+    "plugin": "Unofficial Skyrim Special Edition Patch.esp",
+    "tif": "DLC1_TIF__02012EBA",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x012EBC",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__02012EBC",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x01A905",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__0101A905",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x01A906",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__0101A906",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x01A907",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__0101A907",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x01A908",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__0101A908",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x01A909",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__0101A909",
+    "deleted": false
+   },
+   {
+    "info": "dawnguard.esm|0x01A90A",
+    "plugin": "Dawnguard.esm",
+    "tif": "DLC1_TIF__0101A90A",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Serana",
+  "role": "nff_import",
+  "dial": "nwsfollowerframework.esp|0x016EAF",
+  "found": true,
+  "quest": "nwsfollowerframework.esp|0x00434F",
+  "dial_edid": "nwsFC_ImportTopic",
+  "infos": [
+   {
+    "info": "nwsfollowerframework.esp|0x122748",
+    "plugin": "nwsFollowerFramework.esp",
+    "tif": "nwsFollower_Import",
+    "deleted": false
+   },
+   {
+    "info": "nwsfollowerframework.esp|0x2151B8",
+    "plugin": "nwsFollowerFramework.esp",
+    "tif": "nwsFollower_Import",
+    "deleted": false
+   },
+   {
+    "info": "nwsfollowerframework.esp|0x11FFAE",
+    "plugin": "nwsFollowerFramework.esp",
+    "tif": "nwsFollower_Import",
+    "deleted": false
+   }
+  ]
+ },
+ {
+  "npc": "Serana",
+  "role": "nff_export",
+  "dial": "nwsfollowerframework.esp|0x11FFAC",
+  "found": true,
+  "quest": "nwsfollowerframework.esp|0x00434F",
+  "dial_edid": "nwsFC_ExportTopic",
+  "infos": [
+   {
+    "info": "nwsfollowerframework.esp|0x016EC7",
+    "plugin": "nwsFollowerFramework.esp",
+    "tif": "nwsFollower_Export",
+    "deleted": false
+   },
+   {
+    "info": "nwsfollowerframework.esp|0x512970",
+    "plugin": "nwsFollowerFramework.esp",
+    "tif": "nwsFollower_Export",
+    "deleted": false
+   }
+  ]
+ }
+]
