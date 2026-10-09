@@ -8433,6 +8433,7 @@ Function ApplyCharacter(Actor akActor, String asResponse)
         StorageUtil.SetIntValue(akActor, "SNRom_PhysAttrBypass", bypass)
     EndIf
     IEB_LockChildIntimacy(akActor)   ; Patch R5 (IEB §11.10.2)
+    IEB_WriteRomTrack(akActor)   ; Patch (IEB §11.14.1): orientation may change RomanceApplicability
     If SNRom_Decorators.FieldValue(asResponse, "ARDOR:") != ""
         StorageUtil.SetIntValue(akActor, "SNRom_Ardor", ardor)
     EndIf
