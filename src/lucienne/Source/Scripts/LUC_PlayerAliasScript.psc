@@ -4,8 +4,9 @@ Scriptname LUC_PlayerAliasScript extends ReferenceAlias
  - Prayer key: opens a prayer (enables Dusk, inner voice, Thought input); while praying, opens another Thought input.
  - Ending: LUC_AmenKey, or a long-press (1 s or more) of the prayer key while LUC_AmenKey is 0. Azura's end-marker and
    Lucienne speaking aloud disable Dusk through triggers, and the poll notices.
- - One update loop: every 2 s while praying (end detection), else every 5 s. Every tick also handles the manual
-   LUC_Active request and re-syncs the key registrations.
+ - One update loop of chained RegisterForSingleUpdate calls (never RegisterForUpdate): every 2 s while praying (end
+   detection), else every 5 s. Each tick books the next one first; Startup (OnInit, OnPlayerLoadGame) re-arms it.
+   Every tick also handles the manual LUC_Active request and re-syncs the key registrations.
  - Load reset: no prayer survives a load or a new game.
  Everything Lucienne-specific runs only while StorageUtil LUC_Active == 1 on the player, which is only ever set by
  hand (set LUC_ActivateRequest to 1). Dreams (OnSleepStop) stay empty: list B, M11.}
@@ -54,6 +55,7 @@ Event OnPlayerLoadGame()
 EndEvent
 
 Function Startup(String asWhy)
+    RegisterForSingleUpdate(5.0)             ; (re-)arm the chain FIRST: every load revives a loop an error may have killed
     StorageUtil.SetStringValue(PlayerRef, "LUC_VEName", VEName())
     Bool wasOpen = Praying()
     ResetPrayer()                            ; never carry an open prayer across a load or a new game; no journal entry
@@ -61,7 +63,6 @@ Function Startup(String asWhy)
     _amenKey = -1
     SyncKeys()
     CheckActivateRequest()
-    RegisterForSingleUpdate(5.0)
     Log("startup (" + asWhy + "): active=" + Active() + " prayerKey=" + _prayKey + " amenKey=" + _amenKey + " reset_open_prayer=" + wasOpen)
 EndFunction
 
@@ -78,6 +79,9 @@ EndFunction
 ; ============================================================================ the one update loop
 
 Event OnUpdate()
+    ; Chained single updates (never RegisterForUpdate). The next tick is booked FIRST, so an error later in this tick
+    ; can't break the chain; it is re-booked at 2 s below while a prayer is open (a new booking replaces the old one).
+    RegisterForSingleUpdate(5.0)
     CheckActivateRequest()
     SyncKeys()
     If Praying()
@@ -92,8 +96,6 @@ Event OnUpdate()
     EndIf
     If Praying()
         RegisterForSingleUpdate(2.0)
-    Else
-        RegisterForSingleUpdate(5.0)
     EndIf
 EndEvent
 
