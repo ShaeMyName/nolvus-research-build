@@ -1,0 +1,863 @@
+{
+  "errors": [],
+  "files": 22,
+  "not_checked": [
+    "decorator names, arities and values (users register their own; every call is listed under unresolved)",
+    "action questEditorId / scriptName / executionFunctionName existence (needs game data)",
+    "eventType membership is a warning only (the game is the only source of the list)"
+  ],
+  "ok": true,
+  "plugin_id": "shae.lucienne",
+  "shadows": [
+    {
+      "logical_path": "prompts/components/event_history.prompt",
+      "shadows": "skyrimnet.base"
+    },
+    {
+      "logical_path": "prompts/components/event_history_compact.prompt",
+      "shadows": "skyrimnet.base"
+    },
+    {
+      "logical_path": "prompts/components/event_history_verbose.prompt",
+      "shadows": "skyrimnet.base"
+    },
+    {
+      "logical_path": "prompts/player_thoughts.prompt",
+      "shadows": "skyrimnet.base"
+    },
+    {
+      "logical_path": "prompts/target_selectors/dialogue_speaker_selector.prompt",
+      "shadows": "skyrimnet.base"
+    }
+  ],
+  "unresolved": [
+    {
+      "code": "UNRESOLVED",
+      "col": 218,
+      "file": "components/event_history",
+      "line": 4,
+      "message": "variable 'get_event_history_count' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 17,
+      "file": "components/event_history",
+      "line": 5,
+      "message": "variable 'get_recent_events' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 14,
+      "file": "components/event_history",
+      "line": 13,
+      "message": "object must be an array"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 14,
+      "file": "components/event_history",
+      "line": 18,
+      "message": "object must be an array"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 218,
+      "file": "components/event_history_compact",
+      "line": 5,
+      "message": "variable 'get_event_history_count' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 17,
+      "file": "components/event_history_compact",
+      "line": 6,
+      "message": "variable 'get_recent_events' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 14,
+      "file": "components/event_history_compact",
+      "line": 12,
+      "message": "object must be an array"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 14,
+      "file": "components/event_history_compact",
+      "line": 14,
+      "message": "object must be an array"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 270,
+      "file": "components/event_history_verbose",
+      "line": 5,
+      "message": "variable 'get_event_history_count' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 17,
+      "file": "components/event_history_verbose",
+      "line": 6,
+      "message": "variable 'get_recent_events' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 14,
+      "file": "components/event_history_verbose",
+      "line": 16,
+      "message": "object must be an array"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 19,
+      "file": "luc_prayer_digest",
+      "line": 14,
+      "message": "variable 'papyrus_util' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 17,
+      "file": "luc_prayer_digest",
+      "line": 18,
+      "message": "variable 'papyrus_util' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 89,
+      "file": "luc_prayer_digest",
+      "line": 18,
+      "message": "variable 'is_array' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 18,
+      "file": "luc_prayer_summary",
+      "line": 15,
+      "message": "variable 'papyrus_util' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 13,
+      "file": "luc_prayer_summary",
+      "line": 18,
+      "message": "variable 'get_recent_events' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 21,
+      "file": "submodules/guidelines",
+      "line": 3,
+      "message": "variable 'name' not found",
+      "original": "{{ decnpc(npc.UUID).name }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 24,
+      "file": "submodules/guidelines",
+      "line": 7,
+      "message": "variable 'isInCombat' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 41,
+      "file": "submodules/system_head",
+      "line": 10,
+      "message": "variable 'name' not found",
+      "original": "{{ decnpc(npc.UUID).name }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/system_head",
+      "line": 24,
+      "message": "variable 'render_mode' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 36,
+      "file": "submodules/system_head",
+      "line": 24,
+      "message": "variable 'render_mode' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 9,
+      "file": "submodules/system_head",
+      "line": 32,
+      "message": "variable 'render_mode' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 24,
+      "file": "submodules/system_head",
+      "line": 35,
+      "message": "variable 'isInCombat' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/system_head",
+      "line": 42,
+      "message": "variable 'render_mode' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 36,
+      "file": "submodules/system_head",
+      "line": 42,
+      "message": "variable 'render_mode' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 4,
+      "file": "submodules/system_head",
+      "line": 51,
+      "message": "variable 'render_character_profile' not found",
+      "original": "{{ render_character_profile(\"full\", npc.UUID) }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/system_head",
+      "line": 52,
+      "message": "variable 'responseTarget' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/system_head",
+      "line": 65,
+      "message": "variable 'responseTarget' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 4,
+      "file": "submodules/system_head",
+      "line": 68,
+      "message": "variable 'get_scene_context' not found",
+      "original": "{{ get_scene_context(npc.UUID, 0, \"full\")}}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/system_head",
+      "line": 70,
+      "message": "variable 'has_current_scene_description' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/system_head",
+      "line": 76,
+      "message": "variable 'has_current_location_description' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/system_head",
+      "line": 83,
+      "message": "variable 'render_mode' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 32,
+      "file": "submodules/system_head",
+      "line": 83,
+      "message": "variable 'render_mode' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 218,
+      "file": "components/event_history",
+      "line": 4,
+      "message": "variable 'get_event_history_count' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 17,
+      "file": "components/event_history",
+      "line": 5,
+      "message": "variable 'get_recent_events' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 14,
+      "file": "components/event_history",
+      "line": 13,
+      "message": "object must be an array"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 14,
+      "file": "components/event_history",
+      "line": 18,
+      "message": "object must be an array"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/user_final_instructions",
+      "line": 5,
+      "message": "variable 'triggeringEvent' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/user_final_instructions",
+      "line": 18,
+      "message": "variable 'is_in_combat' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 28,
+      "file": "submodules/user_final_instructions",
+      "line": 70,
+      "message": "variable 'name' not found",
+      "original": "{{ decnpc(npc.UUID).name }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/user_final_instructions",
+      "line": 75,
+      "message": "variable 'is_narration_enabled' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 15,
+      "file": "submodules/user_final_instructions",
+      "line": 90,
+      "message": "variable 'get_linked_identities' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 29,
+      "file": "submodules/user_final_instructions",
+      "line": 181,
+      "message": "variable 'is_audio_tags_enabled' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 32,
+      "file": "submodules/user_final_instructions",
+      "line": 182,
+      "message": "variable 'is_audio_tags_enabled' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 11,
+      "file": "submodules/user_final_instructions",
+      "line": 300,
+      "message": "variable 'is_narration_enabled' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/user_final_instructions",
+      "line": 304,
+      "message": "variable 'feature_enabled' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/user_final_instructions",
+      "line": 322,
+      "message": "variable 'embed_actions_in_dialogue' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/user_final_instructions",
+      "line": 346,
+      "message": "variable 'triggeringEvent' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 24,
+      "file": "submodules/user_final_instructions",
+      "line": 352,
+      "message": "variable 'get_actor_value' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 20,
+      "file": "submodules/user_final_instructions",
+      "line": 353,
+      "message": "variable 'get_base_actor_value' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 25,
+      "file": "submodules/user_final_instructions",
+      "line": 354,
+      "message": "variable 'get_actor_value' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 21,
+      "file": "submodules/user_final_instructions",
+      "line": 355,
+      "message": "variable 'get_base_actor_value' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 25,
+      "file": "submodules/user_final_instructions",
+      "line": 356,
+      "message": "variable 'get_actor_value' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 21,
+      "file": "submodules/user_final_instructions",
+      "line": 357,
+      "message": "variable 'get_base_actor_value' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 16,
+      "file": "submodules/user_final_instructions",
+      "line": 360,
+      "message": "variable 'decnpc' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 20,
+      "file": "submodules/user_final_instructions",
+      "line": 363,
+      "message": "variable 'get_worn_equipment' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 21,
+      "file": "submodules/user_final_instructions",
+      "line": 364,
+      "message": "variable 'equipment.body' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 23,
+      "file": "submodules/user_final_instructions",
+      "line": 372,
+      "message": "variable 'track_entity_state' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 24,
+      "file": "submodules/user_final_instructions",
+      "line": 373,
+      "message": "variable 'track_entity_state' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 24,
+      "file": "submodules/user_final_instructions",
+      "line": 374,
+      "message": "variable 'track_entity_state' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 24,
+      "file": "submodules/user_final_instructions",
+      "line": 375,
+      "message": "variable 'track_entity_state' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/user_final_instructions",
+      "line": 378,
+      "message": "variable 'healthChange.hasPrevious' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/user_final_instructions",
+      "line": 389,
+      "message": "variable 'magickaChange.hasPrevious' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/user_final_instructions",
+      "line": 400,
+      "message": "variable 'staminaChange.hasPrevious' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 26,
+      "file": "submodules/user_final_instructions",
+      "line": 412,
+      "message": "variable 'healthChange.isRecent' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 27,
+      "file": "submodules/user_final_instructions",
+      "line": 413,
+      "message": "variable 'magickaChange.isRecent' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 27,
+      "file": "submodules/user_final_instructions",
+      "line": 414,
+      "message": "variable 'staminaChange.isRecent' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 28,
+      "file": "submodules/user_final_instructions",
+      "line": 415,
+      "message": "variable 'cuirassChange.isRecent' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 29,
+      "file": "player_thoughts",
+      "line": 2,
+      "message": "variable 'name' not found",
+      "original": "{{ decnpc(npc.UUID).name }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 60,
+      "file": "player_thoughts",
+      "line": 2,
+      "message": "variable 'gender' not found",
+      "original": "{{ decnpc(npc.UUID).gender }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 90,
+      "file": "player_thoughts",
+      "line": 2,
+      "message": "variable 'race' not found",
+      "original": "{{ decnpc(npc.UUID).race }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "player_thoughts",
+      "line": 4,
+      "message": "variable 'triggeringEvent' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 14,
+      "file": "player_thoughts",
+      "line": 17,
+      "message": "variable 'promptForThoughts' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "player_thoughts",
+      "line": 28,
+      "message": "variable 'dialogue_options' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 16,
+      "file": "player_thoughts",
+      "line": 58,
+      "message": "variable 'promptForThoughts' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "player_thoughts",
+      "line": 76,
+      "message": "variable 'dialogue_options' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 16,
+      "file": "player_thoughts",
+      "line": 79,
+      "message": "variable 'promptForThoughts' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 9,
+      "file": "player_thoughts",
+      "line": 81,
+      "message": "variable 'triggeringEvent' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 9,
+      "file": "player_thoughts",
+      "line": 99,
+      "message": "variable 'is_in_combat' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 9,
+      "file": "player_thoughts",
+      "line": 103,
+      "message": "variable 'triggeringEvent' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "player_thoughts",
+      "line": 113,
+      "message": "variable 'dialogue_options' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 16,
+      "file": "player_thoughts",
+      "line": 123,
+      "message": "variable 'promptForThoughts' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 149,
+      "file": "player_thoughts",
+      "line": 131,
+      "message": "variable 'name' not found",
+      "original": "{{ decnpc(npc.UUID).name }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 237,
+      "file": "player_thoughts",
+      "line": 131,
+      "message": "variable 'name' not found",
+      "original": "{{ decnpc(npc.UUID).name }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 318,
+      "file": "player_thoughts",
+      "line": 131,
+      "message": "variable 'name' not found",
+      "original": "{{ decnpc(npc.UUID).name }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/character_bio/0955_luc_princes",
+      "line": 3,
+      "message": "variable 'papyrus_util' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 18,
+      "file": "submodules/character_bio/0960_luc_dusk_identity",
+      "line": 3,
+      "message": "variable 'papyrus_util' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/character_bio/0960_luc_dusk_identity",
+      "line": 4,
+      "message": "variable 'papyrus_util' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 18,
+      "file": "submodules/character_bio/0965_luc_dusk",
+      "line": 4,
+      "message": "variable 'papyrus_util' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/character_bio/0965_luc_dusk",
+      "line": 5,
+      "message": "variable 'papyrus_util' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 218,
+      "file": "components/event_history_compact",
+      "line": 5,
+      "message": "variable 'get_event_history_count' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 17,
+      "file": "components/event_history_compact",
+      "line": 6,
+      "message": "variable 'get_recent_events' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 14,
+      "file": "components/event_history_compact",
+      "line": 12,
+      "message": "object must be an array"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 14,
+      "file": "components/event_history_compact",
+      "line": 14,
+      "message": "object must be an array"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 20,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 5,
+      "message": "variable 'papyrus_util' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 16,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 6,
+      "message": "variable 'lastSpeaker' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 16,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 7,
+      "message": "variable 'lastDialogueTarget' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 13,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 10,
+      "message": "variable 'get_speaker_selector_settings' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 21,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 11,
+      "message": "variable 'ss.silenceChancePercent' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 23,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 12,
+      "message": "variable 'ss.tagCompanion' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 21,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 13,
+      "message": "variable 'ss.tagEngaged' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 21,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 14,
+      "message": "variable 'ss.tagInScene' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 67,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 16,
+      "message": "variable 'random' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 19,
+      "message": "variable 'random' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 34,
+      "message": "variable 'random' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 20,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 61,
+      "message": "variable 'lastSpeaker.name' not found",
+      "original": "{{ lastSpeaker.name }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 62,
+      "message": "variable 'lastDialogueTarget.name' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 4,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 67,
+      "message": "variable 'get_scene_context' not found",
+      "original": "{{ get_scene_context(0, 0, \"full\")}}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 4,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 72,
+      "message": "variable 'location' not found",
+      "original": "{{ location }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 16,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 77,
+      "message": "variable 'lastSpeaker' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 18,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 79,
+      "message": "variable 'lastSpeaker' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 21,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 84,
+      "message": "variable 'candidateDialogues' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 57,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 107,
+      "message": "variable 'lastSpeaker' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 116,
+      "message": "variable 'random' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 29,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 124,
+      "message": "variable 'lastSpeaker.name' not found",
+      "original": "{{ lastSpeaker.name }}"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 21,
+      "file": "target_selectors/dialogue_speaker_selector",
+      "line": 125,
+      "message": "variable 'random' not found"
+    }
+  ],
+  "warnings": []
+}

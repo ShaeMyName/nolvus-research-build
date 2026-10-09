@@ -1,0 +1,8 @@
+kind: link
+name: Dusk Link
+identityA: "virtual:Dusk"
+identityB: "npc:Skyrim.esm:0x028AE9"
+mode: bidirectional
+dominance: host_led
+awareness: mutual
+note: "Spec 11.15.2: the private voice Dusk is Azura (physical Azura at her shrine). Skipped while Dusk is disabled."

@@ -1,0 +1,12 @@
+{% if render_mode == "full" %}
+{# TEST STUB of 0960 (identity part) with PLACEHOLDER TOKENS. Real text: lucienne/staging/0960_luc_dusk_identity.prompt. #}
+{% set _luc_ve = papyrus_util("GetStringValue", player.UUID, "LUC_VEName", "Dusk") %}
+{% if papyrus_util("GetIntValue", player.UUID, "LUC_Active", 0) == 1 and decnpc(actorUUID).isVirtual and decnpc(actorUUID).name == _luc_ve %}
+## Who you truly are
+The quiet "{{ _luc_ve }}" summary and formless appearance above are a veil you wear toward the world, not who you are. Beneath the veil:
+
+TKN_SHARED_SUMMARY
+
+TKN_SHARED_APPEARANCE
+{% endif %}
+{% endif %}

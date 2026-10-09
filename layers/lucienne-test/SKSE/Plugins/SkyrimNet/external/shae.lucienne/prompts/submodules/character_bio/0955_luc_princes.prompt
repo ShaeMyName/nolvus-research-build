@@ -1,0 +1,15 @@
+{% if render_mode == "full" or render_mode == "thoughts" %}
+{# TEST STUB of the Princes' private sections with PLACEHOLDER TOKENS. Real text: lucienne/staging/0955_luc_princes.prompt. #}
+{% if papyrus_util("GetIntValue", player.UUID, "LUC_Active", 0) == 1 and not decnpc(actorUUID).isVirtual %}
+{% set _luc_p = decnpc(actorUUID).name %}
+{% if _luc_p == "Boethiah" %}
+TKN_PRIVATE_BOETHIAH
+{% elif _luc_p == "Mephala" %}
+TKN_PRIVATE_MEPHALA
+{% elif _luc_p == "Sheogorath" %}
+TKN_PRIVATE_SHEOGORATH
+{% elif _luc_p == "Hermaeus Mora" %}
+TKN_PRIVATE_HERMAEUS_MORA
+{% endif %}
+{% endif %}
+{% endif %}

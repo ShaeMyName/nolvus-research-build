@@ -1,0 +1,11 @@
+{
+  "id": "shae.azuratest-filter",
+  "type": "bundle",
+  "title": "Azura test stubs (TT-9 director filter)",
+  "tagline": "Test-only stub for TASK_C_AZURA_TESTS.",
+  "description": "Shadows components/event_history_compact.prompt: drops player_thoughts and private-virtual-NPC lines from director prompts. Test profile only; placeholder content; delete after the tests.",
+  "author": "shae",
+  "version": "0.1.0",
+  "min_skyrimnet_version": "0.25.0",
+  "nsfw": false
+}

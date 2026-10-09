@@ -1,0 +1,11 @@
+{
+  "id": "shae.lucienne",
+  "type": "bundle",
+  "title": "Lucienne - Private (TEST STUB)",
+  "tagline": "Private: Lucienne's playthrough only.",
+  "description": "Spec 11.15: Azura v1 prayer channel via the private virtual NPC Dusk, privacy gates G1-G3, verbatim prayer thoughts, prayer journal, the Princes' private sections, Moon and Star / DA01 blacklists. Test-profile stub: placeholder text only. Never published.",
+  "author": "shae",
+  "version": "1.0.0",
+  "min_skyrimnet_version": "0.25.0",
+  "nsfw": true
+}

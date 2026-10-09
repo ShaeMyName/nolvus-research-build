@@ -1,0 +1,11 @@
+{
+  "id": "shae.azuratest-npcfilter",
+  "type": "bundle",
+  "title": "Azura test stubs (TT-13 NPC history filter)",
+  "tagline": "Test-only stub for TASK_C_AZURA_TESTS.",
+  "description": "Shadows components/event_history.prompt and event_history_verbose.prompt: NPC viewers never see player thoughts or private-virtual-NPC lines (dialogue and memory input). Test profile only; delete after the tests.",
+  "author": "shae",
+  "version": "0.1.0",
+  "min_skyrimnet_version": "0.25.0",
+  "nsfw": false
+}

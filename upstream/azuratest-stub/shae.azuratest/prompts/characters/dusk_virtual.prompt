@@ -1,0 +1,26 @@
+{# Test stub with PLACEHOLDER TOKENS (no canon text in the test profile). Real text: lucienne/staging/dusk_virtual.prompt. #}
+{% block summary %}A quiet voice with no visible form.{% endblock %}
+
+{% block interject_summary %}Never interjects. Speaks only when addressed directly.{% endblock %}
+
+{% block background %}TKN_BACKGROUND You are Azura (stub). TKN_PRIVATE_SECTION{% endblock %}
+
+{% block personality %}TKN_PERSONALITY{% endblock %}
+
+{% block appearance %}No visible form.{% endblock %}
+
+{% block aspirations %}
+- TKN_ASPIRATIONS
+{% endblock %}
+
+{% block relationships %}
+- TKN_RELATIONSHIPS
+{% endblock %}
+
+{% block occupation %}TKN_OCCUPATION{% endblock %}
+
+{% block skills %}
+- TKN_SKILLS
+{% endblock %}
+
+{% block speech_style %}TKN_SPEECH_STYLE Never say the name Dusk. When the player says goodbye or says the prayer is over, you answer once and end with the exact words: Go in twilight.{% endblock %}

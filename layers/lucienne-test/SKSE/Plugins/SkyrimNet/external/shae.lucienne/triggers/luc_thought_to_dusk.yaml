@@ -1,0 +1,19 @@
+# Spec 11.15.5: a player thought is narrated to the enabled virtual NPCs (Dusk, while a prayer is open) so she
+# answers. The content is a fixed marker with no thought text: Dusk reads the verbatim thought from the player's own
+# events, and G1/G2 hide this narration from every prompt. Stored for every thought even with Dusk off (TT-1).
+name: "luc_thought_to_dusk"
+description: "Lucienne's prayer: a player thought prompts Dusk to answer (fixed marker, no thought text)."
+eventCriteria:
+  eventType: "player_thoughts"
+  schemaConditions:
+    - fieldPath: "thoughts"
+      operator: "not_equals"
+      value: ""
+response:
+  type: "direct_narration"
+  content: "⟦luc-prayer⟧"
+audience: "enabled_virtual_npcs"
+enabled: true
+probability: 1.0
+cooldownSeconds: 1
+priority: 5

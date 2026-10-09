@@ -1,0 +1,23 @@
+# Spec 11.15.6 (TT-8): any line the player says aloud, typed or spoken, ends the prayer. The reply to that line
+# still goes out; G3 keeps NPCs from reacting to Dusk.
+name: "luc_speech_ends"
+description: "Lucienne's prayer: a spoken player line disables Dusk."
+eventCriteria:
+  - eventType: "dialogue_player_text"
+    schemaConditions:
+      - fieldPath: "dialogue"
+        operator: "not_equals"
+        value: ""
+  - eventType: "dialogue_player_stt"
+    schemaConditions:
+      - fieldPath: "dialogue"
+        operator: "not_equals"
+        value: ""
+response:
+  type: "disable_virtual_npc"
+  targetName: "Dusk"
+audience: "player"
+enabled: true
+probability: 1.0
+cooldownSeconds: 1
+priority: 10

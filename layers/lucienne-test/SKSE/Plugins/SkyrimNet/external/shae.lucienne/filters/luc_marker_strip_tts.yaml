@@ -1,0 +1,5 @@
+kind: tts_rule
+id: luc_marker_strip_tts
+pattern: '\s*⟦(?:luc-end|tell:[a-z]+)⟧'
+replacement: ""
+priority: 50

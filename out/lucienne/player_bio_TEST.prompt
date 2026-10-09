@@ -1,0 +1,22 @@
+{# TEST placeholder of Lucienne's per-playthrough player bio (A12). Real text: lucienne/staging/lucienne_player_bio.prompt,
+   entered once at her new game through the dashboard's per-playthrough player bio. Never the Static tab. #}
+{% block summary %}TKN_PLAYER_SUMMARY{% endblock %}
+
+{% block interject_summary %}TKN_PLAYER_INTERJECT_SUMMARY{% endblock %}
+
+{% block background %}TKN_PLAYER_BACKGROUND{% endblock %}
+
+{% block personality %}TKN_PLAYER_PERSONALITY{% endblock %}
+
+{% block appearance %}TKN_PLAYER_APPEARANCE{% endblock %}
+
+{% block aspirations %}TKN_PLAYER_ASPIRATIONS{% endblock %}
+
+{% block relationships %}TKN_PLAYER_RELATIONSHIPS{% endblock %}
+
+{% block occupation %}TKN_PLAYER_OCCUPATION{% endblock %}
+
+{% block skills %}TKN_PLAYER_SKILLS{% endblock %}
+
+{% block speech_style %}TKN_PLAYER_SPEECH_STYLE{% endblock %}
+

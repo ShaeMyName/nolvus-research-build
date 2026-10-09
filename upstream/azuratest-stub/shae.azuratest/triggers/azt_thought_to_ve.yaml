@@ -1,0 +1,18 @@
+# TT-3: route every player thought to the enabled virtual NPCs (only AzuraTest exists).
+# direct_narration content is stored verbatim: keep it a plain fact.
+name: "azt_thought_to_ve"
+description: "TT-3 stub: a player thought is narrated to enabled virtual NPCs only."
+eventCriteria:
+  eventType: "player_thoughts"
+  schemaConditions:
+    - fieldPath: "thoughts"
+      operator: "not_equals"
+      value: ""
+response:
+  type: "direct_narration"
+  content: "{{ player_name }} prays silently: {{ event_json.thoughts }}"
+audience: "enabled_virtual_npcs"
+enabled: true
+probability: 1.0
+cooldownSeconds: 1
+priority: 5

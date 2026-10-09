@@ -1,0 +1,22 @@
+# Spec 11.15.6: Azura closes the prayer by ending her line with the marker; the marker is stripped from the shown
+# and voiced text by filters/luc_marker_strip_*. Whether the trigger still sees it after the strip is AZ-2.
+name: "luc_dusk_close"
+description: "Lucienne's prayer: Dusk's end-marker disables Dusk."
+eventCriteria:
+  eventType: "dialogue"
+  schemaConditions:
+    - fieldPath: "speaker"
+      operator: "equals"
+      value: "Dusk"
+      caseSensitive: false
+    - fieldPath: "dialogue"
+      operator: "regex"
+      value: "luc-end"
+response:
+  type: "disable_virtual_npc"
+  targetName: "Dusk"
+audience: "player"
+enabled: true
+probability: 1.0
+cooldownSeconds: 1
+priority: 10

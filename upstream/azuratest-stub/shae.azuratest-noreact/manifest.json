@@ -1,0 +1,11 @@
+{
+  "id": "shae.azuratest-noreact",
+  "type": "bundle",
+  "title": "Azura test stubs (TT-14 no NPC reactions)",
+  "tagline": "Test-only stub for TASK_C_AZURA_TESTS.",
+  "description": "Shadows target_selectors/dialogue_speaker_selector.prompt: renders empty (no NPC reacts) when the last line was by or to a private virtual NPC. Test profile only; delete after the tests.",
+  "author": "shae",
+  "version": "0.1.0",
+  "min_skyrimnet_version": "0.25.0",
+  "nsfw": false
+}

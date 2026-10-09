@@ -1,0 +1,22 @@
+# Spec 11.15.8 public tells (A0-Q2; ships only if AZ-9 passes): Dusk's marker makes Lucienne's body react where
+# nearby NPCs can perceive it. Fixed, non-explicit text; no target, so no one (child or adult) is addressed.
+name: "luc_dusk_tell_flush"
+description: "Lucienne's prayer: Dusk's tell marker (flush) registers a visible, non-explicit reaction."
+eventCriteria:
+  eventType: "dialogue"
+  schemaConditions:
+    - fieldPath: "speaker"
+      operator: "equals"
+      value: "Dusk"
+      caseSensitive: false
+    - fieldPath: "dialogue"
+      operator: "regex"
+      value: "tell:flush"
+response:
+  type: "persistent_generic"
+  content: "A flush rises in {{ player_name }}'s face for no reason anyone nearby can see."
+audience: "nearby_npcs"
+enabled: true
+probability: 1.0
+cooldownSeconds: 30
+priority: 6

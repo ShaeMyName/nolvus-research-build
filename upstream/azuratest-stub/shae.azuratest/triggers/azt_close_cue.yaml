@@ -1,0 +1,21 @@
+# TT-6: Dusk closes the prayer by saying the cue "Go in twilight".
+name: "azt_close_cue"
+description: "TT-6 stub: when AzuraTest says 'Go in twilight', disable Dusk."
+eventCriteria:
+  eventType: "dialogue"
+  schemaConditions:
+    - fieldPath: "speaker"
+      operator: "equals"
+      value: "Dusk"
+      caseSensitive: false
+    - fieldPath: "dialogue"
+      operator: "regex"
+      value: "[Gg]o in twilight"
+response:
+  type: "disable_virtual_npc"
+  targetName: "Dusk"
+audience: "player"
+enabled: true
+probability: 1.0
+cooldownSeconds: 1
+priority: 10

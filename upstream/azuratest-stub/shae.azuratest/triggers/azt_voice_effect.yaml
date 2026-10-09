@@ -1,0 +1,18 @@
+# TT-4: put the shipped player_thought_effect (echo) on every enabled virtual NPC.
+name: "azt_voice_effect"
+description: "TT-4 stub: apply player_thought_effect to enabled virtual NPCs on each player thought."
+eventCriteria:
+  eventType: "player_thoughts"
+  schemaConditions:
+    - fieldPath: "thoughts"
+      operator: "not_equals"
+      value: ""
+response:
+  type: "activate_voice_effect"
+  effectId: "player_thought_effect"
+  targetScope: "all_enabled_virtual_npcs"
+audience: "player"
+enabled: true
+probability: 1.0
+cooldownSeconds: 1
+priority: 9

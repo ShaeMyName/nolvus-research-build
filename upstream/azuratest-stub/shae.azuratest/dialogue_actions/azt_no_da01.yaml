@@ -1,0 +1,7 @@
+kind: lists
+name: AzuraTest - no AI-fired DA01 lines
+description: >-
+  Test stub (TT-11): the AI may never fire DA01 (Azura's own quest) dialogue scripts, so no AI reply
+  near her shrine can start or advance that quest. Pressing E yourself is unaffected.
+blacklist:
+  - DA01

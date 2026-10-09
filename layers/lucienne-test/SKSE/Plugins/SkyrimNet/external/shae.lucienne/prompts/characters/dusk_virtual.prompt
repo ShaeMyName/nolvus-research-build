@@ -1,0 +1,27 @@
+{# TEST STUB with PLACEHOLDER TOKENS (no canon text in the test profile). Real text: lucienne/staging/dusk_virtual.prompt. #}
+{# Bland blocks are the real neutral text (spec 11.15.2); identity blocks are tokens (AZ-5 checks they render only in Dusk's own full prompt). #}
+{% block summary %}A quiet voice with no visible form.{% endblock %}
+
+{% block interject_summary %}Never interjects. Speaks only when addressed directly.{% endblock %}
+
+{% block background %}TKN_BACKGROUND You are Azura (stub). TKN_PRIVATE_SECTION{% endblock %}
+
+{% block personality %}TKN_PERSONALITY{% endblock %}
+
+{% block appearance %}No visible form.{% endblock %}
+
+{% block aspirations %}
+- TKN_ASPIRATIONS
+{% endblock %}
+
+{% block relationships %}
+- TKN_RELATIONSHIPS
+{% endblock %}
+
+{% block occupation %}TKN_OCCUPATION{% endblock %}
+
+{% block skills %}
+- TKN_SKILLS
+{% endblock %}
+
+{% block speech_style %}TKN_SPEECH_STYLE Never say the name Dusk.{% endblock %}

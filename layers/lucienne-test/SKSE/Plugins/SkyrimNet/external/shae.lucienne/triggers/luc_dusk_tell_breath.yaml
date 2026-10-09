@@ -1,0 +1,22 @@
+# Spec 11.15.8 public tells (A0-Q2; ships only if AZ-9 passes): Dusk's marker makes Lucienne's body react where
+# nearby NPCs can perceive it. Fixed, non-explicit text; no target, so no one (child or adult) is addressed.
+name: "luc_dusk_tell_breath"
+description: "Lucienne's prayer: Dusk's tell marker (breath) registers a visible, non-explicit reaction."
+eventCriteria:
+  eventType: "dialogue"
+  schemaConditions:
+    - fieldPath: "speaker"
+      operator: "equals"
+      value: "Dusk"
+      caseSensitive: false
+    - fieldPath: "dialogue"
+      operator: "regex"
+      value: "tell:breath"
+response:
+  type: "persistent_generic"
+  content: "{{ player_name }} catches a sudden breath, as if at something no one else can see."
+audience: "nearby_npcs"
+enabled: true
+probability: 1.0
+cooldownSeconds: 30
+priority: 6

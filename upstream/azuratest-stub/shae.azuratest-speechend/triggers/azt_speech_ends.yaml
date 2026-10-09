@@ -1,0 +1,22 @@
+# TT-8: any line the player says aloud (typed or spoken) disables Dusk.
+name: "azt_speech_ends"
+description: "TT-8 stub: a spoken player line ends the prayer (disables Dusk)."
+eventCriteria:
+  - eventType: "dialogue_player_text"
+    schemaConditions:
+      - fieldPath: "dialogue"
+        operator: "not_equals"
+        value: ""
+  - eventType: "dialogue_player_stt"
+    schemaConditions:
+      - fieldPath: "dialogue"
+        operator: "not_equals"
+        value: ""
+response:
+  type: "disable_virtual_npc"
+  targetName: "Dusk"
+audience: "player"
+enabled: true
+probability: 1.0
+cooldownSeconds: 1
+priority: 10

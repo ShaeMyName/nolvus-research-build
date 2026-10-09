@@ -1,0 +1,5 @@
+kind: dialogue_rule
+id: luc_marker_strip
+pattern: '\s*⟦(?:luc-end|tell:[a-z]+)⟧'
+replacement: ""
+priority: 50

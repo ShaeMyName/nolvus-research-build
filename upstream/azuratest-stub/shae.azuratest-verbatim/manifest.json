@@ -1,0 +1,11 @@
+{
+  "id": "shae.azuratest-verbatim",
+  "type": "bundle",
+  "title": "Azura test stubs (TT-12 verbatim thought)",
+  "tagline": "Test-only stub for TASK_C_AZURA_TESTS.",
+  "description": "Shadows player_thoughts.prompt: while praying (LUC_Praying == 1 or AzuraTest enabled), a typed thought is output verbatim. Test profile only; placeholder; delete after the tests.",
+  "author": "shae",
+  "version": "0.1.0",
+  "min_skyrimnet_version": "0.25.0",
+  "nsfw": false
+}

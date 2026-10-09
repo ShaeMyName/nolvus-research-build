@@ -1,0 +1,11 @@
+kind: lists
+name: Lucienne - Moon and Star and DA01 lines need the player
+description: >-
+  Keeps the LLM from firing any dialogue script of the Moon and Star quests or of DA01, Azura's own
+  quest, so no AI reply on Lucienne's road or near the shrine can start or advance them. Pressing E
+  and choosing the line yourself is unaffected. (Spec 11.15.11; round 8 section 10; TT-11.)
+blacklist:
+  - MASMainQuest
+  - MASAzuraCurse
+  - MASNerevarineShrineDialog
+  - DA01
