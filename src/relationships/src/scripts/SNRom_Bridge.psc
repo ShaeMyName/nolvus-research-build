@@ -438,9 +438,10 @@ Function BeginSpark(Actor akActor, String asReason)
     ; so the bond is never sitting at a bare zero after a real moment.
     ApplyDepth(akActor, ScaleAward(25), asReason, False, "began")
 
-    SkyrimNetApi.RegisterPersistentEvent( \
+    ; Patch (IEB §11.4): an internal state, private to this NPC and the player (trigger ieb_snrom_status_private)
+    akActor.SendModEvent("IEB_SNRomStatus", \
         akActor.GetDisplayName() + " and " + Game.GetPlayer().GetDisplayName() + \
-        " have reached an understanding neither has named. " + asReason, akActor, Game.GetPlayer())
+        " have reached an understanding neither has named. " + asReason, 0.0)
 
     Ledger(akActor, "enroll", "", 25, 1, asReason)
 
@@ -7250,9 +7251,9 @@ Function ApplyTalkAward(Actor akActor, Int aiPoints, String asWeight, String asW
     ; Only a redefinition is worth writing into the world as an event others
     ; can refer to. Everything smaller is a private shift and stays one.
     If landmark
-        SkyrimNetApi.RegisterPersistentEvent(akActor.GetDisplayName() + " and " + \
-            Game.GetPlayer().GetDisplayName() + " have named what they are to each other. " + asWhat, \
-            akActor, Game.GetPlayer())
+        ; Patch (IEB §11.4): private, see ieb_snrom_status_private
+        akActor.SendModEvent("IEB_SNRomStatus", akActor.GetDisplayName() + " and " + \
+            Game.GetPlayer().GetDisplayName() + " have named what they are to each other. " + asWhat, 0.0)
     EndIf
 
     ; A rupture ENDS things, so it does more than score. EndRomance clears the
@@ -7264,9 +7265,9 @@ Function ApplyTalkAward(Actor akActor, Int aiPoints, String asWeight, String asW
     ; someone to 1500 and the award then drop them to 1150, which is a second
     ; punishment for one event.
     If rupture
-        SkyrimNetApi.RegisterPersistentEvent(akActor.GetDisplayName() + " and " + \
-            Game.GetPlayer().GetDisplayName() + " are no longer what they were to each other. " + asWhat, \
-            akActor, Game.GetPlayer())
+        ; Patch (IEB §11.4): private, see ieb_snrom_status_private
+        akActor.SendModEvent("IEB_SNRomStatus", akActor.GetDisplayName() + " and " + \
+            Game.GetPlayer().GetDisplayName() + " are no longer what they were to each other. " + asWhat, 0.0)
         EndRomance(akActor, asWhat)
     EndIf
 EndFunction
@@ -8066,9 +8067,9 @@ Function ApplyDrift(Actor akActor, Int aiField, Bool abOpen, String asPattern)
     ; Written into the world, because this is a person changing and the people
     ; around her should be able to refer to it. Not a persistent event for the
     ; other two - only a change she has actually lived is worth remembering.
-    SkyrimNetApi.RegisterPersistentEvent(who + " has been changing, in a way " + \
-        Game.GetPlayer().GetDisplayName() + " has had a hand in. " + asPattern, \
-        akActor, Game.GetPlayer())
+    ; Patch (IEB §11.4): private, see ieb_snrom_status_private
+    akActor.SendModEvent("IEB_SNRomStatus", who + " has been changing, in a way " + \
+        Game.GetPlayer().GetDisplayName() + " has had a hand in. " + asPattern, 0.0)
 EndFunction
 
 Function PumpAuthoringQueue()
