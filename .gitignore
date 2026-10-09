@@ -1,2 +1,3 @@
 asm/*_psc/
 out/PackageOverrides.ini
+__pycache__/
