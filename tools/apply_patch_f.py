@@ -158,11 +158,11 @@ EndFunction
         IEB_LockChildIntimacy(akActor)   ; Patch R5 (IEB §11.10.2)
 """),
         # R5c ApplyDrift
-        ("""        StorageUtil.SetIntValue(akActor, "SNRom_PhysMinTier", newTier)
+        ("""        ; the logs and change nothing in play, which is the worst kind of bug.
         StorageUtil.SetIntValue(akActor, "SNRom_PhysAttrBypass", \\
             SNRom_Decorators.IntimacyToBypass(after))
 """,
-         """        StorageUtil.SetIntValue(akActor, "SNRom_PhysMinTier", newTier)
+         """        ; the logs and change nothing in play, which is the worst kind of bug.
         StorageUtil.SetIntValue(akActor, "SNRom_PhysAttrBypass", \\
             SNRom_Decorators.IntimacyToBypass(after))
         IEB_LockChildIntimacy(akActor)   ; Patch R5 (IEB §11.10.2)

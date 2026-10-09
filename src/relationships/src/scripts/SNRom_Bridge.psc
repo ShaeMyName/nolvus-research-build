@@ -553,6 +553,7 @@ Function SweepFollowers()
         i += 1
     EndWhile
     PurgeNonPersons()
+    IEB_ChildSweep()   ; Patch R7 (IEB §11.10.2)
 
     ; ALWAYS log the counts. The first version of this function was silent, ran
     ; twice on a load, found nothing, and left no way to tell whether the scan
@@ -882,6 +883,10 @@ Function EnrollNow(Actor akActor, String asHow)
     StorageUtil.SetIntValue(akActor, "SNRom_AutoEnrolled", 1)
     StorageUtil.SetFloatValue(akActor, "SNRom_EnrolledAt", Utility.GetCurrentGameTime())
     StorageUtil.FormListRemove(None, PENDING_LIST(), akActor, True)
+    ; Patch R6 (IEB §11.10.2): a child's intimacy is locked at once and the spark is decided (never)
+    If IEB_LockChildIntimacy(akActor)
+        StorageUtil.SetIntValue(akActor, "SNRom_SparkDecided", 1)
+    EndIf
 
     ; ── STAMP BOTH ASSESSOR WATERMARKS AT ENROLLMENT ────────────────────────
     ; Without this a new enrollee has LastTalkCheck 0.0, which means TWO things
@@ -1986,6 +1991,11 @@ EndFunction
 
 Function AcceptRomance(Actor akActor)
     { The player says yes. Only this opens tier 4+ as a realized romance. }
+    ; Patch R3 (IEB §11.10.2): before SetStance
+    If akActor != None && akActor.IsChild()
+        Diag(LOG_INFO(), "AcceptRomance refused for " + akActor.GetDisplayName() + ": IsChild")
+        Return
+    EndIf
     SetStance(akActor, STANCE_ACCEPTED(), "accepted")
     If akActor == None || !_ready
         Return
@@ -3669,7 +3679,12 @@ Function AuthorDisposition(Actor akActor)
         SNRom_Decorators.SexWord(b.GetSex()) + ", level " + akActor.GetLevel() + \
         ". Known to the Dragonborn.\"}"
 
-    Int rc = SkyrimNetApi.SendCustomPromptToLLM("snrom_author_disposition", VariantName(), ctx, \
+    ; Patch R10 (IEB §11.10.2): a child is asked the platonic fields only (layer shae.privacy-overrides)
+    String promptFile = "snrom_author_disposition"
+    If akActor.IsChild()
+        promptFile = "ieb_snrom_author_child"
+    EndIf
+    Int rc = SkyrimNetApi.SendCustomPromptToLLM(promptFile, VariantName(), ctx, \
         Self, "SNRom_Bridge", "OnDispositionAuthored")   ; this script IS the quest
     Diag(LOG_INFO(), "Disposition authoring requested for " + _pendingName + " variant='" + VariantName() + "' (rc=" + rc + ")")
     If rc != 1
@@ -4642,6 +4657,10 @@ Function SeedRomanticFlag(Actor akActor)
     { Separate from the points seed because it must survive the points seed
       being rejected, capped, or already satisfied - none of which say anything
       about whether the game records these two as together. }
+    ; Patch R4 (IEB §11.10.2)
+    If akActor == None || akActor.IsChild()
+        Return
+    EndIf
     If SeedRomanticEvidence(akActor)
         If StorageUtil.GetIntValue(akActor, "SNRom_SeedRomantic", 0) != 1
             StorageUtil.SetIntValue(akActor, "SNRom_SeedRomantic", 1)
@@ -7534,6 +7553,11 @@ EndFunction
 Function ApplySpark(Actor akActor, String asMoment)
     { The crossing itself. Everything AutoEnroll deliberately withheld happens
       here, because now something actually has happened. }
+    ; Patch R2 (IEB §11.10.2): covers an assessor reply already in flight
+    If akActor == None || akActor.IsChild()
+        Diag(LOG_INFO(), "ApplySpark refused: IsChild")
+        Return
+    EndIf
     StorageUtil.SetIntValue(akActor, "SNRom_Sparked", 1)
     StorageUtil.SetIntValue(akActor, "SNRom_SparkDecided", 1)
     StorageUtil.SetFloatValue(akActor, "SNRom_SparkedAt", Utility.GetCurrentGameTime())
@@ -7707,6 +7731,9 @@ EndFunction
 Bool Function DriftCandidate(Actor akActor, Float afNow)
     { Cheap local filters BEFORE spending an LLM call, and the two gates that
       make this a pattern rather than a reaction. }
+    If akActor.IsChild()
+        Return False                            ; Patch R9 (IEB §11.10.2)
+    EndIf
     If StorageUtil.GetIntValue(akActor, "SNRom_DispositionAuthored", 0) != 1
         Return False                            ; nothing to drift FROM yet
     EndIf
@@ -7784,6 +7811,7 @@ Function SetCharacterField(Actor akActor, Int aiField, Int aiValue)
             SNRom_Decorators.IntimacyToBypass(word))
         Diag(LOG_INFO(), "REPAIR: " + who + " INTIMACY set to " + word + \
             " (minTier " + tier + ")")
+        IEB_LockChildIntimacy(akActor)   ; Patch R5 (IEB §11.10.2)
     ElseIf aiField == DRIFT_ARDOR()
         Int a = aiValue
         If a < 0
@@ -8009,6 +8037,7 @@ Function ApplyDrift(Actor akActor, Int aiField, Bool abOpen, String asPattern)
         ; the logs and change nothing in play, which is the worst kind of bug.
         StorageUtil.SetIntValue(akActor, "SNRom_PhysAttrBypass", \
             SNRom_Decorators.IntimacyToBypass(after))
+        IEB_LockChildIntimacy(akActor)   ; Patch R5 (IEB §11.10.2)
 
     ElseIf aiField == DRIFT_ARDOR()
         Int ardor = StorageUtil.GetIntValue(akActor, "SNRom_Ardor", 2)
@@ -8150,7 +8179,16 @@ Function DispositionAuthored(String asResponse, Int aiSuccess)
     ;
     ; EXCLUSIVITY is the last character field, so its absence means the
     ; response died before even the cheap part finished - genuinely unusable.
-    If SNRom_Decorators.FieldValue(asResponse, "EXCLUSIVITY:") == ""
+    ; Patch R10 (IEB §11.10.2): a child's reply carries WHY/LIMIT/ADDRESS only. Romantic fields stay
+    ; unset (safe defaults) and R5 in ApplyCharacter forces the intimacy lock.
+    If who.IsChild()
+        If SNRom_Decorators.FieldValue(asResponse, "WHY:") == ""
+            Diag(LOG_ERROR(), "Truncated child response for " + asked + " (no WHY:). Discarded.")
+            LogDisposition(asked, aiSuccess, asResponse, "truncated-child")
+            ApplyArchetype(who)
+            Return
+        EndIf
+    ElseIf SNRom_Decorators.FieldValue(asResponse, "EXCLUSIVITY:") == ""
         Diag(LOG_ERROR(), "Truncated response for " + asked + \
             " (no EXCLUSIVITY: - died before the character block finished). Discarded.")
         LogDisposition(asked, aiSuccess, asResponse, "truncated-early")
@@ -8352,6 +8390,7 @@ Function ApplyCharacter(Actor akActor, String asResponse)
         StorageUtil.SetIntValue(akActor, "SNRom_PhysMinTier", minTier)
         StorageUtil.SetIntValue(akActor, "SNRom_PhysAttrBypass", bypass)
     EndIf
+    IEB_LockChildIntimacy(akActor)   ; Patch R5 (IEB §11.10.2)
     If SNRom_Decorators.FieldValue(asResponse, "ARDOR:") != ""
         StorageUtil.SetIntValue(akActor, "SNRom_Ardor", ardor)
     EndIf
@@ -8607,3 +8646,44 @@ EndFunction
 ; hour until that line has been ruled out. TestConfig above is kept
 ; deliberately: it is the only probe that can tell "config arrived" from
 ; "default taken", and it costs nothing.
+
+; ===========================================================================
+; IEB private patch (component F): child gates R1-R10 (spec §11.10.2)
+; ===========================================================================
+
+Bool Function IEB_LockChildIntimacy(Actor akActor)
+    { Patch R5: for a child, intimacy is forced to NEVER on every write, whatever was asked. True if locked. }
+    If akActor == None || !akActor.IsChild()
+        Return False
+    EndIf
+    StorageUtil.SetIntValue(akActor, "SNRom_PhysMinTier", -1)
+    StorageUtil.SetIntValue(akActor, "SNRom_PhysAttrBypass", 0)
+    Return True
+EndFunction
+
+Function IEB_ChildSweep()
+    { Patch R7: every enrolled child, every sweep: re-lock intimacy, spark decided, un-spark if sparked,
+      clear stance, banked points and the pending question. Corrects console or third-party writes within
+      one sweep. No un-enrolling. }
+    Int total = StorageUtil.FormListCount(None, "SNRom_Roster")
+    Int fixedCount = 0
+    Int i = 0
+    While i < total
+        Actor a = StorageUtil.FormListGet(None, "SNRom_Roster", i) as Actor
+        If a != None && a.IsChild() && IsEnrolled(a)
+            IEB_LockChildIntimacy(a)
+            StorageUtil.SetIntValue(a, "SNRom_SparkDecided", 1)
+            If StorageUtil.GetIntValue(a, "SNRom_Sparked", 0) == 1
+                UnsparkActor(a)
+                fixedCount += 1
+            EndIf
+            StorageUtil.UnsetIntValue(a, "SNRom_PlayerStance")
+            StorageUtil.UnsetIntValue(a, "SNRom_BankedPoints")
+            StorageUtil.UnsetIntValue(a, "SNRom_AskPending")
+        EndIf
+        i += 1
+    EndWhile
+    If fixedCount > 0
+        Diag(LOG_WARN(), "Child sweep: un-sparked " + fixedCount + " enrolled child(ren); intimacy locked (IsChild)")
+    EndIf
+EndFunction

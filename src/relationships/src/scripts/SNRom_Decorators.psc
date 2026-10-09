@@ -414,6 +414,10 @@ Bool Function RomanceOk(Actor akActor) Global
     If akActor == None
         Return False
     EndIf
+    ; Patch R1 (IEB §11.10.2): a child is never a romantic prospect, before anything else
+    If akActor.IsChild()
+        Return False
+    EndIf
     ; THE PLAYER'S OWN CHILD IS NEVER A ROMANTIC PROSPECT. This sits ABOVE the
     ; marriage override deliberately: that override exists to stop an inferred
     ; trait deleting a real relationship, and nothing should be able to argue
@@ -563,7 +567,7 @@ String Function GetRomance(Actor akActor) Global
         ",\"limit\":\"" + SNRom_Decorators.JsonEscape(SNRom_Bridge.StoreGetText(akActor, "Limit")) + "\"" + \
         ",\"address\":\"" + SNRom_Decorators.JsonEscape(SNRom_Bridge.StoreGetText(akActor, "Address")) + "\"" + \
         ",\"romanceNA\":" + SNRom_Decorators.RomanceApplicability(akActor) + \
-        ",\"physMinTier\":" + StorageUtil.GetIntValue(akActor, "SNRom_PhysMinTier", 4) + \
+        ",\"physMinTier\":" + IEB_PhysMinTierShown(akActor) + \
         ",\"otherPartners\":" + SNRom_Decorators.OtherPartners(akActor) + \
         ",\"stance\":" + StorageUtil.GetIntValue(akActor, "SNRom_PlayerStance", 0) + "}"
 EndFunction
@@ -1202,4 +1206,12 @@ String Function JsonEscape(String asText) Global
     s = ReplaceAll(s, StringUtil.AsChar(10), " ")
     s = ReplaceAll(s, StringUtil.AsChar(13), " ")
     Return s
+EndFunction
+
+Int Function IEB_PhysMinTierShown(Actor akActor) Global
+    { Patch R8 (IEB §11.10.2): a child always reads as NEVER (-1), whatever the store holds between sweeps. }
+    If akActor != None && akActor.IsChild()
+        Return -1
+    EndIf
+    Return StorageUtil.GetIntValue(akActor, "SNRom_PhysMinTier", 4)
 EndFunction
