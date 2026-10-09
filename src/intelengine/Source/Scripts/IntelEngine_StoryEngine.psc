@@ -953,6 +953,11 @@ EndFunction
 
 Function DispatchNPCSocial(Actor npc, Actor target, String narration, String storyType)
     {Lightweight dispatch for NPC-to-NPC travel. Uses slots but does NOT touch IsActive/ActiveStoryNPC.}
+    If IEB_DispatchBlocked(npc)
+        AddRecentStoryEvent(storyType + ": " + BuildInteractionSummary(npc, narration, target))
+        Core.DebugMsg("NPC Social: " + npc.GetDisplayName() + " is busy or with the player - off-screen only")
+        return
+    EndIf
     Int slot = Core.FindFreeAgentSlot()
     If slot < 0
         ; No free slots -- fall back to off-screen (log already added before visibility branch)
@@ -1671,6 +1676,12 @@ EndFunction
 ; =============================================================================
 
 Function DispatchToTarget(Actor npc, Actor target, String narration, String slotTaskType)
+    If IEB_DispatchBlocked(npc)
+        Core.DebugMsg("Story DM: " + npc.GetDisplayName() + " is busy or with the player - dispatch refused")
+        IntelEngine.MarkLastDispatchFailed("npc is busy or travelling with the player")
+        ActiveStoryType = ""
+        return
+    EndIf
     Actor player = Game.GetPlayer()
 
     ; === Player home knocking prompt ===
@@ -5116,4 +5127,20 @@ EndFunction
 
 String Function ExtractJsonField(String json, String fieldName)
     return IntelEngine.StoryResponseGetField(json, fieldName)
+EndFunction
+
+Bool Function IEB_DispatchBlocked(Actor a)
+    {Patch: refuse dispatch of an NPC that already holds a task slot, travels with the player,
+     or is held or lent by the Errand Bridge.}
+    If a == None
+        return false
+    EndIf
+    If Core.FindSlotByAgent(a) >= 0 || a.IsPlayerTeammate()
+        return true
+    EndIf
+    If StorageUtil.GetIntValue(a, "IEB_Gate", 0) > 0
+        return true
+    EndIf
+    Faction cff = Game.GetFormFromFile(0x0005C84E, "Skyrim.esm") as Faction   ; CurrentFollowerFaction
+    return cff != None && a.GetFactionRank(cff) >= 0
 EndFunction
