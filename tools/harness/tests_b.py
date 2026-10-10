@@ -253,9 +253,15 @@ def base(r, *fids, where=MARKET):
 
 
 def snap(r, *fids, wfp=0.0):
-    """Snapshot baseline (I2/I4) and the WFP that Check should find afterwards (T0: F1/F2 following = 0, INFERRED)."""
+    """Snapshot baseline (I2/I4) and the WFP that Check should find afterwards (T0: F1/F2 following = 0, INFERRED).
+    [CHANGED 2026-10-10] Waits for each "[IEB-TEST] snapshot" line: MCP returns before Papyrus runs the call, and in
+    U1 run 14 B-10 the Snapshot ran 2 s AFTER the errand had started, so the baseline held IntelEngine's travel
+    package and the clean end state failed I2."""
     for f in fids:
+        t = fresh()
         r.ctl("Snapshot", [f])
+        if not t.wait(r"\[IEB-TEST\] snapshot .*%s" % hexrx(f), 20):
+            r.log("  WARN snapshot line for %08X not seen within 20 s" % f)
         if wfp is not None:
             r.ctl("ExpectWFP", [f, float(wfp)])
 
@@ -845,18 +851,20 @@ def b10(r):
         if not took(r, go(r, F1, DEST_UP, t), nm):
             return
         time.sleep(8)
-        p0 = probe(r, F1) or {}
         r.ctl("Recall", [F1, 1])
         q = wait_ieb(t, ("RECALL_REQ",), nm, 10)
         r.check(q is not None and "stay=1" in q[1], "RECALL_REQ stay=1 (%s)" % (q,))
         end = wait_ieb(t, REL_KW, nm, 20)
         r.check(end is not None and end[0] == "RELEASE_STAY", "RELEASE_STAY (%s)" % (end,))
+        # "the current spot" = where she is at the release (spec): measured after RELEASE_STAY, not before the recall
+        # (she jogs ~3 s / ~750 u while the recall goes through: U1 run 14).
+        p0 = probe(r, F1) or {}
         time.sleep(10)
         p1 = probe(r, F1) or {}
         r.check(num(p1.get("wfp")) == 1.0 and p1.get("iebHeld") == "0", "waiting, no hold (wfp=%s iebHeld=%s)"
                 % (p1.get("wfp"), p1.get("iebHeld")))
         d = dist2(p0.get("xyz"), p1.get("xyz"))
-        r.check(d is not None and d < 768, "waits at the current spot (moved %s u since the recall; limit 768 INFERRED)"
+        r.check(d is not None and d < 768, "waits at the release spot (moved %s u in the 10 s after RELEASE_STAY; limit 768 INFERRED)"
                 % ("%.0f" % d if d is not None else "?"))
         r.ctl("ExpectWFP", [F1, 1.0])
         check_inv(r, F1)

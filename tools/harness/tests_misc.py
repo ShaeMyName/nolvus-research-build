@@ -364,6 +364,13 @@ def equip_section(text):
 ATTIRE_MARK = "- Visible attire:"   # line prefix of our own layer file 0412 (shae.scene-text 0412:7), no story text
 
 
+def snapshot_sync(r, fid):
+    """IEB_TestCtl.Snapshot, waiting for its log line (MCP returns before Papyrus runs it; U1 run 14 B-10)."""
+    t = game.Tail(game.LOGS["papyrus"])
+    r.ctl("Snapshot", [fid])
+    if not t.wait(r"\[IEB-TEST\] snapshot .*0x0*%X" % fid, 20):
+        r.log("  WARN snapshot line for %08X not seen within 20 s" % fid)
+
 def ensure_child_enrolled(r):
     """CS-20/21/22, RS-4 setup: Braith enrolled in Relationships (platonic; design §11.10 allows it). Enrollment by
     EnrollByHand (RELB EnrollByHand :942-968, EnrollNow :880-929, R6 locks intimacy at once). One LLM call, the child
@@ -440,7 +447,7 @@ def d1(r):
     u, name, _ = who(r, F1)
     if not name:
         return inc(r, "F1 not loaded")
-    r.ctl("Snapshot", [F1])
+    snapshot_sync(r, F1)
     if not errand(r, F1, name, DEST_NEAR):
         return inc(r, "no TAKE for F1 within 90 s")
     try:
@@ -790,7 +797,7 @@ def rel1(r):
         return inc(r, "F1 not loaded")
     if iv({"v": rval(r, u, 'get_faction_rank(actorUUID, "SNRom_Bond")')}, "v") < 0:
         return inc(r, "F1 is not enrolled (E must be enrolled)")
-    r.ctl("Snapshot", [F1])
+    snapshot_sync(r, F1)
     if not errand(r, F1, name, DEST_NEAR):
         return inc(r, "no TAKE for F1")
     st = tail("snrom")
