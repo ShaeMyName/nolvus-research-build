@@ -2,7 +2,7 @@
 {# shae.scene-text 0412 (spec 11.6): observable fact only, gated on sight. No reaction, tone or judgement guidance.
    Subject gate only (P3): no fact is ever written about a child. #}
 {% if actor_has_keyword(actorUUID, "ActorTypeNPC") and not decnpc(actorUUID).isChild and has_line_of_sight(npc.UUID, actorUUID) %}
-{% set _eq = get_worn_equipment(actorUUID) %}{% set _body = _eq.body %}
+{% set _eq = get_worn_equipment(actorUUID) %}{% set _body = _eq.torso %}
 {% if not _body %}
 - Visible attire: {{ decnpc(actorUUID).name }} is not wearing a body garment (no shirt, dress, robe, cuirass or similar); the Worn Equipment list above is everything they have on.
 {% endif %}

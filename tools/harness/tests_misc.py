@@ -332,8 +332,11 @@ def worn_rows(r, uuid):
 
 
 def body_flag(r, uuid):
-    """1 if the actor wears a body garment, by the same expression 0412/0210 use (get_worn_equipment(...).body)."""
-    out = render(r, uuid, "{% if get_worn_equipment(actorUUID).body %}1{% else %}0{% endif %}")
+    """1 if the actor wears a body garment, by the same expression 0412/0210 use. RV-58 (2026-10-10): SkyrimNet 25.1
+    has no 'body' key; the body garment (slot 32: cuirass, armour, dress, robe) is keyed 'torso' (VERIFIED live:
+    Uthgerd's cuirass, Jenassa's armour and Carlotta's dress all under 'torso'; a multi-slot dress is listed under each
+    slot it covers, e.g. also 'forearms'). '.body' was always empty, so every NPC read as undressed."""
+    out = render(r, uuid, "{%% if get_worn_equipment(actorUUID).torso %%}1{%% else %%}0{%% endif %%}{# %d #}" % time.time_ns())
     v = None if out is None else out.strip()
     return None if v not in ("0", "1") else int(v)
 
@@ -1351,7 +1354,7 @@ UNDERWEAR = re.compile(r"underwear|smallclothes|panties|loincloth|briefs|\bbra\b
 
 def _strip_body(r, fid, uuid):
     rows = worn_rows(r, uuid) or []
-    body = [x for x in rows if x[0].lower() == "body"]
+    body = [x for x in rows if x[0].lower() == "torso"]
     for b in body:
         f = to_formid(b[1])
         if f:
@@ -1375,7 +1378,7 @@ def x1(r):
             inc(r, "%s: worn-equipment render failed" % label)
             continue
         r.log("  %s 0x%s: %d items before, %d after (body item before: %d)" % (label, hx(fid), len(rows0), len(rows1), len(body)))
-        r.check(body_flag(r, u) == 0 and not any(x[0].lower() == "body" for x in rows1), "%s: no body item after unequip" % label)
+        r.check(body_flag(r, u) == 0 and not any(x[0].lower() == "torso" for x in rows1), "%s: no body item after unequip" % label)
         r.check(not any(UNDERWEAR.search(x[2]) for x in rows1), "%s: no underwear entry in the list" % label)
         bio = render(r, u, '{{ render_subcomponent("character_bio", "full") }}')
         sec = equip_section(bio)
@@ -1393,9 +1396,17 @@ def x2(r):
     rows = worn_rows(r, u2) if u2 else None
     if not rows:
         return inc(r, "dressed NPC F2: no worn rows")
-    body = [x for x in rows if x[0].lower() == "body"]
+    body = [x for x in rows if x[0].lower() == "torso"]
     r.log("  dressed F2: slots %s" % ",".join(sorted(x[0] for x in rows)))
-    r.check(bool(body) and body_flag(r, u2) == 1, "dressed: 'body' field present")
+    r.check(bool(body) and body_flag(r, u2) == 1, "dressed: 'torso' (body garment) field present")
+    # RV-58: a dressed NPC must get NO attire line (with '.body' every NPC got one)
+    fu0, _, _ = who(r, F1)
+    if fu0 and u2:
+        a0 = _attire_probe(r, fu0, u2)
+        if a0 is None:
+            inc(r, "attire render failed for the dressed NPC")
+        else:
+            r.check(not a0["mark"], "dressed NPC: no 0412 attire line")
     if body:
         n = sum(1 for x in rows if x[1] == body[0][1])
         r.check(n == 1, "dressed: body item appears once (%d)" % n)
@@ -1407,7 +1418,7 @@ def x2(r):
         rows0, _ = _strip_body(r, fid, u)
         rows1 = worn_rows(r, u) or []
         r.log("  stripped %s: slots %s" % (label, ",".join(sorted(x[0] for x in rows1))))
-        r.check(body_flag(r, u) == 0, "stripped %s: 'body' empty" % label)
+        r.check(body_flag(r, u) == 0, "stripped %s: 'torso' empty" % label)
         new = {x[1] for x in rows1} - {x[1] for x in rows0}
         r.check(not new and not any("52" in x[0] for x in rows1), "stripped %s: no new or slot-52 entry" % label)
         bio = render(r, u, '{{ render_subcomponent("character_bio", "full") }}') or ""

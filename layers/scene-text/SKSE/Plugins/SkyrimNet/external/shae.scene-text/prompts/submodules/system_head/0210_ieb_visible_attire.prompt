@@ -3,9 +3,9 @@
    person is covered by 0412. Capped at 4 NPC line-of-sight checks plus the player. Subject gate only (P3). #}
 {% set _tid = 0 %}{% if exists("responseTarget") and existsIn(responseTarget, "UUID") %}{% set _tid = responseTarget.UUID %}{% endif %}
 {% set _seen = [] %}
-{% if player.UUID != _tid %}{% if actor_has_keyword(player.UUID, "ActorTypeNPC") and has_line_of_sight(npc.UUID, player.UUID) %}{% set _p = get_worn_equipment(player.UUID).body %}{% if not _p %}{% set _seen = append(_seen, player.name) %}{% endif %}{% endif %}{% endif %}
+{% if player.UUID != _tid %}{% if actor_has_keyword(player.UUID, "ActorTypeNPC") and has_line_of_sight(npc.UUID, player.UUID) %}{% set _p = get_worn_equipment(player.UUID).torso %}{% if not _p %}{% set _seen = append(_seen, player.name) %}{% endif %}{% endif %}{% endif %}
 {% set _n = 0 %}
-{% for p in get_nearby_npc_list(npc.UUID) %}{% if _n < 4 and p.UUID != npc.UUID and p.UUID != _tid %}{% if not decnpc(p.UUID).isDead and not decnpc(p.UUID).isChild and actor_has_keyword(p.UUID, "ActorTypeNPC") %}{% if has_line_of_sight(npc.UUID, p.UUID) %}{% set _n = _n + 1 %}{% set _b = get_worn_equipment(p.UUID).body %}{% if not _b %}{% set _seen = append(_seen, p.name) %}{% endif %}{% endif %}{% endif %}{% endif %}{% endfor %}
+{% for p in get_nearby_npc_list(npc.UUID) %}{% if _n < 4 and p.UUID != npc.UUID and p.UUID != _tid %}{% if not decnpc(p.UUID).isDead and not decnpc(p.UUID).isChild and actor_has_keyword(p.UUID, "ActorTypeNPC") %}{% if has_line_of_sight(npc.UUID, p.UUID) %}{% set _n = _n + 1 %}{% set _b = get_worn_equipment(p.UUID).torso %}{% if not _b %}{% set _seen = append(_seen, p.name) %}{% endif %}{% endif %}{% endif %}{% endif %}{% endfor %}
 {% if length(_seen) > 0 %}
 ## Visible Attire
 In {{ decnpc(npc.UUID).name }}'s view, wearing no body garment (no shirt, dress, robe, cuirass or similar): {{ join(_seen, ", ") }}.
