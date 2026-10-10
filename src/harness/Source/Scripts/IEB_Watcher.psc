@@ -148,16 +148,37 @@ EndFunction
 ; ============================================================================ sampled invariants
 
 Function Sampled(Actor a)
+    {[CHANGED 2026-10-10, reviewer] I3 only: a violation must still hold on a re-read of every field 1 s later to FAIL;
+     otherwise it is logged as I3 TRANSIENT with both readings, and a TRANSIENT on 2 consecutive ticks for the same actor
+     also FAILs (a flapping state). The watcher reads keys and actor values non-atomically on its own thread and can
+     land between two calls of one bridge step (U1 run 11 B-7: REJOIN_DONE does Follow() then ClearKeys(); that order
+     is kept on purpose, it holds IEB_Gate until NFF owns the follower). I1 stays a single-read hard FAIL.}
     ; I1: no actor in two agent aliases
     If IEB_IELib.SlotCountOf(a, IEB_IELib.AgentAliases()) > 1
         Fail("I1", a, "slotCount > 1")
     EndIf
     ; I3: rejoin phase
-    If StorageUtil.GetIntValue(a, "IEB_Held", 0) == 2
-        If !a.IsPlayerTeammate() || a.GetActorValue("WaitingForPlayer") != 1.0
-            Fail("I3", a, "rejoin without teammate on and WFP 1")
+    If I3Bad(a)
+        String first = I3Read(a)
+        Utility.Wait(1.0)
+        String second = I3Read(a)
+        If I3Bad(a)
+            Fail("I3", a, "rejoin without teammate on and WFP 1 (" + first + "; 1 s later " + second + ")")
+        ElseIf StorageUtil.GetIntValue(a, "EBT_I3TransientTick", -9) == _tick - 1
+            Fail("I3", a, "TRANSIENT on 2 consecutive ticks (" + first + "; 1 s later " + second + ")")
+        Else
+            W("I3 TRANSIENT " + a.GetDisplayName() + " " + Hex(a) + ": " + first + "; 1 s later " + second)
         EndIf
+        StorageUtil.SetIntValue(a, "EBT_I3TransientTick", _tick)
     EndIf
+EndFunction
+
+Bool Function I3Bad(Actor a)
+    Return StorageUtil.GetIntValue(a, "IEB_Held", 0) == 2 && (!a.IsPlayerTeammate() || a.GetActorValue("WaitingForPlayer") != 1.0)
+EndFunction
+
+String Function I3Read(Actor a)
+    Return "held=" + StorageUtil.GetIntValue(a, "IEB_Held", 0) + " tm=" + (a.IsPlayerTeammate() as Int) + " wfp=" + a.GetActorValue("WaitingForPlayer")
 EndFunction
 
 Function DispatchChecks(Actor a)

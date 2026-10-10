@@ -204,6 +204,10 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
         if gap:     # reviewer 2026-10-10: the 30 s sampling bug must never come back silently
             r.inconclusive += 1
             r.log("INCONCLUSIVE %s: watcher interval regressed (%s)" % (tid, gap))
+        trans = len(re.findall(r"I3 TRANSIENT", wtext))
+        if trans:   # reviewer 2026-10-10: transients are counted per test and per block
+            r.log("NOTE %s: %d I3 TRANSIENT reading(s) (cleared on the 1 s re-read)" % (tid, trans))
+            TRANSIENTS["I3"] = TRANSIENTS.get("I3", 0) + trans
         inv = [l for l in wtext.splitlines() if re.search(r"ASSERT FAIL I\d", l)]
         for l in inv:
             r.check(False, "watcher invariant: " + l.strip())
@@ -259,6 +263,8 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
         if b["harness"]:        # D1: asserted off after each block
             ok = game.set_harness_mode(False, ctl.log)
             summary.append("| harness mode off after the block | %s | | |" % ("verified" if ok else "FAILED"))
+    summary.append("| watcher transients | %s | | re-read cleared within 1 s |"
+                   % (", ".join("%s=%d" % kv for kv in sorted(TRANSIENTS.items())) or "none"))
     p = OUT + "%s_%s.md" % (name, stamp)
     open(p, "w", encoding="utf-8").write("\n".join(summary) + "\n")
     ctl.log("summary %s" % p)
@@ -289,6 +295,7 @@ def held_gap(text, limit=6.0):   # 6 s = 2x nominal; observed max 4.5 s on T0 af
 
 
 HEARTBEAT = {"test": "", "file": ""}
+TRANSIENTS = {}     # invariant -> count of watcher TRANSIENT readings in this block
 
 
 def start_heartbeat(name):
