@@ -229,4 +229,15 @@ with tempfile.TemporaryDirectory() as td:
                           "UUID runner.Run.uuid: 0x%08X asked as %d, line prints %s -> %s" % (fid, arg, tok, "match" if want else "no match"))
     finally:
         runner.PAPYRUS = saved
+import check_logs as _cl
+_res = []
+_cl.out = lambda cond, inv, msg: _res.append((bool(cond), inv, msg))
+_cl.i5(["[x] IntelEngine: Allocated slot 0 to Brenuin for Travel", "[x] [IEB] LEND actor=Brenuin kind=7",
+        "[x] [IEB] LEND_RESTORE actor=Brenuin kind=7 why=task_end", "[x] Reverting game...",
+        "[x] [IEB] LEND_RESTORE actor=Brenuin kind=7 why=task_end"])
+check(all(c for c, i, m in _res if "terminals" in m), "I5: one terminal per timeline across a load passes")
+_res.clear()
+_cl.i5(["[x] IntelEngine: Allocated slot 0 to Brenuin for Travel", "[x] [IEB] LEND actor=Brenuin kind=7",
+        "[x] [IEB] LEND_RESTORE actor=Brenuin kind=7 why=task_end", "[x] [IEB] LEND_RESTORE actor=Brenuin kind=7 why=task_end"])
+check(any(not c for c, i, m in _res if "terminals" in m), "I5: two terminals in one timeline still fails")
 sys.exit(0 if ok else 1)

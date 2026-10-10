@@ -37,6 +37,14 @@ def i5(lines):
     open_by_name = {}
     conflicts = errors = 0
     for idx, l in enumerate(lines):
+        if "Reverting game..." in l:
+            # A load rolls the world back to the save, so terminals logged by the pre-load session for a task still open
+            # in that save are undone. Keep each task's decisions but restart its terminal count. (U1 run 18 L-9:
+            # KillAndSave, LEND_RESTORE in the pre-load session, then the save's own task end restored again after the
+            # load: two terminals, one per timeline.) A task allocated before the load counts its post-load terminal.
+            for t in tasks:
+                t["term"] = []
+            continue
         m = ALLOC.search(l)
         if m:
             t = {"name": m.group(2).strip(), "type": m.group(3), "slot": m.group(1), "dec": [], "term": []}
