@@ -20,6 +20,6 @@ block("U1", "T0", ["tests_b", "tests_tm_l", "tests_misc"], [
     # churns saves: always last
     "B-20",
 ], est={"B": 80, "TM/L": 72, "D/Q/REL/CS/RS/K/X/EX": 72}, fixed={"B-20": 70},
-   harness=True, voices=False)   # no voices: text/state block (Shae 2026-10-10); D1 extended to U1 (Shae 2026-10-10): auto-clears the Timeline Mismatch box on every reload
+   harness=True, voices=False, gamemaster=False)  # GM off (Shae 2026-10-10): no GM test in U1 (gamemaster_tests.md)   # no voices: text/state block (Shae 2026-10-10); D1 extended to U1 (Shae 2026-10-10): auto-clears the Timeline Mismatch box on every reload
 # Unpadded estimates (time plan §5, re-tier §5): B ~2.5 h incl. B-20's 70 min; TM/L ~1.2 h; the rest ~1.2 h
 # (D-4's 29 min moved to the soak). Used only for the live ETA; the pace factor corrects them as tests finish.

@@ -23,7 +23,8 @@ def test(tid, family, save="T0", reload=False, forced=False):
 
 # Tests that need GameMaster on (Shae 2026-10-10: if unsure, keep it on). A block with gamemaster=False refuses to start
 # if it contains one. Filled from investigation/round10/gamemaster_tests.md.
-GM_TESTS = set()
+GM_TESTS = {"GM-HOUR", "RE-5", "TT-9", "AZ-4", "AZ-6", "TT-14", "AZ-12", "AZ-9", "RE-2", "RE-3", "RE-4", "X-9", "NT-2",
+            "ENT-9", "WE-6", "SK-11", "SK-8", "OR-2", "OR-4", "OR-5", "FEEL-CHECK"}   # GM-HOUR / FEEL-CHECK: S-C and soak ids
 GM_STATE = [None]
 BLOCKS = {}     # name -> dict(save, order: [ids], modules: [module names], est: {family: minutes})
 
