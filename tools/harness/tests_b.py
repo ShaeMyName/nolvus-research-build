@@ -1169,9 +1169,13 @@ def b18(r):
         uf, up, uh = r.uuid(F1)[0], r.uuid(PROT)[0], r.uuid(H)[0]
         if not need(r, uf and up and uh, "UUIDs not resolved (F1=%s Carlotta=%s H=%s)" % (bool(uf), bool(up), bool(uh))):
             return
-        ready = until(lambda: eligible(r.tool("check_action_eligibility",
-                                              {"action_name": "SitOrLayDown", "actor_uuid": up}))[0] is True, 300, 10)
-        if not need(r, ready, "SeverActions never settled (Carlotta SitOrLayDown not eligible in 5 min)"):
+        # Readiness = Carlotta has ANY eligible action (as the block's settle probe). SitOrLayDown needs furniture in range,
+        # so it can stay false all day (U1 run 16 B-18: INCONCLUSIVE after 5 min); a matrix action would mask its own FAIL.
+        def any_ok():
+            res = r.tool("get_eligible_actions", {"actor_uuid": up})
+            return isinstance(res, dict) and (res.get("eligibleCount") or 0) > 0
+        ready = until(any_ok, 300, 10)
+        if not need(r, ready, "SeverActions never settled (Carlotta has no eligible action in 5 min)"):
             return
         row("S1", uf)
         r.ctl("NFFWait", [F1])
