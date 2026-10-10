@@ -392,21 +392,42 @@ def ensure_child_enrolled(r):
     return u, name
 
 
-def romance(r, uuid):
-    """get_romance decorator JSON (RELD GetRomance :518-580). Contains authored prose: parsed, never logged."""
-    out = render(r, uuid, "{{ get_romance(actorUUID) }}")
-    try:
-        return json.loads(out) if out else None
-    except ValueError:
-        return None
+def romance(r, uuid, tries=3):
+    """get_romance decorator JSON (RELD GetRomance :518-580). Contains authored prose: parsed, never logged.
+    R55 (U1 run 18 CS-22): SkyrimNet can answer 'decorator cache miss ... returning empty'; an empty render is retried
+    and, if still empty, returns None, which callers treat as INCONCLUSIVE, never as a FAIL."""
+    for i in range(tries):
+        out = render(r, uuid, "{{ get_romance(actorUUID) }}{# %d #}" % time.time_ns())
+        try:
+            if out:
+                return json.loads(out)
+        except ValueError:
+            pass
+        time.sleep(2)
+    return None
 
 
-def su_get(r, uuid, key, dflt=-99):
-    v = rval(r, uuid, 'papyrus_util("GetIntValue", actorUUID, "%s", %d)' % (key, dflt))
+def su_get(r, uuid, key, dflt=-99, fid=None):
+    """StorageUtil int on the actor. R55: prefer the Papyrus-side SUGetInt wrapper (logs the value it read); else a
+    template render made unique by a nonce so no cached render is reused. Every value read is logged."""
+    if fid is not None:
+        m = ctl_line(r, "SUGetInt", [s32(fid), key, dflt],
+                     r"\[IEB-TEST\] SU (?:%s|none) %s get=(\S+)" % (fid_any_rx(fid), re.escape(key)), 10)
+        if m:
+            try:
+                v = int(m.group(1))
+                r.log("  su_get %s %s = %d (Papyrus)" % (hx(fid), key, v))
+                return v
+            except ValueError:
+                pass
+    v = rval(r, uuid, 'papyrus_util("GetIntValue", actorUUID, "%s", %d) {# %d #}' % (key, dflt, time.time_ns()))
     try:
-        return int(float(v))
+        v = int(float(v))
     except (TypeError, ValueError):
+        r.log("  su_get %s = unreadable (%r)" % (key, v))
         return None
+    r.log("  su_get %s = %d (template)" % (key, v))
+    return v
 
 
 def dm(r, payload):
@@ -915,6 +936,13 @@ def cs20(r):
     u, name = ensure_child_enrolled(r)
     if not u:
         return
+    # R55: CS-20 asserted refusals only; a stale {"enrolled": false} would have passed its "not sparked" check.
+    rom = romance(r, u)
+    if rom is None:
+        return inc(r, "prompt JSON empty after 3 tries: enrollment and lock not confirmed")
+    r.check(bool(rom.get("enrolled")), "child is enrolled per the prompt JSON (enrolled=%s)" % rom.get("enrolled"))
+    r.check(iv(rom, "physMinTier") == -1, "child intimacy locked: prompt JSON physMinTier -1 (got %s)" % iv(rom, "physMinTier"))
+    r.check(su_get(r, u, "SNRom_PhysMinTier", fid=CHILD) == -1, "child intimacy locked in the store (-1)")
     st = tail("snrom")
     # 1. spark check: RequestSparkNow (out of turn) and one AssessNextSpark tick
     rel(r, "RequestSparkNow", [ah(CHILD)])
@@ -988,9 +1016,12 @@ def cs22(r):
     try:
         if not su_set(r, CHILD, "SNRom_PhysMinTier", 4):
             return inc(r, "SUSetInt wrapper gave no line")
-        r.check(su_get(r, u, "SNRom_PhysMinTier") == 4, "store holds the bad value 4 (write landed)")
+        r.check(su_get(r, u, "SNRom_PhysMinTier", fid=CHILD) == 4, "store holds the bad value 4 (write landed)")
         rom = romance(r, u)
-        r.check(rom is not None and iv(rom, "physMinTier") == -1, "prompt JSON physMinTier -1 at once")
+        if rom is None:
+            inc(r, "prompt JSON empty (SkyrimNet decorator cache miss) after 3 tries: R8 not judged")
+        else:
+            r.check(iv(rom, "physMinTier") == -1, "prompt JSON physMinTier -1 at once (got %s)" % iv(rom, "physMinTier"))
         st = tail("snrom")
         rel(r, "AssessNextDrift", [])
         time.sleep(5)
@@ -998,12 +1029,12 @@ def cs22(r):
                 "drift tick: no drift review for the child")
         rel(r, "SweepFollowers", [])
         time.sleep(6)
-        r.check(su_get(r, u, "SNRom_PhysMinTier") == -1, "store back to -1 after the sweep")
+        r.check(su_get(r, u, "SNRom_PhysMinTier", fid=CHILD) == -1, "store back to -1 after the sweep")
         su_set(r, CHILD, "SNRom_PhysMinTier", 4)
         rel(r, "SetCharacterField", [ah(CHILD), 0, 0])
         time.sleep(3)
-        r.check(su_get(r, u, "SNRom_PhysMinTier") == -1, "repair request (SetCharacterField intimacy casual) leaves -1")
-        r.check(su_get(r, u, "SNRom_SparkDecided") == 1, "SNRom_SparkDecided 1")
+        r.check(su_get(r, u, "SNRom_PhysMinTier", fid=CHILD) == -1, "repair request (SetCharacterField intimacy casual) leaves -1")
+        r.check(su_get(r, u, "SNRom_SparkDecided", fid=CHILD) == 1, "SNRom_SparkDecided 1")
     finally:
         rel(r, "SweepFollowers", [])
         time.sleep(3)

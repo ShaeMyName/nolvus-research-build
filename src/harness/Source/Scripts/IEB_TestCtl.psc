@@ -964,6 +964,17 @@ Function SUSetInt(Int aiFormId, String asKey, Int aiValue)
     Log("SU " + Watcher().Hex(a) + " " + asKey + " set=" + aiValue)
 EndFunction
 
+Function SUGetInt(Int aiFormId, String asKey, Int aiDefault)
+    {R55 (child_lock_failure.md): read a StorageUtil int on the actor Papyrus-side, so the host never trusts a cached
+     template render. Logs the value it read.}
+    Actor a = A(aiFormId)
+    If a == None
+        Log("SU none " + asKey + " get=none")
+        Return
+    EndIf
+    Log("SU " + Watcher().Hex(a) + " " + asKey + " get=" + StorageUtil.GetIntValue(a, asKey, aiDefault))
+EndFunction
+
 Function SUUnset(Int aiFormId, String asKey)
     Actor a = A(aiFormId)
     If a == None
