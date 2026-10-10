@@ -1,0 +1,26 @@
+# Step 0 (post_u1_build_plan §0): shipped .pex (MODS/mods/IntelEngine/Scripts, Sep 12) vs Caprica 0.3.0 build of pinned 3.5.1 (repos/IntelEngine-Native-Gerk @36f02f4 Source/Scripts; == sdk/ie_roundtrip/src)
+# tool: tools/ie_callsites.py (Champollion 1.3.2 -a; functions+signatures, variables, properties, per-function callmethod/callstatic/callparent counts and order)
+## IntelEngine_Travel  shipped sha256 d1c19ec561f5d079f59d3479971150f0b1caa3a060bef7cbc792fb560887bef2
+functions: shipped 32, caprica351 32
+call sites: shipped 541, caprica351 541
+IDENTICAL
+## IntelEngine_NPCTasks  shipped sha256 8a7031e7851bce022f2f5499fa3f75f5a1a4096031c85b1c88494cc1fe47b679
+functions: shipped 49, caprica351 49
+call sites: shipped 1120, caprica351 1120
+IDENTICAL
+## IntelEngine_Schedule  shipped sha256 c0261e98f4957561b396ce7181cc6bada17cd43d2f1508bc5eec1fba4979e2df
+functions: shipped 33, caprica351 33
+call sites: shipped 182, caprica351 182
+IDENTICAL
+## IntelEngine_Core  shipped sha256 ab1a9f97338b230b893108508628e18abd12edf55913c8bab0671f2130ca5605
+functions: shipped 99, caprica351 99
+call sites: shipped 826, caprica351 826
+IDENTICAL
+## IntelEngine_StoryEngine  shipped sha256 59874bc83f18f90a3e1b0cfe4c64378980962d1e6d4d435192d4fb8fa6ab6fe4
+functions: shipped 90, caprica351 90
+call sites: shipped 1892, caprica351 1892
+IDENTICAL
+## IntelEngine_Battle  shipped sha256 39497df8db60be3fcd38ef8722fe9840d849c15ef342d18bd4c52b5257944566
+functions: shipped 35, caprica351 35
+call sites: shipped 468, caprica351 468
+IDENTICAL
