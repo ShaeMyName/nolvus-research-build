@@ -37,8 +37,15 @@ def main():
         return 1
     who, waits = head.group(1), {head.group(4).upper(), head.group(5).upper()} - {"NONE"}
     gaps = [b[0] - a[0] for a, b in zip(smp, smp[1:])]
-    print("burst %s: %d samples over %.1f s, median step %.2f s, wait-box packages %s"
-          % (who, len(smp), smp[-1][0] - smp[0][0], sorted(gaps)[len(gaps) // 2] if gaps else 0, sorted(waits)))
+    sg = sorted(gaps)
+    print("burst %s: %d samples over %.1f s, median step %.2f s, p95 %.2f s, max %.2f s, wait-box packages %s"
+          % (who, len(smp), smp[-1][0] - smp[0][0], sg[len(sg) // 2] if sg else 0,
+             sg[min(len(sg) - 1, int(len(sg) * 0.95))] if sg else 0, sg[-1] if sg else 0, sorted(waits)))
+    # Reviewer 2026-10-10: a wait-box interval of >= MAX_WAIT is only visible if no sample gap is that long.
+    big = [(smp[k][0], g) for k, g in enumerate(gaps) if g >= MAX_WAIT]
+    if big:
+        print("INCONCLUSIVE B-22 %s: %d sample gap(s) >= %.1f s (largest %.2f s at t=%.2f): a wait-box interval could hide"
+              % (who, len(big), MAX_WAIT, max(g for _, g in big), max(big, key=lambda x: x[1])[0]))
     take = smp[0][3]
     dist = lambda p: math.dist(p[:2], take[:2])
     fails, intervals, i = 0, 0, 0

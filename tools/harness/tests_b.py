@@ -473,12 +473,22 @@ def in_rejoin(r, label):
                 "%s: rejoin phase not reached (errand ended with %s)" % (label, res["end"]))
 
 
-def run_burst(r, label):
+def run_burst(r, label, since=None):
+    """since: {"pap": Tail, "sn": Tail} marked at the burst start; records Available and IntelEngine/SkyrimNet activity
+    in the window (reviewer: a lagging 0.1 s loop is an SK-1 script-lag signal)."""
     res = subprocess.run([sys.executable, os.path.join(HERE, "burst_b22.py"), game.LOGS["watch"]],
                          capture_output=True, text=True, timeout=120)
+    if since:
+        pap, sn = since["pap"].read(), since["sn"].read()
+        r.log("  %s burst window: %.1f GB RAM available; Papyrus %d lines (%d IntelEngine); SkyrimNet %d lines "
+              "(%d LLM/prompt)" % (label, game.available_ram_gb(), pap.count("\n"), len(re.findall(r"(?i)intelengine", pap)),
+                                   sn.count("\n"), len(re.findall(r"(?i)SendCustomPromptToLLM|LLM request|OpenRouter", sn))))
     asserts = 0
     for l in res.stdout.splitlines():
-        if l.startswith("ASSERT"):
+        if l.startswith("INCONCLUSIVE"):
+            r.inconclusive += 1
+            r.log("INCONCLUSIVE %s burst: %s" % (label, l.split(" ", 2)[-1]))
+        elif l.startswith("ASSERT"):
             asserts += 1
             r.check(l.startswith("ASSERT PASS"), "%s burst: %s" % (label, l.split(" ", 2)[-1]))
         elif l.strip():
@@ -1393,6 +1403,7 @@ def b22(r):
     try:
         nm = base(r, F1)[0]
         wb = fresh("watch")
+        since1 = {"pap": fresh(), "sn": fresh("skyrimnet")}
         r.ctl("Burst", [F1, 30.0])
         if not need(r, wb.wait(r"BURST START", 15), "no BURST START"):
             return
@@ -1402,12 +1413,13 @@ def b22(r):
             return
         if not need(r, wb.wait(r"BURST END", 45), "first burst did not end"):
             return
-        run_burst(r, "take")
+        run_burst(r, "take", since1)
         # U1 run 16: after the 30 s take burst F1 was beyond N (1,920 u), so the release parked her (REJOIN_WAIT) and the
         # release burst went unjudged. Bring the player within N first, as B-3 does, so the release is RELEASE_FOLLOW.
         r.ctl("MoveRel", [PLAYER, F1, 600.0, 0.0, 0.0])
         time.sleep(3)
         wb2 = fresh("watch")
+        since2 = {"pap": fresh(), "sn": fresh("skyrimnet")}
         r.ctl("Burst", [F1, 20.0])
         if not need(r, wb2.wait(r"BURST START", 15), "no second BURST START"):
             return
@@ -1422,7 +1434,7 @@ def b22(r):
             r.inconclusive += 1
             r.log("INCONCLUSIVE B-22 release burst: release went to REJOIN_WAIT (by-design park), not judged")
         else:
-            run_burst(r, "release")
+            run_burst(r, "release", since2)
     finally:
         tidy(r, F1)
 
