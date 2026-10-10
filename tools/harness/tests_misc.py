@@ -1360,7 +1360,17 @@ def _strip_body(r, fid, uuid):
         if f:
             con(r, "%s.unequipitem %08X" % (hx(fid), f))
     time.sleep(2)
+    if not body:    # RV-58 audit: with the old 'body' key nothing was ever stripped, so every "stripped" check was vacuous
+        r.log("  strip: no torso (slot 32) item found on %s; the 'stripped' checks below would be vacuous" % hx(fid))
     return rows, body
+
+
+def _stripped_or_inc(r, fid, body, label):
+    """True if a body garment was actually found and unequipped; else INCONCLUSIVE (never a vacuous PASS)."""
+    if not body:
+        inc(r, "%s: no body garment found to strip (slot 32 / torso)" % label)
+        return False
+    return True
 
 
 @test("X-1", "X", reload=True)
@@ -1373,6 +1383,8 @@ def x1(r):
             inc(r, "%s 0x%s not loaded" % (label, hx(fid)))
             continue
         rows0, body = _strip_body(r, fid, u)
+        if not _stripped_or_inc(r, fid, body, label):
+            continue
         rows1 = worn_rows(r, u)
         if rows1 is None:
             inc(r, "%s: worn-equipment render failed" % label)
@@ -1415,7 +1427,9 @@ def x2(r):
         if not u:
             inc(r, "%s not loaded" % label)
             continue
-        rows0, _ = _strip_body(r, fid, u)
+        rows0, _b = _strip_body(r, fid, u)
+        if not _stripped_or_inc(r, fid, _b, label):
+            continue
         rows1 = worn_rows(r, u) or []
         r.log("  stripped %s: slots %s" % (label, ",".join(sorted(x[0] for x in rows1))))
         r.check(body_flag(r, u) == 0, "stripped %s: 'torso' empty" % label)
