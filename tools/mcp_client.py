@@ -53,7 +53,7 @@ class MCP:
                 m = json.loads(data)
             except ValueError:
                 continue
-            if m.get("id") == rid:
+            if isinstance(m, dict) and m.get("id") == rid:
                 return m
 
 
