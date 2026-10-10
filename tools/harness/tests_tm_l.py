@@ -869,7 +869,8 @@ def l10(r):
         if not d or not d.startswith("[IEB] LEND"):
             return inconclusive(r, "H not lent (%s)" % (d or "no decision"))
         time.sleep(5)
-        console(r, "save IEB_L10")                       # INFERRED: console save by name over MCP
+        if not game.save(r, "IEB_L10"):
+            return inconclusive(r, "save IEB_L10 did not complete; not loading it")
         time.sleep(8)
         if not os.path.exists(game.SAVES + "IEB_L10.ess"):
             r.log("  NOTE: IEB_L10.ess not seen in %s (save path INFERRED); trying the load anyway" % game.SAVES)

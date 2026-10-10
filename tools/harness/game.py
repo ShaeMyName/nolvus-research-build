@@ -130,15 +130,25 @@ def load(run, save, settle_probe=None, timeout=8 * 60):
     """Console-load a save, wait for SkyrimNet's PostLoadGame, then settle. settle_probe: (action, uuid-callable) whose
     eligibility must turn True (SeverActions' checks read ineligible for ~2 min after a load, CS-23 2026-10-09);
     without one, a fixed 120 s."""
+    ess = SAVES + save + ".ess"
+    if not os.path.exists(ess) or os.path.exists(ess + ".tmp"):
+        # U1 run 15 B-3: loading a save whose write had failed (only IEB_B3.ess.tmp on disk) crashed the game.
+        run.log("LOAD %s: refused, save incomplete (ess=%s tmp=%s)" % (save, os.path.exists(ess), os.path.exists(ess + ".tmp")))
+        return False
     sn = Tail(LOGS["skyrimnet"])
     t0 = time.time()
     # Right after launch MCP answers a few seconds before the main menu accepts a console load (run 2026-10-10 11:20:
-    # the command was ignored). Resend until the load starts.
+    # the command was ignored). Resend only on a positive "not started" signal: no PreLoadGame AND Papyrus never froze
+    # its VM since the send (a load in progress freezes it first). Anything else that started means wait, never resend.
     for attempt in range(6):
+        pap = Tail(LOGS["papyrus"])
         run.tool("execute_console_command", {"command": "load %s" % save})
         if sn.wait(r"PreLoadGame event received for save: %s\.ess" % re.escape(save), timeout=60):
             break
-        run.log("LOAD %s: not started after 60 s (attempt %d), resending" % (save, attempt + 1))
+        if re.search(r"VM is freezing|PreLoadGame|PostLoadGame", pap.read() + sn.read()):
+            run.log("LOAD %s: no PreLoadGame after 60 s but a load/save started; not resending" % save)
+            break
+        run.log("LOAD %s: not started after 60 s (no VM freeze, no load event; attempt %d), resending" % (save, attempt + 1))
     m = sn.wait(r"PreLoadGame event received for save: %s\.ess[\s\S]*PostLoadGame event received" % re.escape(save),
                 timeout=timeout)
     if not m:
@@ -199,6 +209,31 @@ def load(run, save, settle_probe=None, timeout=8 * 60):
     run.log("SETTLE fixed 120 s")
     return True
 
+
+
+def save(run, name, timeout=90):
+    """Console save that is only trusted once it has really finished (U1 run 15 B-3, 2026-10-10: 'save IEB_B3' over MCP
+    logged "Unknown exception executing console command", left IEB_B3.ess.tmp at 0 bytes, and the test's load of the
+    missing save 10 s later crashed the game). Waits for SkyrimNet's "SaveGame event received", then for <name>.ess to
+    exist with no .tmp beside it and a size stable over 2 s. Returns True only then; never load a save this returned
+    False for."""
+    sn = Tail(LOGS["skyrimnet"])
+    ess, tmp = SAVES + name + ".ess", SAVES + name + ".ess.tmp"
+    before = os.path.getmtime(ess) if os.path.exists(ess) else 0
+    run.tool("execute_console_command", {"command": "save %s" % name})
+    if not sn.wait(r"SaveGame event received", timeout=30):
+        run.log("SAVE %s: no SaveGame event within 30 s" % name)
+    t0, last = time.time(), -1
+    while time.time() - t0 < timeout:
+        if os.path.exists(ess) and not os.path.exists(tmp) and os.path.getmtime(ess) > before:
+            size = os.path.getsize(ess)
+            if size > 0 and size == last:
+                run.log("SAVE %s: complete (%d bytes) after %d s" % (name, size, time.time() - t0))
+                return True
+            last = size
+        time.sleep(2)
+    run.log("SAVE %s: NOT complete after %d s (ess=%s tmp=%s)" % (name, timeout, os.path.exists(ess), os.path.exists(tmp)))
+    return False
 
 def close(run=None, timeout=120):
     """Close the game from the console (no save is made). Waits for the process to exit; the launcher then stops the

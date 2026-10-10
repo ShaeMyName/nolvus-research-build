@@ -585,7 +585,10 @@ def b3(r):
         if not need(r, p, "dPlayer never exceeded 3000 within 120 s"):
             return
         arrived_before = bool(re.search(arrived_rx(nm), t.read()))
-        con(r, "save IEB_B3")
+        if not game.save(r, "IEB_B3"):
+            r.inconclusive += 1
+            r.log("INCONCLUSIVE: save %s did not complete; not loading it" % "IEB_B3")
+            return
         time.sleep(10)
         tl = fresh()
         if not need(r, game.load(r, "IEB_B3", settle_probe(r)), "load IEB_B3 failed"):
@@ -625,7 +628,10 @@ def b3b(r):
     try:
         nm = base(r, F1)[0]
         snap(r, F1)
-        con(r, "save IEB_B3b_pre")
+        if not game.save(r, "IEB_B3b_pre"):
+            r.inconclusive += 1
+            r.log("INCONCLUSIVE: save %s did not complete; not loading it" % "IEB_B3b_pre")
+            return
         time.sleep(10)
         t = fresh()
         if not took(r, go(r, F1, DEST_UP, t), nm):
@@ -1305,7 +1311,10 @@ def b20(r):
         r.log("  loop %d %s: %s" % (i, how, " ".join(k for k, _ in evs) or "no bridge line"))
         if i % 10 == 0:
             save = "IEB_B20_%d" % i
-            con(r, "save %s" % save)
+            if not game.save(r, save):
+                r.inconclusive += 1
+                r.log("INCONCLUSIVE: save %s did not complete; not loading it" % save)
+                return
             time.sleep(10)
             if not game.load(r, save, settle_probe(r)):
                 r.check(False, "load %s" % save)
