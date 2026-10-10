@@ -83,14 +83,26 @@ def mcp_up(timeout=5):
         return False
 
 
-def launch(log=print, timeout=20 * 60):
-    """Start the test profile (TTS server + game) unattended; return when MCP answers. False on any failure."""
+def game_private_gb():
+    """SkyrimSE private bytes in GB (0 if not running). Grows with each in-session reload: 12.5 GB after launch ->
+    23 GB after ~10 reloads of T0 (2026-10-10), which with the voice server exhausted the 31 GB machine."""
+    out = subprocess.run(["powershell", "-NoProfile", "-Command",
+                          "(Get-Process SkyrimSE -ErrorAction SilentlyContinue | Measure-Object PrivateMemorySize64 -Sum).Sum"],
+                         capture_output=True, text=True).stdout.strip()
+    return int(out) / 2 ** 30 if out.isdigit() else 0.0
+
+
+def launch(log=print, timeout=20 * 60, voices=True):
+    """Start the test profile unattended (voices=False adds -NoTTS: text/state blocks only; the soak and real play
+    always run with voices, Shae 2026-10-10); return when MCP answers. False on any failure."""
     running = procs()
     if running:
         log("LAUNCH refused: already running %s" % sorted(running))
         return False
     subprocess.Popen(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden",
-                      "-File", LAUNCHER, "-Unattended"], creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0))
+                      "-File", LAUNCHER, "-Unattended"] + ([] if voices else ["-NoTTS"]),
+                     creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0))
+    log("LAUNCH started (%s)" % ("with voices" if voices else "no voices"))
     t0 = time.time()
     while time.time() - t0 < timeout:
         if "SkyrimSE.exe" in procs() and mcp_up():

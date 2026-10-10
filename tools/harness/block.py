@@ -24,10 +24,16 @@ def test(tid, family, save="T0", reload=False, forced=False):
 BLOCKS = {}     # name -> dict(save, order: [ids], modules: [module names], est: {family: minutes})
 
 
-def block(name, save, modules, order, est=None, fixed=None, harness=False):
+def block(name, save, modules, order, est=None, fixed=None, harness=False, voices=True, relaunch_gb=20.0):
+    """voices=False only for text/state blocks; the soak must run with voices (real-play config, SK-7 memory is the
+    point: Shae 2026-10-10), enforced here. relaunch_gb: relaunch between tests when the game's private memory passes
+    this (test blocks only; the soak never relaunches mid-run)."""
+    if name.upper().startswith("SOAK") and not voices:
+        raise ValueError("the soak must run with the voice server on (Shae 2026-10-10)")
     """est: unpadded estimate in minutes per family (time plan), spread evenly over that family's tests;
     fixed: {test id: minutes} for known long tests (B-20). Used only for the live ETA."""
-    BLOCKS[name] = dict(save=save, modules=modules, order=order, est=est or {}, fixed=fixed or {}, harness=harness)
+    BLOCKS[name] = dict(save=save, modules=modules, order=order, est=est or {}, fixed=fixed or {}, harness=harness,
+                        voices=voices, relaunch_gb=None if name.upper().startswith("SOAK") else relaunch_gb)
 
 
 def test_estimates(b, order):
@@ -115,7 +121,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             return 1
     print("HARNESS mode %s for %s" % ("on" if game.harness_mode() else "off", name), flush=True)
     if "SkyrimSE.exe" not in game.procs():
-        if not launch or not game.launch(print):
+        if not launch or not game.launch(print, voices=b["voices"]):
             print("BLOCK ABORT %s: game did not launch" % name, flush=True)
             return 1
     ctl = Run("%s_CONTROL" % name)              # MCP session only once the game answers
@@ -157,6 +163,18 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             r.inconclusive += 1
             r.log("INCONCLUSIVE %s harness error: %r" % (tid, e))
         crashed = "SkyrimSE.exe" not in game.procs()
+        if not crashed:     # Shae 2026-10-10: show it if our own code flips IntelEngine's switches mid-run
+            try:
+                pt = game.Tail(game.LOGS["papyrus"])
+                r.ctl("SkipProbe")
+                pm = pt.wait(r"\[IEB-TEST\] SkipProbe (.*)", timeout=20)
+                state = pm.group(1) if pm else "no probe line"
+                flipped = pm is not None and "=1" in state.split(" saved=")[0]
+                r.log("%s IE skip-follower switches at test end: %s" % ("WARN" if flipped else "NOTE", state))
+                if flipped:
+                    summary.append("| %s | IE skip switches ON at test end | | %s |" % (tid, state))
+            except Exception as e:
+                r.log("NOTE IE switch probe failed: %r" % (e,))
         if crashed:
             r.inconclusive += 1
             r.log("INCONCLUSIVE %s: the game crashed during the test (see the newest SKSE crash-*.log)" % tid)
@@ -189,6 +207,19 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             ctl = recover(ctl, name, b, "in " + tid, summary)
             if ctl is None:
                 return 1
+        elif b["relaunch_gb"] and game.game_private_gb() > b["relaunch_gb"]:
+            gb = game.game_private_gb()
+            print("BLOCK RELAUNCH %s after %s: game at %.1f GB" % (name, tid, gb), flush=True)
+            summary.append("| relaunch | game at %.1f GB after %s | | |" % (gb, tid))
+            game.close(ctl)
+            time.sleep(15)
+            if not game.launch(print, voices=b["voices"]):
+                print("BLOCK ABORT %s: relaunch failed" % name, flush=True)
+                return 1
+            ctl = Run("%s_CONTROL" % name)
+            if not load_block_save(ctl, b):
+                print("BLOCK ABORT %s: reload after relaunch failed" % name, flush=True)
+                return 1
         elif meta["reload"]:
             load_block_save(ctl, b)
     if fam:
@@ -216,7 +247,7 @@ def recover(ctl, name, b, where, summary):
     summary.append("| CRASH | game crashed %s | | relaunched |" % where)
     game.close(None, timeout=30)
     time.sleep(10)
-    if not game.launch(print):
+    if not game.launch(print, voices=b["voices"]):
         print("BLOCK ABORT %s: relaunch after a crash failed" % name, flush=True)
         return None
     ctl = Run("%s_CONTROL" % name)
