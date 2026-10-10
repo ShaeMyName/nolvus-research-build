@@ -73,7 +73,7 @@ def ie_test_settings(ctl):
 
 
 def load_block_save(ctl, b):
-    if not load_block_save(ctl, b):
+    if not game.load(ctl, b["save"], settle_probe(ctl)):
         return False
     return ie_test_settings(ctl)
 
