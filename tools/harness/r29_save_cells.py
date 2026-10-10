@@ -16,6 +16,8 @@ from runner import Run
 OUT = "C:/nolvus-research/test_runs/"
 F1 = 0x000E1BA9
 LOG = []
+LOADED_AT = [0.0]
+SHOTS = OUT + "R29_shots/"
 
 
 def say(m):
@@ -43,7 +45,25 @@ def fresh(harness):
             time.sleep(5)
     else:
         game.load(ctl, "T0", None)
+    LOADED_AT[0] = time.time()
     return ctl
+
+
+def menus(ctl, cid):
+    """REVIEW_LOG RV-67: open menus + a screenshot right before the save (was the Timeline box open in c7?)."""
+    t = game.Tail(game.LOGS["papyrus"])
+    ctl.ctl("MenuProbe", [], sync=False)
+    m = t.wait(r"\[IEB-TEST\] MENUPROBE[^\r\n]*", 15)
+    say("%s before save (%.0f s after load): %s" % (cid, time.time() - LOADED_AT[0],
+                                                     m.group(0) if m else "no MENUPROBE line in 15 s (Papyrus paused?)"))
+    try:
+        from PIL import ImageGrab
+        os.makedirs(SHOTS, exist_ok=True)
+        f = SHOTS + "%s_%s.png" % (cid, time.strftime("%H%M%S"))
+        ImageGrab.grab().save(f)
+        say("%s screenshot %s" % (cid, f))
+    except Exception as e:
+        say("%s screenshot failed: %s" % (cid, e))
 
 
 def probes(ctl, label):
@@ -69,6 +89,7 @@ def cell(ctl, cid, how, errand):
         ok = t.wait(r"(?i)\[IEB\] TAKE actor=Jenassa", 30)
         say("%s errand: %s" % (cid, "TAKE seen" if ok else "NO TAKE (errand not active: cell invalid)"))
         time.sleep(5)
+    menus(ctl, cid)
     sn = game.Tail(game.LOGS["skyrimnet"])
     if how == "F5":
         t0 = time.time()

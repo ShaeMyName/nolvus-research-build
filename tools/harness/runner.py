@@ -72,6 +72,7 @@ class Run:
         "CombatProbe": "CombatProbe|CombatProbe\\ none",
         "Despawn": "Despawn|Despawn\\ none",
         "ConfigProbe": "(?i:CONFIGPROBE) ",
+        "MenuProbe": "(?i:MENUPROBE) ",
         "SaveNamed": "(?i:SAVENAMED) ",
         "KillUnattributed": "(?i:KILLUNATTR) ",
         "CrimeProbe": "(?i:CRIMEPROBE) ",

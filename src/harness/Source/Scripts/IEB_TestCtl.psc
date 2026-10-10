@@ -1140,6 +1140,12 @@ Function ConfigProbe()
     Log("CONFIGPROBE max=" + m + " normal=" + n + " whisper=" + w + " skyrimnet=" + x)
 EndFunction
 
+Function MenuProbe()
+    {REVIEW_LOG RV-67: which menus are open right before a test save (the Timeline Mismatch box was suspected in R29 c7).
+     A paused menu may stop Papyrus entirely: the host then logs "no MENUPROBE line", which is itself the signal.}
+    Log("MENUPROBE inMenuMode=" + Utility.IsInMenuMode() + " console=" + UI.IsMenuOpen("Console") + " msgbox="         + UI.IsMenuOpen("MessageBoxMenu") + " dialogue=" + UI.IsMenuOpen("Dialogue Menu") + " journal="         + UI.IsMenuOpen("Journal Menu") + " loading=" + UI.IsMenuOpen("Loading Menu") + " mainmenu="         + UI.IsMenuOpen("Main Menu") + " custom=" + UI.IsMenuOpen("CustomMenu") + " tween=" + UI.IsMenuOpen("TweenMenu"))
+EndFunction
+
 Function DespawnRef(Int aiRefFormId)
     ObjectReference r = Game.GetForm(aiRefFormId) as ObjectReference
     If r != None
