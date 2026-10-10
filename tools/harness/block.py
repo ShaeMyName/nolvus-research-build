@@ -287,6 +287,14 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
                 print("BLOCK ABORT %s: reload after relaunch failed" % name, flush=True)
                 return 1
         elif defeat:
+            DEFEATS[0] += 1
+            if DEFEATS[0] >= 2:     # reviewer: two defeats = a test or the harness provokes guards; stop and trace
+                summary.append("| HALT | second player defeat in the block (%s) | | game left running |" % tid)
+                open(OUT + "%s_%s.md" % (name, stamp), "w", encoding="utf-8").write("\n".join(summary) + "\n")
+                ctl.log("HALT after %s: second player defeat in the block; game left running" % tid)
+                print("BLOCK HALT %s after %s: second player defeat" % (name, tid), flush=True)
+                ctl.save()
+                return 1
             ctl = recover(ctl, name, b, "after a player defeat in " + tid, summary, why="PLAYER DEFEATED")
             if ctl is None:
                 return 1
@@ -382,8 +390,13 @@ RELAUNCH_MIN_DROP_GB = 1.5      # relaunch only when available RAM also fell thi
 
 
 DEFEAT_RX = [(re.compile(r"\[SOS\] (?:Defeat|Cause of Death|BlackOut)"), "Shadow of Skyrim defeat"),
-             (re.compile(r"Enter bleedout event: '(?:Prisoner|Lucienne)'"), "player bleedout")]
+             (re.compile(r"Enter bleedout event: '(?:Prisoner|Lucienne)'"), "player bleedout"),
+             # early signal (U1 run 16: 14:49:54, 12 s before the bleedout): a guard in combat with the player
+             (re.compile(r"Combat event: '[^']*Guard' combat state changed to 'Combat' with target '(?:Prisoner|Lucienne)'"),
+              "guard in combat with the player")]
 
+
+DEFEATS = [0]
 
 def player_defeated(papyrus_text, skyrimnet_text):
     """Player defeat/bleedout during a test (T0's player is named "Prisoner"). Shadow of Skyrim's own lines are the

@@ -33,4 +33,6 @@ import block
 check(block.player_defeated("[10/10/2026 - 02:50:08PM] [SOS] Defeat Music: [MusicType <_MUSDefeatGeneric>]", ""), "defeat: SoS defeat line")
 check(block.player_defeated("", "[2026-10-10 14:50:06.201] [14272] [info] [EnterBleedoutEventHandler.cpp:41] Enter bleedout event: 'Prisoner'"), "defeat: player bleedout")
 check(not block.player_defeated("", "Enter bleedout event: 'Whiterun Guard'"), "defeat: an NPC's bleedout is not a player defeat")
+check(block.player_defeated("", "[2026-10-10 14:49:54.210] [48460] [info] [CombatEventHandler.cpp:57] Combat event: 'Whiterun Guard' combat state changed to 'Combat' with target 'Prisoner'"), "defeat: guard combat on the player (early)")
+check(not block.player_defeated("", "Combat event: 'Whiterun Guard' combat state changed to 'Combat' with target 'Bandit'"), "defeat: guard vs a bandit is not a player signal")
 sys.exit(0 if ok else 1)
