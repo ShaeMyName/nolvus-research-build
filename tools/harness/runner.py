@@ -83,6 +83,8 @@ class Run:
         "ExpectLend": "ExpectLend",
         "FastTravelTo": "FastTravelTo|FastTravelTo:\\ no\\ ref",
         "FurnState": "FurnState",
+        "HoldIEAlias": "HoldIEAlias|HoldIEAlias:",
+        "ReleaseIEAlias": "ReleaseIEAlias|ReleaseIEAlias:",
         "KillAndSave": "KillAndSave",
         "Lend": "Lend",
         "MoveRel": "MoveRel|MoveRel:\\ missing\\ ref",

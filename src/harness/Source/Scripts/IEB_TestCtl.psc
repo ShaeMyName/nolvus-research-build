@@ -749,6 +749,43 @@ Function SetDropTeammate(Int aiValue)
     Log("DropTeammate was=" + was + " now=" + StorageUtil.GetIntValue(None, "IEB_DropTeammate", 0))
 EndFunction
 
+Function HoldIEAlias(Int aiFormId)
+    {RV-68 refusal test (IE-R1): put an actor into the first FREE IntelEngine agent alias (SlotStates 0, the slot
+     ReserveFreeAgentSlot will pick next), so TryAllocateSlot refuses that slot (SLOT_REFUSED reason=held). Logs the slot.
+     Undo with ReleaseIEAlias(slot).}
+    Actor a = A(aiFormId)
+    IntelEngine_Core core = IEB_IELib.IEQuest() as IntelEngine_Core
+    If a == None || core == None
+        Log("HoldIEAlias: no actor or no IE Core")
+        Return
+    EndIf
+    Int slot = core.FindFreeAgentSlot()
+    ReferenceAlias ra = None
+    If slot >= 0
+        ra = core.GetAgentAlias(slot)
+    EndIf
+    If ra == None
+        Log("HoldIEAlias: no free slot or no alias")
+        Return
+    EndIf
+    ra.ForceRefTo(a)
+    Log("HoldIEAlias slot=" + slot + " holder=" + Watcher().Hex(a))
+EndFunction
+
+Function ReleaseIEAlias(Int aiSlot)
+    {Clear the alias HoldIEAlias filled (only when the slot is not in use: SlotStates 0).}
+    IntelEngine_Core core = IEB_IELib.IEQuest() as IntelEngine_Core
+    If core == None || aiSlot < 0 || aiSlot >= 5
+        Log("ReleaseIEAlias: no IE Core or bad slot")
+        Return
+    EndIf
+    ReferenceAlias ra = core.GetAgentAlias(aiSlot)
+    If ra != None && core.SlotStates[aiSlot] == 0
+        ra.Clear()
+    EndIf
+    Log("ReleaseIEAlias slot=" + aiSlot + " state=" + core.SlotStates[aiSlot])
+EndFunction
+
 Function Probe(Int aiFormId)
     {Watcher line for one actor without touching the Snapshot baseline; + IEB keys left, SA sandbox flag.}
     Actor a = A(aiFormId)

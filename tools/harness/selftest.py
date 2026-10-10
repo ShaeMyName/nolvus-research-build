@@ -248,4 +248,26 @@ _res.clear()
 _cl.i5(["[x] IntelEngine: Allocated slot 0 to Jenassa for Travel", "[x] [IEB] TAKE actor=Jenassa mode=1",
         "[x] Reverting game...", "[x] [IEB] RELEASE_FOLLOW actor=Jenassa"])
 check(all(c for c, i, m in _res if "terminals" in m), "I5: a task held open in the save, ended after the load, passes")
+# RV-68 (IE refusal undo): the drop-mode refusal matcher, and every Dismiss -> TryAllocateSlot refusal path undoes the dismiss.
+import tests_ie
+_ok = ("[x] IntelEngine: Dismissed follower: Jenassa\n[x] IntelEngine: SLOT_REFUSED slot=0 reason=held holder=Anoriath holderId=108160 "
+       "requester=Jenassa requesterId=924585 type=travel\n[x] IntelEngine: SLOT_REFUSED_UNDO: restored teammate flag for Jenassa\n")
+_r = tests_ie.refusal_report(_ok, "Jenassa")
+check(_r["dismissed"] and _r["refused"] and _r["restored"] and not _r["kept"], "IE-R1: drop-mode refusal + undo lines match")
+_r = tests_ie.refusal_report(_ok.replace("SLOT_REFUSED_UNDO", "X"), "Jenassa")
+check(_r["refused"] and not _r["restored"], "IE-R1: a refusal without the undo line is not a restore")
+_r = tests_ie.refusal_report(_ok, "Uthgerd")
+check(not (_r["dismissed"] or _r["refused"] or _r["restored"]), "IE-R1: another actor's lines are ignored")
+_src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "src", "intelengine", "Source", "Scripts")
+for _f in ("IntelEngine_Travel.psc", "IntelEngine_NPCTasks.psc"):
+    _t = open(os.path.join(_src, _f), "rb").read().decode("utf-8").replace("\r\n", "\n").split("\n")
+    _n = _u = 0
+    for _i, _l in enumerate(_t):
+        if "Core.DismissFollowerForTask(" in _l and not _l.strip().startswith(";"):
+            _n += 1
+            _blk = _t[_i + 1:_i + 14]
+            _k = next((j for j, x in enumerate(_blk) if "TryAllocateSlot" in x), None)
+            if _k is not None and "UndoDismissOnRefusal" in _blk[_k + 1]:
+                _u += 1
+    check(_n > 0 and _n == _u, "RV-68: %s: each DismissFollowerForTask (%d) is followed by a TryAllocateSlot that undoes it on refusal (%d)" % (_f, _n, _u))
 sys.exit(0 if ok else 1)

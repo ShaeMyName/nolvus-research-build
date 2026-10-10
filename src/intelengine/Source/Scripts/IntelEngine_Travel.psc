@@ -247,6 +247,7 @@ Bool Function GoToLocation(Actor akNPC, String destination, Int speed = 0, Int w
 
     ; Allocate slot (patch: refuses if another live actor holds the alias)
     If !Core.TryAllocateSlot(slot, akNPC, "travel", destination, speed)
+        Core.UndoDismissOnRefusal(akNPC)  ; RV-68
         Core.SendTaskNarration(akNPC, akNPC.GetDisplayName() + " cannot take on another task right now.")
         Return false
     EndIf

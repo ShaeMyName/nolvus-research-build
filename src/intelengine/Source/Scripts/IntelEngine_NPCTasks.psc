@@ -454,6 +454,7 @@ Bool Function FetchNPC(Actor akAgent, String targetName, String failReason = "no
 
     ; Allocate slot (defaults to state 1) (patch: refuses if another live actor holds the alias)
     If !Core.TryAllocateSlot(slot, akAgent, "fetch_npc", targetNPC.GetDisplayName(), 1)  ; Jog by default
+        Core.UndoDismissOnRefusal(akAgent)  ; RV-68
         Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
         Return false
     EndIf
@@ -622,6 +623,7 @@ Bool Function DeliverMessage(Actor akAgent, String targetName, String msgContent
 
     ; Allocate (patch: refuses if another live actor holds the alias)
     If !Core.TryAllocateSlot(slot, akAgent, "deliver_message", targetNPC.GetDisplayName(), 1)
+        Core.UndoDismissOnRefusal(akAgent)  ; RV-68
         Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
         Return false
     EndIf
@@ -782,6 +784,7 @@ Bool Function SearchForActor(Actor akAgent, String targetName, Int speed = 0)
 
     ; Allocate slot (patch: refuses if another live actor holds the alias)
     If !Core.TryAllocateSlot(slot, akAgent, "search_for_actor", targetNPC.GetDisplayName(), speed)
+        Core.UndoDismissOnRefusal(akAgent)  ; RV-68
         Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
         Return false
     EndIf
@@ -975,6 +978,7 @@ Bool Function EscortTarget(Actor akAgent, String targetName, String destination 
 
     ; Allocate slot (patch: refuses if another live actor holds the alias)
     If !Core.TryAllocateSlot(slot, akAgent, "escort_target", targetNPC.GetDisplayName(), 1)
+        Core.UndoDismissOnRefusal(akAgent)  ; RV-68
         Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
         Return false
     EndIf

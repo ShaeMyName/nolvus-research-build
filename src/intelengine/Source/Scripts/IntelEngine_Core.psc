@@ -1170,6 +1170,33 @@ Function DismissFollowerForTask(Actor npc)
     EndIf
 EndFunction
 
+Function UndoDismissOnRefusal(Actor npc)
+    {Patch (RV-68): TryAllocateSlot refused after DismissFollowerForTask ran. Clears Intel_WasFollower (the Errand Bridge
+    Classify reads it) and, in drop mode (IEB_DropTeammate = 1, where the dismiss cleared the teammate flag), restores
+    the flag. Skipped when the actor already holds a slot (its Intel_WasFollower belongs to that task). The package
+    overrides the dismiss cleared are not restored (the NPC re-evaluates to its normal AI / follow package on its own).
+    Door: IntelEngine has no relock counterpart to UnlockHomeForTask (ClearSlot only drops the key, "vanilla handles
+    re-locking"), so the unlock is logged and the key dropped.}
+    If npc == None
+        Return
+    EndIf
+    If FindSlotByAgent(npc) < 0
+        If StorageUtil.GetIntValue(npc, "Intel_WasFollower") != 0
+            StorageUtil.UnsetIntValue(npc, "Intel_WasFollower")
+            If StorageUtil.GetIntValue(None, "IEB_DropTeammate", 0) == 1
+                npc.SetPlayerTeammate(true)
+                DebugMsg("SLOT_REFUSED_UNDO: restored teammate flag for " + npc.GetDisplayName())
+            EndIf
+        EndIf
+    EndIf
+    Int doorCell = StorageUtil.GetIntValue(npc, "Intel_UnlockedHomeCellId")
+    If doorCell != 0
+        DebugMsg("DOOR_LEFT_UNLOCKED " + npc.GetDisplayName() + " cell=" + doorCell)
+        StorageUtil.UnsetIntValue(npc, "Intel_UnlockedHomeCellId")
+    EndIf
+    npc.EvaluatePackage()
+EndFunction
+
 Int Function ShowTaskConfirmation(Actor npc, String promptText)
     {Legacy wrapper — calls per-action version with empty action (uses old global toggle).}
     return ShowTaskConfirmationForAction(npc, promptText, "")

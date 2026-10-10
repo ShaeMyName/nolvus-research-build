@@ -1,6 +1,6 @@
 """Post-U1 IntelEngine hunks (post_u1_build_plan §1 timer fix F1/F2, §2 slot race) on build/src/intelengine.
 Usage: apply_patch_ie_s1s2.py <group>. Every anchor must match exactly once (CRLF kept). Same edit() as apply_patch_b.py.
-Groups: f1 | f2 | core-slot | callers | core-expiry"""
+Groups: f1 | f2 | core-slot | callers | core-expiry | rv68"""
 import sys
 
 D = "C:/nolvus-research/build/src/intelengine/Source/Scripts/"
@@ -518,6 +518,67 @@ elif G == "core-expiry":   # old saves: never depend on the variable initializer
     IEB_SlotReservedAt = new Float[5]
     IEB_RESERVE_EXPIRY = 120.0
 """)])
+elif G == "rv68":   # RV-68 (2): undo DismissFollowerForTask when TryAllocateSlot refuses
+    edit("IntelEngine_Core.psc", [(
+"""Int Function ShowTaskConfirmation(Actor npc, String promptText)
+    {Legacy wrapper""",
+"""Function UndoDismissOnRefusal(Actor npc)
+    {Patch (RV-68): TryAllocateSlot refused after DismissFollowerForTask ran. Clears Intel_WasFollower (the Errand Bridge
+    Classify reads it) and, in drop mode (IEB_DropTeammate = 1, where the dismiss cleared the teammate flag), restores
+    the flag. Skipped when the actor already holds a slot (its Intel_WasFollower belongs to that task). The package
+    overrides the dismiss cleared are not restored (the NPC re-evaluates to its normal AI / follow package on its own).
+    Door: IntelEngine has no relock counterpart to UnlockHomeForTask (ClearSlot only drops the key, "vanilla handles
+    re-locking"), so the unlock is logged and the key dropped.}
+    If npc == None
+        Return
+    EndIf
+    If FindSlotByAgent(npc) < 0
+        If StorageUtil.GetIntValue(npc, "Intel_WasFollower") != 0
+            StorageUtil.UnsetIntValue(npc, "Intel_WasFollower")
+            If StorageUtil.GetIntValue(None, "IEB_DropTeammate", 0) == 1
+                npc.SetPlayerTeammate(true)
+                DebugMsg("SLOT_REFUSED_UNDO: restored teammate flag for " + npc.GetDisplayName())
+            EndIf
+        EndIf
+    EndIf
+    Int doorCell = StorageUtil.GetIntValue(npc, "Intel_UnlockedHomeCellId")
+    If doorCell != 0
+        DebugMsg("DOOR_LEFT_UNLOCKED " + npc.GetDisplayName() + " cell=" + doorCell)
+        StorageUtil.UnsetIntValue(npc, "Intel_UnlockedHomeCellId")
+    EndIf
+    npc.EvaluatePackage()
+EndFunction
+
+Int Function ShowTaskConfirmation(Actor npc, String promptText)
+    {Legacy wrapper""")])
+    edit("IntelEngine_Travel.psc", [(
+"""    If !Core.TryAllocateSlot(slot, akNPC, "travel", destination, speed)
+""",
+"""    If !Core.TryAllocateSlot(slot, akNPC, "travel", destination, speed)
+        Core.UndoDismissOnRefusal(akNPC)  ; RV-68
+""")])
+    edit("IntelEngine_NPCTasks.psc", [
+("""    If !Core.TryAllocateSlot(slot, akAgent, "fetch_npc", targetNPC.GetDisplayName(), 1)  ; Jog by default
+""",
+"""    If !Core.TryAllocateSlot(slot, akAgent, "fetch_npc", targetNPC.GetDisplayName(), 1)  ; Jog by default
+        Core.UndoDismissOnRefusal(akAgent)  ; RV-68
+"""),
+("""    If !Core.TryAllocateSlot(slot, akAgent, "deliver_message", targetNPC.GetDisplayName(), 1)
+""",
+"""    If !Core.TryAllocateSlot(slot, akAgent, "deliver_message", targetNPC.GetDisplayName(), 1)
+        Core.UndoDismissOnRefusal(akAgent)  ; RV-68
+"""),
+("""    If !Core.TryAllocateSlot(slot, akAgent, "search_for_actor", targetNPC.GetDisplayName(), speed)
+""",
+"""    If !Core.TryAllocateSlot(slot, akAgent, "search_for_actor", targetNPC.GetDisplayName(), speed)
+        Core.UndoDismissOnRefusal(akAgent)  ; RV-68
+"""),
+("""    If !Core.TryAllocateSlot(slot, akAgent, "escort_target", targetNPC.GetDisplayName(), 1)
+""",
+"""    If !Core.TryAllocateSlot(slot, akAgent, "escort_target", targetNPC.GetDisplayName(), 1)
+        Core.UndoDismissOnRefusal(akAgent)  ; RV-68
+"""),
+])
 else:
     sys.exit("unknown group " + G)
 print("ok", G)

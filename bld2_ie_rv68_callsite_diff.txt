@@ -1,0 +1,26 @@
+# BLD-2 RV-68 refusal undo. Tool tools/ie_callsites.py. A = HEAD (00729f1) .pex, B = this build. Expect: Core + UndoDismissOnRefusal, one call site per refusal path in Travel/NPCTasks, no property changes.
+## IntelEngine_Core
+functions: 00729f1 103, rv68 104
+  FUNC only in rv68: <auto>.undodismissonrefusal(('actor',), 'none')
+call sites: 00729f1 856, rv68 868
+  undodismissonrefusal               debugmsg                                       0 -> 2
+  undodismissonrefusal               evaluatepackage                                0 -> 1
+  undodismissonrefusal               findslotbyagent                                0 -> 1
+  undodismissonrefusal               getdisplayname                                 0 -> 2
+  undodismissonrefusal               setplayerteammate                              0 -> 1
+  undodismissonrefusal               storageutil.getintvalue                        0 -> 3
+  undodismissonrefusal               storageutil.unsetintvalue                      0 -> 2
+DIFFERENT
+## IntelEngine_Travel
+functions: 00729f1 32, rv68 32
+call sites: 00729f1 544, rv68 545
+  gotolocation                       undodismissonrefusal                           0 -> 1
+DIFFERENT
+## IntelEngine_NPCTasks
+functions: 00729f1 49, rv68 49
+call sites: 00729f1 1128, rv68 1132
+  delivermessage                     undodismissonrefusal                           0 -> 1
+  escorttarget                       undodismissonrefusal                           0 -> 1
+  fetchnpc                           undodismissonrefusal                           0 -> 1
+  searchforactor                     undodismissonrefusal                           0 -> 1
+DIFFERENT
