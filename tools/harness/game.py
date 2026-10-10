@@ -107,7 +107,13 @@ def load(run, save, settle_probe=None, timeout=8 * 60):
     without one, a fixed 120 s."""
     sn = Tail(LOGS["skyrimnet"])
     t0 = time.time()
-    run.tool("execute_console_command", {"command": "load %s" % save})
+    # Right after launch MCP answers a few seconds before the main menu accepts a console load (run 2026-10-10 11:20:
+    # the command was ignored). Resend until the load starts.
+    for attempt in range(6):
+        run.tool("execute_console_command", {"command": "load %s" % save})
+        if sn.wait(r"PreLoadGame event received for save: %s\.ess" % re.escape(save), timeout=60):
+            break
+        run.log("LOAD %s: not started after 60 s (attempt %d), resending" % (save, attempt + 1))
     m = sn.wait(r"PreLoadGame event received for save: %s\.ess[\s\S]*PostLoadGame event received" % re.escape(save),
                 timeout=timeout)
     if not m:
