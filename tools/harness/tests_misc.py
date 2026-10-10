@@ -164,7 +164,9 @@ def render(r, actor_uuid, content=None, target=None, template=None):
 
 def rval(r, uuid, expr, target=None):
     """Render one short expression and return it stripped (or None)."""
-    out = render(r, uuid, "{{ %s }}" % expr, target)
+    # The nonce comment sits OUTSIDE the expression (inside {{ }} it broke the template: run 19 CS-12 read '') and makes
+    # every render text unique, so SkyrimNet never answers from a cached render (R55).
+    out = render(r, uuid, "{{ %s }}{# %d #}" % (expr, time.time_ns()), target)
     return None if out is None else out.strip()
 
 
@@ -423,7 +425,7 @@ def su_get(r, uuid, key, dflt=-99, fid=None):
                 return v
             except ValueError:
                 pass
-    v = rval(r, uuid, 'papyrus_util("GetIntValue", actorUUID, "%s", %d) {# %d #}' % (key, dflt, time.time_ns()))
+    v = rval(r, uuid, 'papyrus_util("GetIntValue", actorUUID, "%s", %d)' % (key, dflt))
     try:
         v = int(float(v))
     except (TypeError, ValueError):
@@ -1070,7 +1072,11 @@ def cs12(r):
         r.check("Scene mode is on" not in fin_c and "\n## Scene\n" not in "\n" + fin_c + "\n",
                 "child speaker: no scene contract from 0760")
         r.check(truthy(rval(r, cu, "decnpc(actorUUID).isChild")), "gate input: decnpc(child).isChild is true")
-        r.check(su_get(r, cu, "IEB_IsScenePartner", 0) == 0, "child is not a scene partner")
+        sp = su_get(r, cu, "IEB_IsScenePartner", 0, fid=CHILD)
+        if sp is None:
+            inc(r, "IEB_IsScenePartner on the child unreadable")
+        else:
+            r.check(sp == 0, "child is not a scene partner (IEB_IsScenePartner=%d)" % sp)
         if head_a is not None and "Scene: speak" in head_a:
             r.check(True, "control: adult partner gets the scene tier (scene mode is live in renders)")
         else:
