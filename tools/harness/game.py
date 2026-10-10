@@ -215,6 +215,17 @@ def load(run, save, settle_probe=None, timeout=8 * 60):
 # so block.py reloads the block save before the next test. Cleared by block.py.
 SAVE_FAILED = False
 
+def save_thread(text, name):
+    """R29: the SkyrimNet thread that ran the console save, and whether the engine's SaveGame event came on that same
+    thread (U1 run 15: both failed saves ran on the MCP worker thread, not the main thread)."""
+    m = re.search(r"\] \[(\d+)\] \[info\] \[ConsoleCommandManager[^\]]*\] ConsoleCommandManager: Executing console "
+                  r"command 'save %s'" % re.escape(name), text)
+    if not m:
+        return "thread unknown (no 'Executing console command' line)"
+    ev = re.search(r"\] \[(\d+)\] \[info\] \[SkyrimMain[^\]]*\] SkyrimNet: SaveGame event received", text[m.end():])
+    return "command thread %s; SaveGame event %s" % (m.group(1), ("on thread %s" % ev.group(1)) if ev else "none")
+
+
 def save(run, name, timeout=90):
     """Console save that is only trusted once it has really finished (U1 run 15 B-3, 2026-10-10: 'save IEB_B3' over MCP
     logged "Unknown exception executing console command", left IEB_B3.ess.tmp at 0 bytes, and the test's load of the
@@ -235,6 +246,7 @@ def save(run, name, timeout=90):
         if os.path.exists(ess) and not os.path.exists(tmp) and os.path.getmtime(ess) > before:
             size = os.path.getsize(ess)
             if size > 0 and size == last:
+                run.log("SAVE %s: %s" % (name, save_thread(sn.read(), name)))
                 run.log("SAVE %s: OK via MCP console, complete (%d bytes) after %d s (at send: %s)"
                         % (name, size, time.time() - t0, mem))
                 return True
@@ -242,6 +254,7 @@ def save(run, name, timeout=90):
         time.sleep(2)
     global SAVE_FAILED
     SAVE_FAILED = True
+    run.log("SAVE %s: %s" % (name, save_thread(sn.read(), name)))
     err = re.search(r"Unknown exception executing console command", sn.read())
     run.log("SAVE %s: FAILED via MCP console, not complete after %d s (ess=%s tmp=%s%s; at send: %s; now: Available %.1f GB, "
             "game %.1f GB private)" % (name, timeout, os.path.exists(ess), os.path.exists(tmp),
