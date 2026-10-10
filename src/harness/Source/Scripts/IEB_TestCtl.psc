@@ -211,6 +211,52 @@ Function Dispatch(Int aiFormId, String asKind)
     Log("Dispatch " + asKind + " " + a.GetDisplayName())
 EndFunction
 
+Function Burst(Int aiFormId, Float afSeconds)
+    {Watcher burst mode for B-22 (spec §15.3, §2.1): samples one actor every 0.1 s real time for afSeconds (max 300) and
+     writes "BURST <realtime> <pkg> wfp=<WFP> pos=<x>,<y>,<z>" lines to the ErrandBridgeWatch user log, plus BURST START /
+     BURST END. Runs on its own thread (mod event), so the MCP call returns at once. The host maps package FormIDs to
+     EditorIDs (nwsFollowerWaitBox) and measures intervals from the logged real times; Papyrus may sample slower than
+     0.1 s under load, which the real-time stamps show.}
+    Actor a = A(aiFormId)
+    If a == None
+        Return
+    EndIf
+    RegisterForModEvent("IEB_TestBurst", "OnIEBBurst")
+    Int h = ModEvent.Create("IEB_TestBurst")
+    If h == 0
+        Log("Burst: ModEvent.Create failed")
+        Return
+    EndIf
+    ModEvent.PushForm(h, a)
+    ModEvent.PushFloat(h, afSeconds)
+    ModEvent.Send(h)
+    Log("Burst requested " + a.GetDisplayName() + " " + afSeconds + " s")
+EndFunction
+
+Event OnIEBBurst(Form akActor, Float afSeconds)
+    Actor a = akActor as Actor
+    If a == None
+        Return
+    EndIf
+    If afSeconds > 300.0
+        afSeconds = 300.0
+    EndIf
+    IEB_Watcher w = Watcher()
+    Float t0 = Utility.GetCurrentRealTime()
+    Float stop = t0 + afSeconds
+    Int n = 0
+    ; NFF wait-box packages (nwsFollowerFramework.esp local IDs, read from the plugin 2026-10-10): the host matches these.
+    Form wb = Game.GetFormFromFile(0x025CAD, "nwsFollowerFramework.esp")       ; nwsFollowerWaitBox
+    Form wbpt = Game.GetFormFromFile(0x1F2701, "nwsFollowerFramework.esp")     ; nwsFollowerWaitBoxPT
+    w.W("BURST START " + a.GetDisplayName() + " " + w.Hex(a) + " t=" + t0 + " waitbox=" + w.Hex(wb) + " waitboxpt=" + w.Hex(wbpt))
+    While Utility.GetCurrentRealTime() < stop
+        w.W("BURST " + Utility.GetCurrentRealTime() + " " + w.Hex(a.GetCurrentPackage()) + " wfp=" + a.GetActorValue("WaitingForPlayer") + " pos=" + a.GetPositionX() + "," + a.GetPositionY() + "," + a.GetPositionZ())
+        n += 1
+        Utility.WaitMenuMode(0.1)
+    EndWhile
+    w.W("BURST END " + a.GetDisplayName() + " samples=" + n + " t=" + Utility.GetCurrentRealTime())
+EndEvent
+
 Function Rejoin(Int aiFormId)
     {Prints the rejoin test's inputs (§7.2): distance, |dZ|, same space, loaded, N = IEB_RejoinWarpFactor x NFF warp range.}
     Actor a = A(aiFormId)
