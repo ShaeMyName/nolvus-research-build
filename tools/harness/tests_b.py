@@ -20,6 +20,7 @@ Core.psc:1096. Timeouts are game time: travel force-arrive after 7 h (Travel.psc
 destination is the MCM default 48 h (Core.psc:1688-1689) unless changed; the meeting timeout 5 h (Travel.psc:619).
 
 Destinations: "The Bannered Mare", "Dragonsreach", "the marketplace" are IntelEngine's own examples of valid names
+(but "the marketplace" resolves to Windhelm from Whiterun: ie_destination_resolver.md; not used)
 (VERIFIED IntelEngine actions/schedulemeeting.yaml:38-40); GoToLocation resolves them with the same
 IntelEngine.ResolveAnyDestination (Travel.psc:305; Schedule.psc:160). "Riverwood" (a town) is INFERRED to resolve.
 
@@ -60,9 +61,10 @@ GATE = 0x000162CE
 STABLES = 0x00072879
 BANDIT = 0x0003DECB
 DEST_NEAR = "The Bannered Mare"
-DEST_MARKET = "the Bannered Mare"   # [CHANGED 2026-10-10] "the marketplace" resolves (IntelEngine's own lookup) to
-#   Windhelm Sewers, Marketplace: a real-play resolver finding (investigation/round10/ie_destination_resolver.md).
-#   A named Whiterun place a player would say; IntelEngine resolves it to the inn's exterior door (25918,-6863).
+DEST_MARKET = DEST_NEAR   # [CHANGED 2026-10-10] was "the marketplace", which IntelEngine resolves to Windhelm (a real-play
+#   resolver finding: investigation/round10/ie_destination_resolver.md). "The Bannered Mare" resolves to the inn's exterior
+#   door (25918,-6863), about 6200 u from the gate; IntelEngine may take the NPC through the door ("reached door,
+#   teleporting through"), and its linger then walks her toward the player.
 DEST_UP = "Dragonsreach"
 DEST_FAR = "Riverwood"
 
@@ -162,19 +164,21 @@ def wsamples(text, fid):
             if " dPlayer=" in l and "BURST" not in l and "ASSERT" not in l and rx.search(l)]
 
 
-def warps(samples, near=900.0, speed=800.0):
-    """NFF warp signature while held (iebHeld 1/2): the actor lands within `near` of the player after moving faster
-    than `speed` u per real second between two samples (a warp is instant; a sprint is well under 800 u/s), or after
-    being unloaded (NFF warps to just behind the player, spec §7.2 :1098, :1119). Speed-based because the watcher ticks
-    every ~28-31 s in this load order: U1 2026-10-10 flagged a 5203 u jog in 31 s (168 u/s) as a warp. Thresholds
-    INFERRED. Only call this over windows in which the PLAYER did not teleport."""
+def warps(samples, near=900.0, speed=450.0, jump=1500.0, short=4.5):
+    """NFF warp signature while held (iebHeld 1/2): the actor lands within `near` of the player after either a jump of
+    more than `jump` u between samples at most `short` s apart, or a speed above `speed` u/s (a warp is instant; a jog
+    is ~170 u/s), or after being unloaded (NFF warps to just behind the player, spec §7.2 :1098, :1119). Reviewer
+    2026-10-10: at the fixed 3 s sampling a warp from just past nwsWarpRange (2560) to ~200 u is ~790 u/s, so the earlier
+    800 u/s threshold would miss it. Sample gaps > `short` s inside a held window are caught by block.py
+    (INCONCLUSIVE "watcher interval regressed"). Thresholds INFERRED. Only call this over windows in which the PLAYER
+    did not teleport."""
     out, prev = [], None
     for s in samples:
         dp = num(s.get("dPlayer"))
         if prev is not None and s.get("iebHeld") in ("1", "2") and dp is not None and dp < near:
             dt = (num(s.get("rt")) or 0) - (num(prev.get("rt")) or 0)
             d = dist2(s["xyz"], prev["xyz"]) if s["xyz"] and prev["xyz"] else None
-            if d is not None and dt > 0 and d / dt > speed:
+            if d is not None and dt > 0 and ((d > jump and dt <= short) or d / dt > speed):
                 out.append("jump %.0f u in %.0f s (%.0f u/s) to dPlayer %.0f at gt=%s" % (d, dt, d / dt, dp, s.get("gt")))
             elif prev.get("loaded") == "0" and s.get("loaded") == "1":
                 out.append("unloaded -> loaded at dPlayer %.0f at gt=%s" % (dp, s.get("gt")))
@@ -404,7 +408,7 @@ def narrate(r, fid):
 
 def rejoin_setup(r, label):
     """B-23's flow, also the precondition of B-24/B-25/B-26: the errand ends far away by IntelEngine's game-time wait
-    timeout. Player and F1 at the gate; F1 sent to "the marketplace" (about 4900 u, same worldspace); the player stays,
+    timeout. Player and F1 at the gate; F1 sent to DEST_MARKET (the Bannered Mare, about 6200 u); the player stays,
     so F1 arrives with the player > 1000 u away and waits (Travel.psc:612-647); Accelerate(1000) runs the 48 h wait out
     (about 3 real min; OnWaitTimeout -> ClearSlotRestoreFollower); the bridge then sees F1 loaded, same space, beyond N
     -> REJOIN_WAIT (spec §7.1 :1085). Returns dict(end, spot, take_tail) or None (INCONCLUSIVE logged)."""
@@ -469,8 +473,8 @@ def run_burst(r, label):
 @test("B-1", "B")
 def b1(r):
     """v1 test 1, happy path travel; v2: the end of a remote errand passes through REJOIN_WAIT (spec :3418).
-    Route adapted: an exterior destination ("the marketplace", from the gate) instead of the Bannered Mare interior, so
-    F1 stays loaded and the v2 REJOIN_WAIT branch can occur (with an interior destination F1 unloads and U1 applies)."""
+    Route: from the gate to DEST_MARKET (the Bannered Mare; IntelEngine targets its exterior door), so F1 can stay
+    loaded and the v2 REJOIN_WAIT branch can occur; the player then comes back within N of F1's actual position."""
     try:
         nm = base(r, F1, where=GATE)[0]
         snap(r, F1)
@@ -492,10 +496,21 @@ def b1(r):
         r.check(end is not None, "errand ended after the player visited and left (IE T1): %s" % (end,))
         r.check(end is not None and end[0] == "REJOIN_WAIT", "v2: the end passes through REJOIN_WAIT (got %s)" % (end,))
         if end and end[0] == "REJOIN_WAIT":
+            # Reviewer item 1 (2026-10-10): F1 is not where the errand ended (IntelEngine's linger "approach first"
+            # walks her toward the player, Travel.psc:1347-1358), so "came back" = within N of her ACTUAL position.
+            # Log the §7.2 inputs before and after, and every bridge line in the window.
+            ri0 = rejoin_info(r) or {}
+            r.log("  rejoin inputs before: %s" % ri0)
             tr = fresh()
-            player_to(r, MARKET)                    # the player comes back within N
+            r.ctl("MoveRel", [PLAYER, F1, 600.0, 0.0, 0.0])     # the player comes back within N (600 u from F1)
+            time.sleep(2)
+            ri1 = rejoin_info(r) or {}
+            r.log("  rejoin inputs after the player came back: %s" % ri1)
             d = wait_ieb(tr, REJOIN_EXIT, nm, 30)
-            r.check(d is not None and d[0] == "REJOIN_DONE", "REJOIN_DONE when the player came back (%s)" % (d,))
+            for l in tr.read().splitlines():
+                if "[IEB]" in l and nm in l:
+                    r.log("  bridge: " + l.strip()[:200])
+            r.check(d is not None and d[0] == "REJOIN_DONE", "REJOIN_DONE when the player came back within N (%s)" % (d,))
         time.sleep(5)
         check_inv(r, F1)
         p = probe(r, F1) or {}

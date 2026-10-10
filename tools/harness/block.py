@@ -48,12 +48,16 @@ def test_estimates(b, order):
 
 
 def progress(i, n, tid, verdict, secs, done_est, done_real, remaining_est, started):
-    """One PROGRESS line per test (the session watches these for live ETA pushes, Shae 2026-10-10)."""
+    """One PROGRESS line per test (the session watches these for live ETA pushes, Shae 2026-10-10). The ETA includes
+    the overhead between tests (reloads, relaunches) at the rate measured so far (reviewer 2026-10-10)."""
     ratio = done_real / done_est if done_est else 1.0
-    eta = remaining_est * ratio
-    print("PROGRESS %d/%d %s %s %ds | elapsed %.0f min | pace x%.2f of estimate | ETA %.0f min (done ~%s)"
-          % (i, n, tid, verdict, secs, (time.time() - started) / 60, ratio, eta / 60,
-             time.strftime("%H:%M", time.localtime(time.time() + eta))), flush=True)
+    elapsed = time.time() - started
+    overhead = max(0.0, elapsed - done_real) / max(i, 1) * (n - i)
+    eta = remaining_est * ratio + overhead
+    print("PROGRESS %d/%d %s %s %ds | elapsed %.0f min | pace x%.2f of estimate | overhead %.0f s/test | game %.1f GB | "
+          "ETA %.0f min (done ~%s)"
+          % (i, n, tid, verdict, secs, elapsed / 60, ratio, max(0.0, elapsed - done_real) / max(i, 1),
+             game.game_private_gb(), eta / 60, time.strftime("%H:%M", time.localtime(time.time() + eta))), flush=True)
 
 
 IE_ACTIONS = ("GoToLocation", "DeliverMessage", "FetchPerson", "EscortTarget", "SearchForActor", "ScheduleFetch",
@@ -155,6 +159,9 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             crashes += 1
             r = Run(tid)
         r.forced = meta["forced"]
+        if game.LAST_NUDGE:     # reviewer 2026-10-10: the settle nudge adds one real F1 reply to SkyrimNet history
+            r.log("NOTE %s: the last load's settle nudge added one F1 narration to SkyrimNet history (%s)"
+                  % (tid, game.LAST_NUDGE))
         r.tails = {k: game.Tail(p) for k, p in game.LOGS.items()}
         t0 = time.time()
         try:
@@ -180,7 +187,12 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             r.log("INCONCLUSIVE %s: the game crashed during the test (see the newest SKSE crash-*.log)" % tid)
         if r.forced:
             r.log("NOTE %s: forced state (weaker evidence than natural play)" % tid)
-        inv = [l for l in r.tails["watch"].read().splitlines() if re.search(r"ASSERT FAIL I\d", l)]
+        wtext = r.tails["watch"].read()
+        gap = held_gap(wtext)
+        if gap:     # reviewer 2026-10-10: the 30 s sampling bug must never come back silently
+            r.inconclusive += 1
+            r.log("INCONCLUSIVE %s: watcher interval regressed (%s)" % (tid, gap))
+        inv = [l for l in wtext.splitlines() if re.search(r"ASSERT FAIL I\d", l)]
         for l in inv:
             r.check(False, "watcher invariant: " + l.strip())
         verdict = r.save()
@@ -238,6 +250,26 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
     return sum(1 for _, v in results if v != "ALL PASS")
 
 
+def held_gap(text, limit=4.5):
+    """Largest gap between consecutive watcher ticks while any actor is held (iebHeld 1/2), if above `limit` s."""
+    ticks = []
+    for l in text.splitlines():
+        m = re.search(r"\brt=([0-9.]+) gt=", l)
+        if not m or "BURST" in l or "probe" in l or "snapshot" in l:
+            continue
+        t = float(m.group(1))
+        held = re.search(r"\biebHeld=[12]\b", l) is not None
+        if ticks and t - ticks[-1][0] <= 1.5:
+            ticks[-1] = (ticks[-1][0], ticks[-1][1] or held)
+        else:
+            ticks.append((t, held))
+    worst = 0.0
+    for (a, ha), (b, hb) in zip(ticks, ticks[1:]):
+        if ha and hb and a <= b:
+            worst = max(worst, b - a)
+    return ("%.1f s between ticks while held" % worst) if worst > limit else ""
+
+
 MAX_CRASHES = 3
 
 
@@ -283,4 +315,9 @@ def main(a):
 
 
 if __name__ == "__main__":
-    sys.exit(1 if main(sys.argv[1:]) else 0)
+    try:
+        rc = main(sys.argv[1:])
+    except BaseException as e:      # reviewer 2026-10-10: an unattended block always ends with DONE, ABORT or HALT
+        print("BLOCK ABORT %s: %s %r" % (sys.argv[1] if len(sys.argv) > 1 else "?", type(e).__name__, e), flush=True)
+        raise
+    sys.exit(1 if rc else 0)

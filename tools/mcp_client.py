@@ -23,6 +23,14 @@ class MCP:
         self.notify("notifications/initialized", {})
 
     def _read(self):
+        try:
+            self._read_stream()
+        except (ConnectionResetError, ConnectionAbortedError, OSError) as e:
+            # The game closing (or a relaunch) drops the SSE stream: expected, so end quietly (reviewer 2026-10-10),
+            # but leave one marker so a mid-test drop is still visible to request() callers.
+            self.q.put(("closed", repr(e)))
+
+    def _read_stream(self):
         event, data = "message", []
         for raw in self.resp:
             line = raw.decode("utf-8", "replace").rstrip("\r\n")
@@ -49,6 +57,8 @@ class MCP:
         self._post({"jsonrpc": "2.0", "id": rid, "method": method, "params": params})
         while True:
             ev, data = self.q.get(timeout=timeout)
+            if ev == "closed":
+                raise ConnectionError("MCP stream closed: " + data)
             try:
                 m = json.loads(data)
             except ValueError:

@@ -17,6 +17,9 @@ HARNESS_YAML = ("C:/Nolvus/Instances/Nolvus Awakening/MODS/mods/SkyrimNet Config
                 "Harness.yaml")     # test config only; writes approved for the soak and the step-8 blocks (D1, extended to U1)
 
 
+LAST_NUDGE = ""     # set when the last load's settle needed the F1 narration nudge (noted in every test record after it)
+
+
 def harness_mode():
     return open(HARNESS_YAML, encoding="utf-8").read().strip().replace(" ", "") == "enabled:true"
 
@@ -106,7 +109,7 @@ def launch(log=print, timeout=20 * 60, voices=True):
     t0 = time.time()
     while time.time() - t0 < timeout:
         if "SkyrimSE.exe" in procs() and mcp_up():
-            log("LAUNCH ok after %d s (MCP answers)" % (time.time() - t0))
+            log("LAUNCH ok after %d s (MCP answers; game %.1f GB private)" % (time.time() - t0, game_private_gb()))
             return True
         time.sleep(10)
     log("LAUNCH failed: no MCP answer within %d s (running: %s)" % (timeout, sorted(procs())))
@@ -131,7 +134,7 @@ def load(run, save, settle_probe=None, timeout=8 * 60):
     if not m:
         run.log("LOAD %s: no PostLoadGame within %d s" % (save, timeout))
         return False
-    run.log("LOAD %s: in game after %d s" % (save, time.time() - t0))
+    run.log("LOAD %s: in game after %d s (game %.1f GB private)" % (save, time.time() - t0, game_private_gb()))
     # A modal box (SkyrimNet's Timeline Mismatch without harness mode, a crash notice...) freezes Papyrus and makes
     # SkyrimNet report the game paused: 0 eligible actions for everyone (shakedown 2026-10-10). Wait it out briefly.
     pu = run.tool("get_player_info", {}).get("uuid")
@@ -150,15 +153,18 @@ def load(run, save, settle_probe=None, timeout=8 * 60):
     # first lull trigger ~120 s after unpause; once ~9.5 min). Until "Completed eligibility pre-warming" every actor
     # has 0 eligible actions (notices_research.md, 2026-10-10). Wait for it; after 45 s nudge it with one narration
     # by F1 (IEB_TestCtl.Narrate = DirectNarration), which builds a prompt.
+    global LAST_NUDGE
+    LAST_NUDGE = ""
     warm = r"Completed eligibility pre-warming"
     if not sn.wait(warm, timeout=45):
+        LAST_NUDGE = time.strftime("%H:%M:%S")
         run.tool("execute_quest_function", {"quest_editor_id": "IEB_TestQuest", "script_name": "IEB_TestCtl",
                                              "function_name": "Narrate", "arguments": [0xE1BA9]})
         run.log("SETTLE: no eligibility warm-up after 45 s; nudged with one F1 narration")
         if not sn.wait(warm, timeout=120):
             run.log("SETTLE: SkyrimNet never warmed eligibility (tests that need actions will say so)")
     else:
-        run.log("SETTLE: SkyrimNet warmed eligibility after %d s" % (time.time() - t0))
+        run.log("SETTLE: SkyrimNet warmed eligibility after %d s (game %.1f GB)" % (time.time() - t0, game_private_gb()))
     if settle_probe:
         action, uuid_of = settle_probe
         for _ in range(12):
@@ -170,7 +176,7 @@ def load(run, save, settle_probe=None, timeout=8 * 60):
                 r = run.tool("check_action_eligibility", {"action_name": action, "actor_uuid": u}) if u else {}
                 ok = isinstance(r, dict) and (r.get("isEligible") or r.get("eligible"))
             if ok:
-                run.log("SETTLE ok after %d s (%s eligible)" % (time.time() - t0, action))
+                run.log("SETTLE ok after %d s (%s eligible; game %.1f GB)" % (time.time() - t0, action, game_private_gb()))
                 return True
             time.sleep(10)
         run.log("SETTLE probe not eligible within 2 min after warm-up; continuing (tests that need SA will say so)")
