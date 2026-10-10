@@ -197,17 +197,20 @@ def name(r, fid):
 # ---------------------------------------------------------------- bridge log lines
 
 
+# Case-insensitive bridge-log matching: Papyrus stores strings case-insensitively and the first spelling it meets
+# wins, so bridge tokens that match an identifier print in that identifier's case (U1 run 15 B-14: "DISABLE" ->
+# "[IEB] Disable", "why=disable" -> "why=Disable", from IEB_Main's Disable()/Enable()).
 def ieb_rx(kws, nm):
-    return r"(?m)\[IEB\] (%s) actor=%s(?=[ \r]|$)(.*)$" % ("|".join(kws), re.escape(nm))
+    return r"(?mi)\[IEB\] (%s) actor=%s(?=[ \r]|$)(.*)$" % ("|".join(kws), re.escape(nm))
 
 
 def wait_ieb(tail, kws, nm, timeout):
     m = tail.wait(ieb_rx(kws, nm), timeout)
-    return (m.group(1), m.group(2).strip()) if m else None
+    return (m.group(1).upper(), m.group(2).strip()) if m else None
 
 
 def ieb_events(text, nm):
-    return [(m.group(1), m.group(2).strip()) for m in re.finditer(ieb_rx(("[A-Z_]+",), nm), text)]
+    return [(m.group(1).upper(), m.group(2).strip()) for m in re.finditer(ieb_rx(("[A-Z_]+",), nm), text)]
 
 
 def arrived_rx(nm):
@@ -589,7 +592,7 @@ def b3(r):
             return
         time.sleep(20)                          # second reconcile at about +15 ticks (IEB_Main.psc:99-106)
         txt = tl.read()
-        r.check(bool(re.search(r"\[IEB\] SETUP", txt)) and bool(re.search(r"\[IEB\] RECONCILE", txt)),
+        r.check(bool(re.search(r"(?i)\[IEB\] SETUP", txt)) and bool(re.search(r"(?i)\[IEB\] RECONCILE", txt)),
                 "LOAD -> RECONCILE logged (level-2 lines SETUP, RECONCILE)")
         r.check(not ieb_events(txt, nm) or all(k in ("REPARK",) for k, _ in ieb_events(txt, nm)),
                 "reconcile kept the hold (no release line: %s)" % ieb_events(txt, nm))
@@ -1011,13 +1014,13 @@ def b14(r):
             r.log("INCONCLUSIVE B-14 lend part: H was not lent (%s)" % (hl,))
         td = fresh()
         con(r, "set IEB_Enabled to 0")
-        d = td.wait(r"\[IEB\] DISABLE", 20)
+        d = td.wait(r"(?i)\[IEB\] DISABLE", 20)
         r.check(bool(d), "DISABLE")
         x = wait_ieb(td, REL_KW, nm, 5)
         r.check(x is not None and x[0] == "RELEASE_FOLLOW", "held F1 released (%s)" % (x,))
         if lend_ok:
             lr = wait_ieb(td, ("LEND_RESTORE", "LEND_RESTORE_SKIP"), hn, 5)
-            r.check(lr is not None and lr[0] == "LEND_RESTORE" and "why=disable" in lr[1], "lend restored (%s)" % (lr,))
+            r.check(lr is not None and lr[0] == "LEND_RESTORE" and "why=disable" in lr[1].lower(), "lend restored (%s)" % (lr,))
         sk1 = skip_probe(r) or {}
         r.check(sk1 and all(sk1[k] == 1 for k in SKIP_KEYS), "IntelEngine SkipFollower* all true (%s)" % sk1)
         tn = fresh()
@@ -1032,7 +1035,7 @@ def b14(r):
     finally:
         te = fresh()
         con(r, "set IEB_Enabled to 1")
-        e = te.wait(r"\[IEB\] ENABLE", 30)
+        e = te.wait(r"(?i)\[IEB\] ENABLE", 30)
         r.check(bool(e), "ENABLE after toggling back")
         if sk0:
             sk2 = skip_probe(r) or {}
@@ -1199,7 +1202,7 @@ def b18(r):
         tidy(r, H)
         td = fresh()
         con(r, "set IEB_Enabled to 0")
-        if td.wait(r"\[IEB\] DISABLE", 20):
+        if td.wait(r"(?i)\[IEB\] DISABLE", 20):
             time.sleep(2)
             row("S7", uf)
         else:
@@ -1208,7 +1211,7 @@ def b18(r):
     finally:
         te = fresh()
         con(r, "set IEB_Enabled to 1")
-        te.wait(r"\[IEB\] ENABLE", 30)
+        te.wait(r"(?i)\[IEB\] ENABLE", 30)
         tidy(r, F1, PROT, H)
 
 

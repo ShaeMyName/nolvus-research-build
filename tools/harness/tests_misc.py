@@ -276,7 +276,7 @@ def su_unset(r, fid, key):
 
 
 def take_pat(name):
-    return r"\[IEB\] TAKE actor=%s\b" % re.escape(name)
+    return r"(?i)\[IEB\] TAKE actor=%s\b" % re.escape(name)
 
 
 def errand(r, fid, name, dest, timeout=90):
@@ -290,7 +290,7 @@ def recall(r, fid, name, timeout=120):
     """IEB_TestCtl.Recall stay=0 (IEB_Main.CancelOrRecall), wait for a terminal bridge line."""
     t = tail("papyrus")
     r.ctl("Recall", [s32(fid), 0])
-    return t.wait(r"\[IEB\] (RELEASE\w*|REJOIN_DONE|REJOIN_TO_WAIT) actor=%s\b" % re.escape(name), timeout=timeout)
+    return t.wait(r"(?i)\[IEB\] (RELEASE\w*|REJOIN_DONE|REJOIN_TO_WAIT) actor=%s\b" % re.escape(name), timeout=timeout)
 
 
 def watch_all(r, fid, text=None):
@@ -814,7 +814,7 @@ def rel1(r):
         su_set(r, F1, "SNRom_AskPending", 1)
         su_unset(r, F1, "SNRom_LastAskAttempt")
         su_unset(r, F1, "SNRom_AskAttempts")
-        if not pt.wait(r"\[IEB\] (REJOIN_WAIT|RELEASE\w*|REJOIN_DONE) actor=%s\b" % re.escape(name), timeout=10 * 60):
+        if not pt.wait(r"(?i)\[IEB\] (REJOIN_WAIT|RELEASE\w*|REJOIN_DONE) actor=%s\b" % re.escape(name), timeout=10 * 60):
             return inc(r, "errand did not end within 10 min")
         m = st.wait(r"%s is raising the question in her own words" % re.escape(name), timeout=10 * 60)
         if not m:
@@ -829,7 +829,7 @@ def rel1(r):
             r.log("  BOX ON SCREEN: one key press needed (the game is paused until answered)")
             inc(r, "box opened before the disable landed")
         txt = r.tails["papyrus"].read()
-        r.check(not re.search(r"\[IEB\] ERROR", txt), "no [IEB] ERROR line")
+        r.check(not re.search(r"(?i)\[IEB\] ERROR", txt), "no [IEB] ERROR line")
         r.check(not re.search(r" L1 .*%s" % re.escape(name), st.read()), "no Relationships error line for F1")
     finally:
         recall(r, F1, name)
@@ -1060,7 +1060,7 @@ def _set_pts(r, fid, pts):
 
 def _ranksync(text, name):
     return [m.groupdict() for m in re.finditer(
-        r"\[IEB\] RANKSYNC actor=%s(?: from=(?P<f>-?\d+) to=(?P<t>-?\d+))? why=(?P<why>\S+)" % re.escape(name), text)]
+        r"(?i)\[IEB\] RANKSYNC actor=%s(?: from=(?P<f>-?\d+) to=(?P<t>-?\d+))? why=(?P<why>\S+)" % re.escape(name), text)]
 
 
 @test("RS-1", "RS")

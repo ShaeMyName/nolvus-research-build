@@ -21,7 +21,7 @@ OURS = ["ieb.errandbridge", "shae.dialogue-actions", "shae.privacy-overrides", "
 DECIDE = ("TAKE", "LEND", "REFUSE", "TAKE_SKIP")
 TERMINAL = re.compile(r"^(RELEASE\w*|REJOIN_DONE|REJOIN_CANCELLED|REJOIN_TO_WAIT|LEND_RESTORE\w*|LEND_ABORT)$")
 ALLOC = re.compile(r"IntelEngine: Allocated slot (\d+) to (.+?) for (\S+)")
-BRIDGE = re.compile(r"\[IEB\] ([A-Z_]+) actor=(.+?)(?= [a-zA-Z]+=|$)")
+BRIDGE = re.compile(r"\[IEB\] ([A-Za-z_]+) actor=(.+?)(?= [a-zA-Z]+=|$)")   # any case: Papyrus string case-folding (U1 B-14)
 fails = 0
 
 
@@ -45,7 +45,7 @@ def i5(lines):
             continue
         m = BRIDGE.search(l)
         if m:
-            kw, name = m.group(1), m.group(2).strip()
+            kw, name = m.group(1).upper(), m.group(2).strip()
             if kw == "DISPATCH_CONFLICT":
                 conflicts += 1
             t = open_by_name.get(name)

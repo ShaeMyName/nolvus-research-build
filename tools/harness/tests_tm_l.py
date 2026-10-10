@@ -165,7 +165,7 @@ def probe(r, fid, timeout=10):
 
 def decision(t, fid, timeout=10):
     """The bridge's decision for a take (IEB_Main:251, 257, 278, 293, 320): TAKE / TAKE_SKIP / LEND / REFUSE."""
-    return t.wait(r"\[IEB\] (TAKE|TAKE_SKIP|LEND|REFUSE) actor=%s\b[^\n]*" % re.escape(nm(fid)), timeout=timeout)
+    return t.wait(r"(?i)\[IEB\] (TAKE|TAKE_SKIP|LEND|REFUSE) actor=%s\b[^\n]*" % re.escape(nm(fid)), timeout=timeout)
 
 
 def start_errand(r, fid, dests, timeout=10):
@@ -193,10 +193,10 @@ def release_f(r, fid, timeout=40):
     """Recall(F, 0) = CancelCurrentTask stayHere 0 (TestCtl:135-143 -> IEB_Main.CancelOrRecall:754-797)."""
     t = tail("papyrus")
     r.ctl("Recall", [fid, 0])
-    m = t.wait(r"\[IEB\] (RELEASE_FOLLOW|RELEASE_STAY|RELEASE_SEATLOST|RELEASE_DEAD|RELEASE|REJOIN_DONE|"
+    m = t.wait(r"(?i)\[IEB\] (RELEASE_FOLLOW|RELEASE_STAY|RELEASE_SEATLOST|RELEASE_DEAD|RELEASE|REJOIN_DONE|"
                r"REJOIN_TO_WAIT|REJOIN_CANCELLED) actor=%s\b[^\n]*" % re.escape(nm(fid)), timeout=timeout)
     if not m:
-        m = t.wait(r"\[IEB\] RECALL_REQ actor=%s\b[^\n]*" % re.escape(nm(fid)), timeout=1)
+        m = t.wait(r"(?i)\[IEB\] RECALL_REQ actor=%s\b[^\n]*" % re.escape(nm(fid)), timeout=1)
     r.log("  release %s: %s" % (nm(fid), m.group(0).split("[IEB] ")[-1] if m else "no release line"))
     return m
 
@@ -205,7 +205,7 @@ def restore_lend(r, fid, timeout=40):
     """Cancel the lent NPC's slot (TestCtl.Cancel:127-133) and wait for LEND_RESTORE (IEB_Main:474-489)."""
     t = tail("papyrus")
     r.ctl("Cancel", [fid])
-    m = t.wait(r"\[IEB\] LEND_RESTORE(?:_SKIP)? actor=%s\b[^\n]*" % re.escape(nm(fid)), timeout=timeout)
+    m = t.wait(r"(?i)\[IEB\] LEND_RESTORE(?:_SKIP)? actor=%s\b[^\n]*" % re.escape(nm(fid)), timeout=timeout)
     r.log("  restore %s: %s" % (nm(fid), m.group(0).split("[IEB] ")[-1] if m else "no LEND_RESTORE"))
     return m
 
@@ -491,7 +491,7 @@ def tm8(r):
         moveto(r, AWAY_REF)
         if not timeout_at_dest(r, F1):
             return inconclusive(r, "F1 never reached its errand's timeout (arrival or Accelerate)")
-        rj = r.tails["papyrus"].wait(r"\[IEB\] (REJOIN_WAIT|RELEASE_FOLLOW|RELEASE_STAY|RELEASE) actor=%s\b" % nmF, 20)
+        rj = r.tails["papyrus"].wait(r"(?i)\[IEB\] (REJOIN_WAIT|RELEASE_FOLLOW|RELEASE_STAY|RELEASE) actor=%s\b" % nmF, 20)
         ctl_wait(r, "Rejoin", [F1], r"\[IEB-TEST\] Rejoin [^\n]*", 10)
         if not rj or rj.group(1) != "REJOIN_WAIT":
             return inconclusive(r, "no rejoin phase (%s); see the Rejoin line for dist and N" % (rj.group(1) if rj else "no release"))
@@ -515,11 +515,11 @@ def tm10(r):
         moveto(r, AWAY_REF)
         if not timeout_at_dest(r, F1):
             return inconclusive(r, "no plain-ClearSlot exit observed (arrival or Accelerate failed)")
-        rel = r.tails["papyrus"].wait(r"\[IEB\] (REJOIN_WAIT|RELEASE_FOLLOW|RELEASE_STAY|RELEASE) actor=%s\b" % nmF, 20)
+        rel = r.tails["papyrus"].wait(r"(?i)\[IEB\] (REJOIN_WAIT|RELEASE_FOLLOW|RELEASE_STAY|RELEASE) actor=%s\b" % nmF, 20)
         r.check(bool(rel), "bridge released F1 after the plain exit (%s)" % (rel.group(1) if rel else "none"))
         f = probe(r, F1)
         r.check(bool(f) and f.get("tm") == 1, "F1 is a teammate after the plain ClearSlot exit (tm=%s)" % (f and f.get("tm")))
-        r.check(not re.search(r"\[IEB\] TEAMMATE_WAS_OFF actor=%s\b" % nmF, r.tails["papyrus"].read()),
+        r.check(not re.search(r"(?i)\[IEB\] TEAMMATE_WAS_OFF actor=%s\b" % nmF, r.tails["papyrus"].read()),
                 "no TEAMMATE_WAS_OFF for F1")
     finally:
         release_f(r, F1)
@@ -628,7 +628,7 @@ def tm13(r):
         moveto(r, AWAY_REF)
         if not timeout_at_dest(r, F1):
             return inconclusive(r, "no plain-ClearSlot exit observed")
-        r.check(bool(r.tails["papyrus"].wait(r"\[IEB\] TEAMMATE_WAS_OFF actor=%s\b" % nmF, 20)),
+        r.check(bool(r.tails["papyrus"].wait(r"(?i)\[IEB\] TEAMMATE_WAS_OFF actor=%s\b" % nmF, 20)),
                 "A/B: bridge restored the flag with TEAMMATE_WAS_OFF")
         f = probe(r, F1)
         r.check(bool(f) and f.get("tm") == 1, "F1 a teammate again after release")
@@ -649,7 +649,7 @@ def lend(r, fid, dests=DEST_NEAR):
     snapshot(r, fid)
     ctl_wait(r, "ExpectLend", [fid], r"\[IEB-TEST\] ExpectLend", 10)
     dest, d = start_errand(r, fid, dests)
-    m = re.search(r"\[IEB\] LEND actor=\S.*? kind=(\d+)", d or "")
+    m = re.search(r"(?i)\[IEB\] LEND actor=\S.*? kind=(\d+)", d or "")
     return d, int(m.group(1)) if m else None
 
 
@@ -730,7 +730,7 @@ def l3(r):
         moveto(r, AWAY_REF)
         if not timeout_at_dest(r, H):
             return inconclusive(r, "H's errand never reached its end")
-        rs = r.tails["papyrus"].wait(r"\[IEB\] LEND_RESTORE actor=%s kind=\d+ why=(\S+)" % nm(H), 20)
+        rs = r.tails["papyrus"].wait(r"(?i)\[IEB\] LEND_RESTORE actor=%s kind=\d+ why=(\S+)" % nm(H), 20)
         r.check(bool(rs), "LEND_RESTORE (why=%s)" % (rs.group(1) if rs else "-"))
         s = sample_moves(r, H, 30, 2)
         pts = [(t, p) for t, p in s if p.get("loaded") == 1 and p.get("xyz") and p.get("interior") is False]
@@ -747,7 +747,7 @@ def l3(r):
                 inconclusive(r, "H did not move back within 30 s (net %d u)" % moved)
         check_inv(r, H, "I4 after restore (>= 30 s)")
     finally:
-        if not r.tails["papyrus"].wait(r"\[IEB\] LEND_RESTORE(?:_SKIP)? actor=%s\b" % nm(H), 1):
+        if not r.tails["papyrus"].wait(r"(?i)\[IEB\] LEND_RESTORE(?:_SKIP)? actor=%s\b" % nm(H), 1):
             restore_lend(r, H)
         moveto(r, HOME_REF, 8)
 
@@ -769,7 +769,7 @@ def l4(r):
         lines = actor_lines(w.read(), G)
         r.check(bool(lines) and not any(re.search(r"165677\b", s.get("pkg", ""), re.I) for s in lines),
                 "G never on the guard package (110) during the errand (%d samples)" % len(lines))
-        rs = r.tails["papyrus"].wait(r"\[IEB\] LEND_RESTORE actor=%s\b[^\n]*" % nm(G), 20)
+        rs = r.tails["papyrus"].wait(r"(?i)\[IEB\] LEND_RESTORE actor=%s\b[^\n]*" % nm(G), 20)
         r.check(bool(rs), "LEND_RESTORE for G")
         seat = None
         for _ in range(12):
@@ -781,7 +781,7 @@ def l4(r):
         r.check(seat is not None, "restore re-seated G's guard alias (guardIdx=%s)" % seat)
         check_inv(r, G, "I4 after restore")
     finally:
-        if not r.tails["papyrus"].wait(r"\[IEB\] LEND_RESTORE(?:_SKIP)? actor=%s\b" % nm(G), 1):
+        if not r.tails["papyrus"].wait(r"(?i)\[IEB\] LEND_RESTORE(?:_SKIP)? actor=%s\b" % nm(G), 1):
             restore_lend(r, G)
         moveto(r, HOME_REF, 8)
 
@@ -883,12 +883,12 @@ def l10(r):
         moveto(r, AWAY_REF)
         if not timeout_at_dest(r, H):
             return inconclusive(r, "H's errand never reached its end after the load")
-        rs = r.tails["papyrus"].wait(r"\[IEB\] LEND_RESTORE actor=%s\b[^\n]*" % nm(H), 20)
+        rs = r.tails["papyrus"].wait(r"(?i)\[IEB\] LEND_RESTORE actor=%s\b[^\n]*" % nm(H), 20)
         r.check(bool(rs), "LEND_RESTORE after the errand")
         time.sleep(30)
         check_inv(r, H, "I4 after restore")
     finally:
-        if not r.tails["papyrus"].wait(r"\[IEB\] LEND_RESTORE(?:_SKIP)? actor=%s\b" % nm(H), 1):
+        if not r.tails["papyrus"].wait(r"(?i)\[IEB\] LEND_RESTORE(?:_SKIP)? actor=%s\b" % nm(H), 1):
             restore_lend(r, H)
         moveto(r, HOME_REF, 8)
 
@@ -917,7 +917,7 @@ def l9(r):
     while time.time() < end and not m2:
         txt = r.tails["papyrus"].read()
         cut = txt.rfind("[IEB] SETUP")                                   # IEB_Main:49, once per load
-        m2 = re.search(r"\[IEB\] LEND_RESTORE actor=%s kind=\d+ why=(reconcile|orphan)" % nm(H), txt[cut if cut >= 0 else 0:])
+        m2 = re.search(r"(?i)\[IEB\] LEND_RESTORE actor=%s kind=\d+ why=(reconcile|orphan)" % nm(H), txt[cut if cut >= 0 else 0:])
         time.sleep(3)
     r.check(bool(m2), "after load: LEND_RESTORE by %s" % (m2.group(1) if m2 else "nothing"))
     p = probe(r, H)
