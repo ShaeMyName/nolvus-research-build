@@ -32,7 +32,10 @@ def say(m):
 def fresh(harness):
     if game.procs():
         game.close(None, timeout=60, force=True)
-        time.sleep(10)
+    for _ in range(30):              # 19:15 abort: MO2 was still exiting 10 s after the close
+        if not game.procs():
+            break
+        time.sleep(2)
     if game.harness_mode() != harness:
         game.set_harness_mode(harness, say)
     if not game.launch(say, voices=False):
@@ -67,7 +70,10 @@ def clear_box(ctl):
         focused = keys.focus_game()
         say("Timeline box: %s; game window focused=%s" % ("open" if line else "no MENUPROBE answer", focused))
         if focused:
-            keys.press("ESC")
+            # Keep History is the highlighted choice: Enter picks it (Esc did not close the box, 19:14). Enter only
+            # ever goes to a verified-foreground game window, never to MO2's exit dialog ("Exit Now" is its default).
+            key = "ESC" if i % 2 == 0 else "ENTER"
+            say("Timeline box: sent %s (accepted=%s)" % (key, keys.press(key)))
         time.sleep(5)
     say("Timeline box: STILL OPEN after 8 tries: harness-OFF cells INCONCLUSIVE")
     return False

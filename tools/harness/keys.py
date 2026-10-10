@@ -39,11 +39,38 @@ def focus_game():
     return user32.GetForegroundWindow() == h
 
 
+class _KI(ctypes.Structure):
+    _fields_ = [("wVk", wintypes.WORD), ("wScan", wintypes.WORD), ("dwFlags", wintypes.DWORD),
+                ("time", wintypes.DWORD), ("dwExtraInfo", ctypes.c_size_t)]
+
+
+class _MI(ctypes.Structure):     # only for the union size (INPUT must be the full Windows size or SendInput fails)
+    _fields_ = [("dx", wintypes.LONG), ("dy", wintypes.LONG), ("mouseData", wintypes.DWORD),
+                ("dwFlags", wintypes.DWORD), ("time", wintypes.DWORD), ("dwExtraInfo", ctypes.c_size_t)]
+
+
+class _U(ctypes.Union):
+    _fields_ = [("ki", _KI), ("mi", _MI)]
+
+
+class _INPUT(ctypes.Structure):
+    _fields_ = [("type", wintypes.DWORD), ("u", _U)]
+
+
+def _send(sc, up):
+    i = _INPUT(type=1)
+    i.u.ki = _KI(0, sc, KEYEVENTF_SCANCODE | (KEYEVENTF_KEYUP if up else 0), 0, 0)
+    return user32.SendInput(1, ctypes.byref(i), ctypes.sizeof(_INPUT))
+
+
 def press(key, hold=0.08):
+    """SendInput scancodes (R29 2026-10-10 19:14: keybd_event Esc reached a focused game window 8 times and the box
+    never reacted). Returns False when Windows rejected the input (e.g. UIPI)."""
     sc = SCAN[key]
-    user32.keybd_event(0, sc, KEYEVENTF_SCANCODE, 0)
+    ok = _send(sc, False) == 1
     time.sleep(hold)
-    user32.keybd_event(0, sc, KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP, 0)
+    ok = (_send(sc, True) == 1) and ok
+    return ok
 
 
 def quicksave(log=print):
