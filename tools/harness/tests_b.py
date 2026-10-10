@@ -1090,6 +1090,15 @@ def b15(r):
         tidy(r, F1)
 
 
+def sa_catchup_split(text, nm):
+    """SA CellCatchup lines naming nm, split into (wfp skips, everything else). Formats from SeverActionsNative.dll's
+    string table (2026-10-10): "CellCatchup: skip {} ({:08X}) — WaitingForPlayer AV" (seen live), "CellCatchup: Moved
+    {:08X} ({}) to player cell", "CellCatchup: {:08X} ({}) resumed follow (same cell)". selftest.py has positive controls."""
+    lines = [l for l in text.splitlines() if nm in l and re.search(r"(?i)CellCatchup", l)]
+    skips = [l for l in lines if re.search(r"(?i)CellCatchup: skip .*WaitingForPlayer", l)]
+    return skips, [l for l in lines if l not in skips]
+
+
 @test("B-16", "B", reload=True)
 def b16(r):
     """v1 test 16: the player fast-travels away during test 5 (proposed wrapper FastTravelTo = Game.FastTravel,
@@ -1118,9 +1127,7 @@ def b16(r):
         time.sleep(20)
     # SA's catch-up format, seen live (U1 run 16 B-16, SeverActionsNative.log 14:18:53): "CellCatchup: skip <Name>
     # (<formid>) — WaitingForPlayer AV" is the expected wfp=1 skip; any other CellCatchup line naming F1 is a move.
-    lines = [l for l in sa.read().splitlines() if nm in l and re.search(r"(?i)CellCatchup", l)]
-    skips = [l for l in lines if re.search(r"(?i)CellCatchup: skip .*WaitingForPlayer", l)]
-    moves = [l for l in lines if l not in skips]
+    skips, moves = sa_catchup_split(sa.read(), nm)
     r.check(not moves, "no SA CellCatchup move of F1 (%s)" % (moves[:2] or "none"))
     r.log("  SA CellCatchup skip lines for F1 (wfp=1): %d" % len(skips))
     r.ctl("Cancel", [F1])
