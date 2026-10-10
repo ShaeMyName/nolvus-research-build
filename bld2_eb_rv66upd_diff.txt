@@ -1,0 +1,35 @@
+# BLD-2 RV-66-upd: bridge pex compiled against the final IE tree e92b762 vs 0cf334e (compiled against 00729f1). Tool tools/ie_callsites.py. Expect: only IEB_Main.HeldUpkeep changes (keep-mode 10 s window + gap logging); every other bridge pex IDENTICAL. freeze_check out/ErrandBridge.esp bin/eb: PASS.
+## IEB_CFData.pex
+functions: A 9, B 9
+call sites: A 142, B 142
+IDENTICAL
+## IEB_CFLib.pex
+functions: A 28, B 28
+call sites: A 99, B 99
+IDENTICAL
+## IEB_IELib.pex
+functions: A 18, B 18
+call sites: A 60, B 60
+IDENTICAL
+## IEB_Main.pex
+functions: A 45, B 45
+call sites: A 529, B 531
+  heldupkeep                         isplayerteammate                               0 -> 1
+  heldupkeep                         storageutil.getintvalue                        3 -> 4
+DIFFERENT
+## IEB_NFFLib.pex
+functions: A 15, B 15
+call sites: A 34, B 34
+IDENTICAL
+## IEB_PlayerAlias.pex
+functions: A 3, B 3
+call sites: A 4, B 4
+IDENTICAL
+## IEB_RankSync.pex
+functions: A 13, B 13
+call sites: A 59, B 59
+IDENTICAL
+## IEB_SALib.pex
+functions: A 17, B 17
+call sites: A 69, B 69
+IDENTICAL
