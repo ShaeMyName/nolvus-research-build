@@ -240,4 +240,12 @@ _res.clear()
 _cl.i5(["[x] IntelEngine: Allocated slot 0 to Brenuin for Travel", "[x] [IEB] LEND actor=Brenuin kind=7",
         "[x] [IEB] LEND_RESTORE actor=Brenuin kind=7 why=task_end", "[x] [IEB] LEND_RESTORE actor=Brenuin kind=7 why=task_end"])
 check(any(not c for c, i, m in _res if "terminals" in m), "I5: two terminals in one timeline still fails")
+_res.clear()
+_cl.i5(["[x] IntelEngine: Allocated slot 0 to Jenassa for Travel", "[x] [IEB] TAKE actor=Jenassa mode=1",
+        "[x] [IEB] RELEASE_FOLLOW actor=Jenassa", "[x] Reverting game..."])
+check(all(c for c, i, m in _res if "terminals" in m), "I5: a task finished before a reload to another save passes (run 18 D-2)")
+_res.clear()
+_cl.i5(["[x] IntelEngine: Allocated slot 0 to Jenassa for Travel", "[x] [IEB] TAKE actor=Jenassa mode=1",
+        "[x] Reverting game...", "[x] [IEB] RELEASE_FOLLOW actor=Jenassa"])
+check(all(c for c, i, m in _res if "terminals" in m), "I5: a task held open in the save, ended after the load, passes")
 sys.exit(0 if ok else 1)

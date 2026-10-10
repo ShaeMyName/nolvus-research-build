@@ -38,12 +38,14 @@ def i5(lines):
     conflicts = errors = 0
     for idx, l in enumerate(lines):
         if "Reverting game..." in l:
-            # A load rolls the world back to the save, so terminals logged by the pre-load session for a task still open
-            # in that save are undone. Keep each task's decisions but restart its terminal count. (U1 run 18 L-9:
-            # KillAndSave, LEND_RESTORE in the pre-load session, then the save's own task end restored again after the
-            # load: two terminals, one per timeline.) A task allocated before the load counts its post-load terminal.
-            for t in tasks:
-                t["term"] = []
+            # A load ends the pre-load timeline. A task that already has its terminal is closed: later lines about the
+            # same name belong to another timeline (U1 run 18 L-9: LEND_RESTORE before the reload, then the save's own
+            # task end restored again after it). A task with no terminal yet stays open, so a terminal logged after the
+            # load (a save that held the task open) still counts. (731ea70 cleared every count instead, which made a
+            # task finished before a reload to T0 look unfinished: run 18 D-2.)
+            for name, t in list(open_by_name.items()):
+                if t["term"]:
+                    del open_by_name[name]
             continue
         m = ALLOC.search(l)
         if m:
