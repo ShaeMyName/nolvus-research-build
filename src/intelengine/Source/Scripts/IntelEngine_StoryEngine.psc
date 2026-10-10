@@ -242,14 +242,45 @@ Function StartScheduler()
 
         RegisterForSingleUpdateGameTime(interval)
         ; Real-time backup: ensures tick fires even at low timescales (timescale 2-6).
-        RegisterForSingleUpdate(IDLE_POLL_INTERVAL)
-        Core.DebugMsg("Story: StartScheduler — game-time mode (interval=" + interval + "h = min of story=" + storyInterval + " npc=" + npcInterval + " politics=" + politicsInterval + ")")
+        ; Patch F2 (ie_timer_collision.md): the real-time timer is shared by every script on the quest, so the idle
+        ; 30 s must never lengthen Travel/NPCTasks/Battle's 3 s cadence: ask for 3 s while a slot or battle is active.
+        Float poll = IDLE_POLL_INTERVAL
+        If IEB_NeedsFastTick()
+            poll = MONITOR_INTERVAL
+        EndIf
+        RegisterForSingleUpdate(poll)
+        Core.DebugMsg("Story: StartScheduler — game-time mode (interval=" + interval + "h = min of story=" + storyInterval + " npc=" + npcInterval + " politics=" + politicsInterval + ") poll=" + poll)
     EndIf
 EndFunction
 
+Bool Function IEB_NeedsFastTick()
+    {Patch F2: True while any IntelEngine task slot is active or Battle has anything to poll.}
+    If Core == None
+        return false
+    EndIf
+    Int[] states = Core.SlotStates
+    If states != None
+        Int i = 0
+        While i < states.Length
+            If states[i] != 0
+                return true
+            EndIf
+            i += 1
+        EndWhile
+    EndIf
+    IntelEngine_Battle b = Core.Battle
+    If b != None
+        If b.ManifestActive || b.DeferredCleanupActive || b.PendingPollActive
+            return true
+        EndIf
+    EndIf
+    return IntelEngine.IsBattleActive()
+EndFunction
+
 Function StopScheduler()
-    UnregisterForUpdate()
-    UnregisterForUpdateGameTime()
+    ; Patch F1 (ie_timer_collision.md): no UnregisterForUpdate/UnregisterForUpdateGameTime. Both timers belong to
+    ; the quest form, so they stopped Travel, NPCTasks, Schedule and Battle too. The Story DM is already gated by
+    ; IsStoryEngineEnabled, and DispatchToTarget re-registers 3 s right after this call.
 EndFunction
 
 Function SyncHoldRestrictionPolicies()

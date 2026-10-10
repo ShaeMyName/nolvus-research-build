@@ -88,6 +88,10 @@ Float Property DeferredCleanupStart = 0.0 Auto Hidden
 ; Pending battle polling
 Bool Property PendingPollActive = false Auto Hidden
 
+; Patch F1 (ie_timer_collision.md): re-entry guard while HandleBattleEnd runs (script variable, not a property).
+; Replaces UnregisterForUpdate(), which cleared the shared timer of every script on the quest.
+Bool IEB_Ending = false
+
 ; Micro-encounter (political event manifestation) state
 Actor[] Property ManifestActors Auto Hidden
 Int Property ManifestCount = 0 Auto Hidden
@@ -215,6 +219,10 @@ Event OnUpdateGameTime()
 EndEvent
 
 Event OnUpdate()
+    ; Patch F1: HandleBattleEnd is running (it re-arms the poll itself when done)
+    If IEB_Ending
+        return
+    EndIf
     ; Manifestation cleanup check (micro-encounters from political events)
     If ManifestActive
         Float elapsed = Utility.GetCurrentRealTime() - ManifestStartTime
@@ -1098,7 +1106,8 @@ Function HandleBattleEnd(String result, String victor, String stateJson)
     Core.DebugMsg("Battle: Ended — result=" + result + ", victor=" + victor)
 
     ; Stop polling immediately to prevent race with OnUpdate
-    UnregisterForUpdate()
+    ; Patch F1: guard flag instead of UnregisterForUpdate() (that cleared every script's timer on the quest)
+    IEB_Ending = true
 
     ; Count casualties via C++ (no Papyrus arrays needed)
     Int lossesA = IntelEngine.CountDeadBattleSoldiers("A")
@@ -1154,6 +1163,7 @@ Function HandleBattleEnd(String result, String victor, String stateJson)
     ; Deferred cleanup — soldiers stay until player leaves
     DeferredCleanupActive = true
     DeferredCleanupStart = Utility.GetCurrentRealTime()
+    IEB_Ending = false
     RegisterForSingleUpdate(PollInterval)
 EndFunction
 
@@ -1221,8 +1231,8 @@ Function ResetState()
     EndIf
     DeferredCleanupActive = false
     DeferredCleanupStart = 0.0
-    UnregisterForUpdate()
-    UnregisterForUpdateGameTime()
+    ; Patch F1: no UnregisterForUpdate/UnregisterForUpdateGameTime (shared by every script on the quest).
+    ; OnUpdate is a no-op with nothing active; OnUpdateGameTime is gated by BattleScheduled (false above).
 EndFunction
 
 ; =============================================================================
@@ -1620,6 +1630,8 @@ Function OnGameReload()
     ; elapsed diff goes negative, so "stuck" watchdogs never trip). Snap stale
     ; stamps forward to `now` so the countdown restarts from load.
     Float now = Utility.GetCurrentRealTime()
+    ; Patch F1: a guard saved mid-HandleBattleEnd must not silence Battle.OnUpdate forever
+    IEB_Ending = false
     If BattleStartRealTime > now
         BattleStartRealTime = now
     EndIf

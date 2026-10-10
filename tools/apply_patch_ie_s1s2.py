@@ -1,0 +1,513 @@
+"""Post-U1 IntelEngine hunks (post_u1_build_plan §1 timer fix F1/F2, §2 slot race) on build/src/intelengine.
+Usage: apply_patch_ie_s1s2.py <group>. Every anchor must match exactly once (CRLF kept). Same edit() as apply_patch_b.py.
+Groups: f1 | f2 | core-slot | callers"""
+import sys
+
+D = "C:/nolvus-research/build/src/intelengine/Source/Scripts/"
+NL = "\r\n"
+
+
+def edit(fname, pairs):
+    p = D + fname
+    s = open(p, "rb").read().decode("utf-8")
+    for old, new in pairs:
+        o, n = old.replace("\n", NL), new.replace("\n", NL)
+        c = s.count(o)
+        assert c == 1, "%s: anchor found %d times: %r" % (fname, c, old[:90])
+        s = s.replace(o, n)
+    open(p, "wb").write(s.encode("utf-8"))
+
+
+G = sys.argv[1]
+
+if G == "f1":
+    edit("IntelEngine_StoryEngine.psc", [(
+"""Function StopScheduler()
+    UnregisterForUpdate()
+    UnregisterForUpdateGameTime()
+EndFunction
+""",
+"""Function StopScheduler()
+    ; Patch F1 (ie_timer_collision.md): no UnregisterForUpdate/UnregisterForUpdateGameTime. Both timers belong to
+    ; the quest form, so they stopped Travel, NPCTasks, Schedule and Battle too. The Story DM is already gated by
+    ; IsStoryEngineEnabled, and DispatchToTarget re-registers 3 s right after this call.
+EndFunction
+""")])
+    edit("IntelEngine_Battle.psc", [
+("""; Pending battle polling
+Bool Property PendingPollActive = false Auto Hidden
+""",
+"""; Pending battle polling
+Bool Property PendingPollActive = false Auto Hidden
+
+; Patch F1 (ie_timer_collision.md): re-entry guard while HandleBattleEnd runs (script variable, not a property).
+; Replaces UnregisterForUpdate(), which cleared the shared timer of every script on the quest.
+Bool IEB_Ending = false
+"""),
+("""Event OnUpdate()
+    ; Manifestation cleanup check (micro-encounters from political events)
+    If ManifestActive
+""",
+"""Event OnUpdate()
+    ; Patch F1: HandleBattleEnd is running (it re-arms the poll itself when done)
+    If IEB_Ending
+        return
+    EndIf
+    ; Manifestation cleanup check (micro-encounters from political events)
+    If ManifestActive
+"""),
+("""    ; Stop polling immediately to prevent race with OnUpdate
+    UnregisterForUpdate()
+""",
+"""    ; Stop polling immediately to prevent race with OnUpdate
+    ; Patch F1: guard flag instead of UnregisterForUpdate() (that cleared every script's timer on the quest)
+    IEB_Ending = true
+"""),
+("""    ; Deferred cleanup — soldiers stay until player leaves
+    DeferredCleanupActive = true
+    DeferredCleanupStart = Utility.GetCurrentRealTime()
+    RegisterForSingleUpdate(PollInterval)
+EndFunction
+""",
+"""    ; Deferred cleanup — soldiers stay until player leaves
+    DeferredCleanupActive = true
+    DeferredCleanupStart = Utility.GetCurrentRealTime()
+    IEB_Ending = false
+    RegisterForSingleUpdate(PollInterval)
+EndFunction
+"""),
+("""    DeferredCleanupActive = false
+    DeferredCleanupStart = 0.0
+    UnregisterForUpdate()
+    UnregisterForUpdateGameTime()
+EndFunction
+""",
+"""    DeferredCleanupActive = false
+    DeferredCleanupStart = 0.0
+    ; Patch F1: no UnregisterForUpdate/UnregisterForUpdateGameTime (shared by every script on the quest).
+    ; OnUpdate is a no-op with nothing active; OnUpdateGameTime is gated by BattleScheduled (false above).
+EndFunction
+"""),
+("""    Float now = Utility.GetCurrentRealTime()
+    If BattleStartRealTime > now
+        BattleStartRealTime = now
+    EndIf
+""",
+"""    Float now = Utility.GetCurrentRealTime()
+    ; Patch F1: a guard saved mid-HandleBattleEnd must not silence Battle.OnUpdate forever
+    IEB_Ending = false
+    If BattleStartRealTime > now
+        BattleStartRealTime = now
+    EndIf
+"""),
+])
+
+elif G == "f2":
+    edit("IntelEngine_StoryEngine.psc", [
+("""        RegisterForSingleUpdateGameTime(interval)
+        ; Real-time backup: ensures tick fires even at low timescales (timescale 2-6).
+        RegisterForSingleUpdate(IDLE_POLL_INTERVAL)
+        Core.DebugMsg("Story: StartScheduler — game-time mode (interval=" + interval + "h = min of story=" + storyInterval + " npc=" + npcInterval + " politics=" + politicsInterval + ")")
+""",
+"""        RegisterForSingleUpdateGameTime(interval)
+        ; Real-time backup: ensures tick fires even at low timescales (timescale 2-6).
+        ; Patch F2 (ie_timer_collision.md): the real-time timer is shared by every script on the quest, so the idle
+        ; 30 s must never lengthen Travel/NPCTasks/Battle's 3 s cadence: ask for 3 s while a slot or battle is active.
+        Float poll = IDLE_POLL_INTERVAL
+        If IEB_NeedsFastTick()
+            poll = MONITOR_INTERVAL
+        EndIf
+        RegisterForSingleUpdate(poll)
+        Core.DebugMsg("Story: StartScheduler — game-time mode (interval=" + interval + "h = min of story=" + storyInterval + " npc=" + npcInterval + " politics=" + politicsInterval + ") poll=" + poll)
+"""),
+("""Function StopScheduler()
+""",
+"""Bool Function IEB_NeedsFastTick()
+    {Patch F2: True while any IntelEngine task slot is active or Battle has anything to poll.}
+    If Core == None
+        return false
+    EndIf
+    Int[] states = Core.SlotStates
+    If states != None
+        Int i = 0
+        While i < states.Length
+            If states[i] != 0
+                return true
+            EndIf
+            i += 1
+        EndWhile
+    EndIf
+    IntelEngine_Battle b = Core.Battle
+    If b != None
+        If b.ManifestActive || b.DeferredCleanupActive || b.PendingPollActive
+            return true
+        EndIf
+    EndIf
+    return IntelEngine.IsBattleActive()
+EndFunction
+
+Function StopScheduler()
+"""),
+])
+
+elif G == "core-slot":
+    edit("IntelEngine_Core.psc", [
+("""; Track if databases are loaded
+Bool databaseLoaded = false
+""",
+"""; Track if databases are loaded
+Bool databaseLoaded = false
+
+; Patch (slot race, post_u1_build_plan §2): per-slot reservation stamps in real seconds (Utility.GetCurrentRealTime),
+; 0.0 = none. Script variables, not properties (nothing ESP-visible). Cleared in Maintenance on every load; a stamp
+; in the future (previous session) or older than IEB_RESERVE_EXPIRY is expired. Expiry = max(120 s, 2x the worst
+; measured Find->Allocate gap per caller: 3 s, Papyrus logs 2026-10-10) = 120 s.
+Float[] IEB_SlotReservedAt
+Float IEB_RESERVE_EXPIRY = 120.0
+"""),
+("""    If StoryEngine
+        StoryEngine.IEB_QISelfCheck()
+    EndIf
+""",
+"""    If StoryEngine
+        StoryEngine.IEB_QISelfCheck()
+    EndIf
+    ; Patch (slot race): no reservation survives a load
+    IEB_SlotReservedAt = new Float[5]
+"""),
+("""    Int activeCount = 0
+    Int firstFree = -1
+    Int i = 0
+    While i < MAX_SLOTS
+        If SlotStates[i] != 0
+            activeCount += 1
+        ElseIf firstFree < 0
+            firstFree = i
+        EndIf
+        i += 1
+    EndWhile
+
+    If firstFree >= 0 && activeCount < maxAllowed
+        Return firstFree
+    EndIf
+    Return -1
+EndFunction
+""",
+"""    ; Patch (slot race): non-reserving, but a live reservation counts as taken
+    Float now = Utility.GetCurrentRealTime()
+    Float[] res = IEB_SlotReservedAt
+    Int activeCount = 0
+    Int firstFree = -1
+    Int i = 0
+    While i < MAX_SLOTS
+        Bool reserved = false
+        If res != None
+            Float r = res[i]
+            reserved = r > 0.0 && r <= now && (now - r) < IEB_RESERVE_EXPIRY
+        EndIf
+        If SlotStates[i] != 0 || reserved
+            activeCount += 1
+        ElseIf firstFree < 0
+            firstFree = i
+        EndIf
+        i += 1
+    EndWhile
+
+    If firstFree >= 0 && activeCount < maxAllowed
+        Return firstFree
+    EndIf
+    Return -1
+EndFunction
+
+Int Function ReserveFreeAgentSlot()
+    {Patch (slot race): FindFreeAgentSlot that also reserves the slot it returns. Max tasks, the array and the clock
+    are read BEFORE the loop; the loop, the pick and the stamp make no calls, so no other script thread can run in
+    between. Callers must TryAllocateSlot (clears the stamp) or ReleaseSlotReservation on every abort.}
+    Int maxAllowed = GetMaxConcurrentTasks()
+    If maxAllowed > MAX_SLOTS
+        maxAllowed = MAX_SLOTS
+    ElseIf maxAllowed < 1
+        maxAllowed = 1
+    EndIf
+    If IEB_SlotReservedAt == None
+        IEB_SlotReservedAt = new Float[5]
+    EndIf
+    Float now = Utility.GetCurrentRealTime()
+    Int n = MAX_SLOTS
+    Int[] states = SlotStates
+    Float[] res = IEB_SlotReservedAt
+    Float expiry = IEB_RESERVE_EXPIRY
+
+    ; --- no calls from here to the stamp ---
+    Int activeCount = 0
+    Int firstFree = -1
+    Int i = 0
+    While i < n
+        Float r = res[i]
+        If states[i] != 0 || (r > 0.0 && r <= now && (now - r) < expiry)
+            activeCount += 1
+        ElseIf firstFree < 0
+            firstFree = i
+        EndIf
+        i += 1
+    EndWhile
+    If firstFree < 0
+        Return -1
+    EndIf
+    res[firstFree] = now
+    ; --- stamped ---
+    If activeCount >= maxAllowed
+        res[firstFree] = 0.0
+        Return -1
+    EndIf
+    DebugMsg("SLOT_RESERVED slot=" + firstFree)
+    Return firstFree
+EndFunction
+
+Function ReleaseSlotReservation(Int slot)
+    {Patch (slot race): drop this slot's reservation (abort paths between ReserveFreeAgentSlot and TryAllocateSlot).}
+    If slot >= 0 && slot < MAX_SLOTS && IEB_SlotReservedAt != None
+        IEB_SlotReservedAt[slot] = 0.0
+    EndIf
+EndFunction
+
+Bool Function TryAllocateSlot(Int slot, Actor akAgent, String taskType, String targetName, Int speed)
+    {Patch (slot race): AllocateSlot, but refuses (SLOT_REFUSED) when the slot's agent alias already holds a different
+    live actor. Clears the slot's reservation either way. AllocateSlot itself is unchanged.}
+    If slot < 0 || slot >= MAX_SLOTS || akAgent == None
+        ReleaseSlotReservation(slot)
+        DebugMsg("SLOT_REFUSED slot=" + slot + " reason=bad_args type=" + taskType)
+        Return false
+    EndIf
+    Actor holder = None
+    ReferenceAlias slotAlias = GetAgentAlias(slot)
+    If slotAlias
+        holder = slotAlias.GetActorReference()
+    EndIf
+    If holder != None && holder != akAgent && !holder.IsDead()
+        ReleaseSlotReservation(slot)
+        DebugMsg("SLOT_REFUSED slot=" + slot + " reason=held holder=" + holder.GetDisplayName() + " holderId=" + holder.GetFormID() + " requester=" + akAgent.GetDisplayName() + " requesterId=" + akAgent.GetFormID() + " type=" + taskType)
+        Return false
+    EndIf
+    AllocateSlot(slot, akAgent, taskType, targetName, speed)
+    ReleaseSlotReservation(slot)
+    Return true
+EndFunction
+"""),
+])
+
+elif G == "callers":
+    edit("IntelEngine_Travel.psc", [
+("""    ; Find free slot
+    Int slot = Core.FindFreeAgentSlot()
+    If slot < 0
+        Core.DebugMsg("GoToLocation: No free slots")
+""",
+"""    ; Find free slot (patch: reserved until TryAllocateSlot or a release)
+    Int slot = Core.ReserveFreeAgentSlot()
+    If slot < 0
+        Core.DebugMsg("GoToLocation: No free slots")
+"""),
+("""    If destMarker == None
+        ; Couldn't resolve - describe the situation factually
+        Core.SendTaskNarration(akNPC, akNPC.GetDisplayName() + " was asked to travel to '" + destination + "' but a route could not be determined.")
+        Return false
+    EndIf
+""",
+"""    If destMarker == None
+        Core.ReleaseSlotReservation(slot)
+        ; Couldn't resolve - describe the situation factually
+        Core.SendTaskNarration(akNPC, akNPC.GetDisplayName() + " was asked to travel to '" + destination + "' but a route could not be determined.")
+        Return false
+    EndIf
+"""),
+("""    ; Allocate slot
+    Core.AllocateSlot(slot, akNPC, "travel", destination, speed)
+""",
+"""    ; Allocate slot (patch: refuses if another live actor holds the alias)
+    If !Core.TryAllocateSlot(slot, akNPC, "travel", destination, speed)
+        Core.SendTaskNarration(akNPC, akNPC.GetDisplayName() + " cannot take on another task right now.")
+        Return false
+    EndIf
+"""),
+])
+    nt = "IntelEngine_NPCTasks.psc"
+    edit(nt, [
+("""    ; Find free slot
+    Int slot = Core.FindFreeAgentSlot()
+    If slot < 0
+        Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
+        Return false
+    EndIf
+
+    ; Anti-trespass: unlock target NPC's home door so agent can enter
+    Core.UnlockHomeForTask(akAgent, targetNPC)
+
+    ; Destination is always the target actor directly
+    ObjectReference destMarker = targetNPC
+""",
+"""    ; Find free slot (patch: reserved until TryAllocateSlot)
+    Int slot = Core.ReserveFreeAgentSlot()
+    If slot < 0
+        Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
+        Return false
+    EndIf
+
+    ; Anti-trespass: unlock target NPC's home door so agent can enter
+    Core.UnlockHomeForTask(akAgent, targetNPC)
+
+    ; Destination is always the target actor directly
+    ObjectReference destMarker = targetNPC
+"""),
+("""    ; Allocate slot (defaults to state 1)
+    Core.AllocateSlot(slot, akAgent, "fetch_npc", targetNPC.GetDisplayName(), 1)  ; Jog by default
+""",
+"""    ; Allocate slot (defaults to state 1) (patch: refuses if another live actor holds the alias)
+    If !Core.TryAllocateSlot(slot, akAgent, "fetch_npc", targetNPC.GetDisplayName(), 1)  ; Jog by default
+        Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
+        Return false
+    EndIf
+"""),
+("""    ; Find slot
+    Int slot = Core.FindFreeAgentSlot()
+""",
+"""    ; Find slot (patch: reserved until TryAllocateSlot)
+    Int slot = Core.ReserveFreeAgentSlot()
+"""),
+("""    ; Allocate
+    Core.AllocateSlot(slot, akAgent, "deliver_message", targetNPC.GetDisplayName(), 1)
+""",
+"""    ; Allocate (patch: refuses if another live actor holds the alias)
+    If !Core.TryAllocateSlot(slot, akAgent, "deliver_message", targetNPC.GetDisplayName(), 1)
+        Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
+        Return false
+    EndIf
+"""),
+("""    ; Find free slot
+    Int slot = Core.FindFreeAgentSlot()
+    If slot < 0
+        Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
+        Return false
+    EndIf
+
+    ; Anti-trespass: unlock target NPC's home door so agent can enter
+    Core.UnlockHomeForTask(akAgent, targetNPC)
+
+    ; Destination is always the target actor directly.
+""",
+"""    ; Find free slot (patch: reserved until TryAllocateSlot)
+    Int slot = Core.ReserveFreeAgentSlot()
+    If slot < 0
+        Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
+        Return false
+    EndIf
+
+    ; Anti-trespass: unlock target NPC's home door so agent can enter
+    Core.UnlockHomeForTask(akAgent, targetNPC)
+
+    ; Destination is always the target actor directly.
+"""),
+("""    ; Allocate slot
+    Core.AllocateSlot(slot, akAgent, "search_for_actor", targetNPC.GetDisplayName(), speed)
+""",
+"""    ; Allocate slot (patch: refuses if another live actor holds the alias)
+    If !Core.TryAllocateSlot(slot, akAgent, "search_for_actor", targetNPC.GetDisplayName(), speed)
+        Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
+        Return false
+    EndIf
+"""),
+("""    ; Find free slot
+    Int slot = Core.FindFreeAgentSlot()
+    If slot < 0
+        Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
+        Return false
+    EndIf
+
+    ; Anti-trespass: unlock destination so both can enter
+""",
+"""    ; Find free slot (patch: reserved until TryAllocateSlot)
+    Int slot = Core.ReserveFreeAgentSlot()
+    If slot < 0
+        Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
+        Return false
+    EndIf
+
+    ; Anti-trespass: unlock destination so both can enter
+"""),
+("""    ; Allocate slot
+    Core.AllocateSlot(slot, akAgent, "escort_target", targetNPC.GetDisplayName(), 1)
+""",
+"""    ; Allocate slot (patch: refuses if another live actor holds the alias)
+    If !Core.TryAllocateSlot(slot, akAgent, "escort_target", targetNPC.GetDisplayName(), 1)
+        Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
+        Return false
+    EndIf
+"""),
+])
+    edit("IntelEngine_StoryEngine.psc", [
+("""    Int slot = Core.FindFreeAgentSlot()
+    If slot < 0
+        ; No free slots -- fall back to off-screen (log already added before visibility branch)
+""",
+"""    Int slot = Core.ReserveFreeAgentSlot()
+    If slot < 0
+        ; No free slots -- fall back to off-screen (log already added before visibility branch)
+"""),
+("""    Core.AllocateSlot(slot, npc, "npc_social", target.GetDisplayName(), 1)
+""",
+"""    ; Patch (slot race): refused allocation falls back to off-screen, as a missing slot does
+    If !Core.TryAllocateSlot(slot, npc, "npc_social", target.GetDisplayName(), 1)
+        String refusedSummary = BuildInteractionSummary(npc, narration, target)
+        AddRecentStoryEvent(storyType + ": " + refusedSummary)
+        Core.DebugMsg("NPC Social: slot refused, off-screen: " + refusedSummary)
+        return
+    EndIf
+"""),
+("""    Int slot = Core.FindFreeAgentSlot()
+    If slot < 0
+        Debug.Trace("[IntelEngine] StoryEngine: No free slots for dispatch")
+""",
+"""    Int slot = Core.ReserveFreeAgentSlot()
+    If slot < 0
+        Debug.Trace("[IntelEngine] StoryEngine: No free slots for dispatch")
+"""),
+("""    Core.AllocateSlot(slot, npc, slotTaskType, targetName, 1)
+""",
+"""    ; Patch (slot race): refused allocation aborts like a missing slot, and the DM record is marked failed
+    If !Core.TryAllocateSlot(slot, npc, slotTaskType, targetName, 1)
+        Core.DebugMsg("Story DM: slot " + slot + " refused for " + npc.GetDisplayName() + " - dispatch aborted")
+        IntelEngine.MarkLastDispatchFailed("task slot taken by another npc")
+        If target != player
+            ActiveSecondNPC = None
+            AddRecentStoryEvent(ActiveStoryType + ": " + BuildInteractionSummary(npc, narration, target))
+        EndIf
+        ActiveStoryType = ""
+        return
+    EndIf
+"""),
+])
+    edit("IntelEngine_Battle.psc", [
+("""        ; Find a free slot
+        Int slot = Core.FindFreeAgentSlot()
+""",
+"""        ; Find a free slot (patch: reserved until TryAllocateSlot)
+        Int slot = Core.ReserveFreeAgentSlot()
+"""),
+("""        Core.AllocateSlot(slot, assassin, "assassination", leaderName, 0)
+""",
+"""        ; Patch (slot race): refused allocation aborts like a missing slot
+        If !Core.TryAllocateSlot(slot, assassin, "assassination", leaderName, 0)
+            Core.DebugMsg("Battle: assassin task slot refused — aborting")
+            assassin.DisableNoWait()
+            assassin.Delete()
+            ManifestActors[0] = None
+            ManifestCount = 0
+            ManifestLeaderTarget = None
+            ManifestActive = false
+            return
+        EndIf
+"""),
+])
+else:
+    sys.exit("unknown group " + G)
+print("ok", G)
