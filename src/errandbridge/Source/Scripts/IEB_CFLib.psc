@@ -226,6 +226,16 @@ Bool Function AliasHolds(Actor a, Int aiQuest, String asPlugin, Int aiAlias) Glo
     Return ra != None && ra.GetActorReference() == a
 EndFunction
 
+Bool Function AliasFilled(Int aiQuest, String asPlugin, Int aiAlias) Global
+    {True when the alias holds any reference (e.g. Inigo's steed alias: he owns a horse).}
+    Quest qq = Q(aiQuest, asPlugin)
+    If qq == None
+        Return False
+    EndIf
+    ReferenceAlias ra = qq.GetAlias(aiAlias) as ReferenceAlias
+    Return ra != None && ra.GetReference() != None
+EndFunction
+
 Bool Function InCell(Actor akSubject, Int aiForm, String asPlugin) Global
     If !Has(asPlugin)
         Return False

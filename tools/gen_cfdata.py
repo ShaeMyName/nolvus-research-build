@@ -81,6 +81,8 @@ def expr(t):
         e = "IEB_CFLib.FacRank(a, %s, %s) > %d" % (hx(t["form"]), P, t["value"])
     elif k == "alias_holds":
         e = "IEB_CFLib.AliasHolds(a, %s, %s, %d)" % (hx(t["quest"]), P, t["alias"])
+    elif k == "alias_filled":
+        e = "IEB_CFLib.AliasFilled(%s, %s, %d)" % (hx(t["quest"]), P, t["alias"])
     elif k == "quest_running":
         e = "IEB_CFLib.QRun(%s, %s)" % (hx(t["quest"]), P)
     elif k == "quest_stage_in":

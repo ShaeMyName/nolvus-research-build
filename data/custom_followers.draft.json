@@ -107,6 +107,19 @@
           "form": "0x04EA5F",
           "value": 0,
           "reason": "cf_inigo_ride"
+        },
+        {
+          "kind": "on_mount",
+          "label": "mounted",
+          "reason": "cf_inigo_mounted"
+        },
+        {
+          "kind": "alias_filled",
+          "label": "has a steed (CF-6 (c) untested: refuse until it passes)",
+          "plugin": "Inigo.esp",
+          "quest": "0x0012DF",
+          "alias": 3,
+          "reason": "cf_inigo_steed_untested"
         }
       ],
       "topics": [

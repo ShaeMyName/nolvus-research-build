@@ -170,6 +170,12 @@ String Function RefuseReason(Int i, Actor a) Global
         If IEB_CFLib.FacRank(a, 0x0004EA5F, "Inigo.esp") > 0
             Return "cf_inigo_ride"
         EndIf
+        If a.IsOnMount()
+            Return "cf_inigo_mounted"
+        EndIf
+        If IEB_CFLib.AliasFilled(0x000012DF, "Inigo.esp", 3)
+            Return "cf_inigo_steed_untested"
+        EndIf
     ElseIf i == 1   ; Lucien
         If IEB_CFLib.StageIn(0x002B13ED, "Lucien.esp", "|92|95|100|113|115|360|")
             Return "cf_lucien_p1"
