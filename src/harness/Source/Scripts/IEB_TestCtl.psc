@@ -422,6 +422,49 @@ Function NFFDismiss(Int aiFormId)
     Log("NFFDismiss " + a.GetDisplayName() + " seated=" + IEB_NFFLib.Seated(a))
 EndFunction
 
+Function NFFGuardOn(Int aiFormId)
+    {B-6b (REVIEW_LOG RV-66): make F an NFF hired guard so RemoveFollower routes to DismissGuardAction
+     (nwsFollowerControllerScript.psc:529-530; a real hire adds nwsFF_GuardFaction at :1056). Undone by the T0 reload.}
+    Actor a = A(aiFormId)
+    nwsFollowerControllerScript c = IEB_NFFLib.Ctl()
+    If a == None || c == None || c.varScript == None
+        Log("NFFGuardOn: no actor or no NFF controller")
+        Return
+    EndIf
+    a.AddToFaction(c.varScript.nwsFF_GuardFaction)
+    Log("NFFGuardOn " + a.GetDisplayName() + " guard=" + a.IsInFaction(c.varScript.nwsFF_GuardFaction) + " seated=" + IEB_NFFLib.Seated(a))
+EndFunction
+
+Function NFFStaleFac(Int aiFormId, Int aiOn)
+    {B-6c (REVIEW_LOG RV-66): put F in (1) or take F out of (0) the DismissedFac the bridge reads (IEB_NFFLib.DismissedFac),
+     the stale state an import can leave (ImportAction never clears it; RecruitAction :387 does).}
+    Actor a = A(aiFormId)
+    Faction f = IEB_NFFLib.DismissedFac()
+    If a == None || f == None
+        Log("NFFStaleFac: no actor or no DismissedFac")
+        Return
+    EndIf
+    If aiOn == 1
+        a.AddToFaction(f)
+    Else
+        a.RemoveFromFaction(f)
+    EndIf
+    Log("NFFStaleFac " + a.GetDisplayName() + " on=" + aiOn + " inFac=" + a.IsInFaction(f) + " source=" + IEB_NFFLib.DismissedFacSource())
+EndFunction
+
+Function NFFImport(Int aiFormId)
+    {B-6d (REVIEW_LOG RV-66): NFF's own import of F (ImportFollower -> ImportAction(a, 1, 2), :655-659); a later
+     RemoveFollower then routes to ExportAction (:527-528).}
+    Actor a = A(aiFormId)
+    nwsFollowerControllerScript c = IEB_NFFLib.Ctl()
+    If a == None || c == None
+        Log("NFFImport: no actor or no NFF controller")
+        Return
+    EndIf
+    c.ImportFollower(a)
+    Log("NFFImport " + a.GetDisplayName() + " seated=" + IEB_NFFLib.Seated(a))
+EndFunction
+
 Function MoveRel(Int aiFormId, Int aiTargetFormId, Float afDX, Float afDY, Float afDZ)
     {B-21: aiFormId.MoveTo(aiTargetFormId, dx, dy, dz) - the spec's "F1.moveto player 3000 0 0". 0x14 = the player.}
     ObjectReference r = Game.GetForm(aiFormId) as ObjectReference
