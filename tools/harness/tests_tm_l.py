@@ -47,7 +47,7 @@ AWAY_REF = 0x0001A6F7     # Drunken Huntsman exterior door (21716,-6742): ~4100 
 # GoToLocation destination names. "Bannered Mare" and "Riverwood" are the v1 test names (BRIDGE_INVESTIGATION.md
 # §5.5 tests 1, 5); "Jorrvaskr" is INFERRED to resolve (IntelEngine's native name resolution, IE_Travel:223). Lists are
 # tried in order until the bridge logs a decision (no decision within 10 s = the name did not resolve, INFERRED).
-DEST_NEAR = ["Bannered Mare"]                   # ends at the exterior door (INFERRED from IE_Travel:654-671)
+DEST_NEAR = ["Bannered Mare"]                   # ends INSIDE: IE walks to the door, then teleports through (VERIFIED U1 run 16, 14:34:06)
 DEST_WALK = ["Jorrvaskr", "Riverwood"]          # >= 30 s of walking in view of the market
 DEST_TM1 = ["Jorrvaskr", "Bannered Mare"]       # "2 cells away" (Jorrvaskr ~5000 u from the market)
 
