@@ -17,8 +17,8 @@ HARNESS_YAML = ("C:/Nolvus/Instances/Nolvus Awakening/MODS/mods/SkyrimNet Config
                 "Harness.yaml")     # test config only; writes approved for the soak and the step-8 blocks (D1, extended to U1)
 
 
-LAST_NUDGE = ""
-POST_LOAD_AVAIL = 99.0  # available RAM (GB) right after the last load settled (relaunch guard in block.py)     # set when the last load's settle needed the F1 narration nudge (noted in every test record after it)
+LAST_NUDGE = ""         # set when the last load's settle needed the F1 narration nudge (noted in every test record after it)
+POST_LOAD_AVAIL = 99.0  # available RAM (GB) right after the last load settled (relaunch guard in block.py)
 
 
 def harness_mode():
