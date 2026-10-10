@@ -257,12 +257,18 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             if not load_block_save(ctl, b):
                 print("BLOCK ABORT %s: reload after relaunch failed" % name, flush=True)
                 return 1
-        elif meta["reload"] or game.SAVE_FAILED:
-            if game.SAVE_FAILED:    # a failed console save leaves Papyrus' VM frozen until the next load
-                ctl.log("RELOAD after %s: a console save failed (VM frozen)" % tid)
-                summary.append("| reload | console save failed in %s (VM frozen until a load) | | |" % tid)
+        elif game.SAVE_FAILED:
+            # A failed console save leaves Papyrus' VM frozen, and a load after it hangs (U1 run 15: IEB_B3b_pre failed
+            # 13:54:14; 'load T0' at 13:56:23 never reached PostLoadGame in 480 s). Relaunch instead of reloading.
             game.SAVE_FAILED = False
-            load_block_save(ctl, b)
+            ctl = recover(ctl, name, b, "after a failed console save in " + tid, summary, why="SAVE FAILED")
+            if ctl is None:
+                return 1
+        elif meta["reload"]:
+            if not load_block_save(ctl, b):     # never run the next test on a game that didn't load
+                ctl = recover(ctl, name, b, "after a failed reload in " + tid, summary, why="RELOAD FAILED")
+                if ctl is None:
+                    return 1
     if fam:
         family_logs(ctl, fam, fam_start, summary)
     if not keep_open:
@@ -339,11 +345,14 @@ MAX_CRASHES = 3
 RELAUNCH_MIN_DROP_GB = 1.5      # relaunch only when available RAM also fell this much since the last load
 
 
-def recover(ctl, name, b, where, summary):
-    """The game died: note it, relaunch, reload the block save, return a fresh control Run (None if that fails)."""
-    print("BLOCK CRASH %s %s: relaunching" % (name, where), flush=True)
-    summary.append("| CRASH | game crashed %s | | relaunched |" % where)
-    game.close(None, timeout=30)
+def recover(ctl, name, b, where, summary, why="CRASH"):
+    """The game died or can't be trusted (why: CRASH, SAVE FAILED, RELOAD FAILED): note it, relaunch, reload the block
+    save, return a fresh control Run (None if that fails)."""
+    print("BLOCK %s %s %s: relaunching" % (why, name, where), flush=True)
+    summary.append("| %s | %s | | relaunched |" % (why, where))
+    if not game.close(None, timeout=30, force=True):
+        print("BLOCK ABORT %s: the game would not close" % name, flush=True)
+        return None
     time.sleep(10)
     if not game.launch(print, voices=b["voices"]):
         print("BLOCK ABORT %s: relaunch after a crash failed" % name, flush=True)

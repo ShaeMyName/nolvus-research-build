@@ -262,7 +262,7 @@ def save(run, name, timeout=90):
                                         game_private_gb()))
     return False
 
-def close(run=None, timeout=120):
+def close(run=None, timeout=120, force=False):
     """Close the game from the console (no save is made). Waits for the process to exit; the launcher then stops the
     TTS server itself."""
     if "SkyrimSE.exe" not in procs():
@@ -278,4 +278,10 @@ def close(run=None, timeout=120):
             return True
         time.sleep(3)
     (run.log if run else print)("CLOSE: game still running after %d s" % timeout)
+    if force:   # a hung game ignores qqq (U1 run 15: hung load after a failed console save); the test profile only
+        subprocess.run(["taskkill", "/F", "/IM", "SkyrimSE.exe"], capture_output=True)
+        time.sleep(5)
+        gone = "SkyrimSE.exe" not in procs()
+        (run.log if run else print)("CLOSE: force-killed SkyrimSE.exe (%s)" % ("gone" if gone else "STILL RUNNING"))
+        return gone
     return False
