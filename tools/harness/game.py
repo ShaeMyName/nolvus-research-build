@@ -220,6 +220,9 @@ def save(run, name, timeout=90):
     sn = Tail(LOGS["skyrimnet"])
     ess, tmp = SAVES + name + ".ess", SAVES + name + ".ess.tmp"
     before = os.path.getmtime(ess) if os.path.exists(ess) else 0
+    # Route: SkyrimNet MCP execute_console_command (the only harness save route; real play saves from the menu).
+    mem = "Available %.1f GB, game %.1f GB private" % (available_ram_gb(), game_private_gb())
+    run.log("SAVE %s: sent via MCP console (%s)" % (name, mem))
     run.tool("execute_console_command", {"command": "save %s" % name})
     if not sn.wait(r"SaveGame event received", timeout=30):
         run.log("SAVE %s: no SaveGame event within 30 s" % name)
@@ -228,11 +231,16 @@ def save(run, name, timeout=90):
         if os.path.exists(ess) and not os.path.exists(tmp) and os.path.getmtime(ess) > before:
             size = os.path.getsize(ess)
             if size > 0 and size == last:
-                run.log("SAVE %s: complete (%d bytes) after %d s" % (name, size, time.time() - t0))
+                run.log("SAVE %s: OK via MCP console, complete (%d bytes) after %d s (at send: %s)"
+                        % (name, size, time.time() - t0, mem))
                 return True
             last = size
         time.sleep(2)
-    run.log("SAVE %s: NOT complete after %d s (ess=%s tmp=%s)" % (name, timeout, os.path.exists(ess), os.path.exists(tmp)))
+    err = re.search(r"Unknown exception executing console command", sn.read())
+    run.log("SAVE %s: FAILED via MCP console, not complete after %d s (ess=%s tmp=%s%s; at send: %s; now: Available %.1f GB, "
+            "game %.1f GB private)" % (name, timeout, os.path.exists(ess), os.path.exists(tmp),
+                                        ", SkyrimNet 'Unknown exception'" if err else "", mem, available_ram_gb(),
+                                        game_private_gb()))
     return False
 
 def close(run=None, timeout=120):
