@@ -203,6 +203,9 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             r.inconclusive += 1
             r.log("INCONCLUSIVE %s harness error: %r" % (tid, e))
         crashed = "SkyrimSE.exe" not in game.procs()
+        # Reviewer 2026-10-10 (U1 run 16, 14:50): a guard defeated the test player and Shadow of Skyrim jailed and stripped
+        # her; every later test ran on that state. Any defeat/bleedout makes this test INCONCLUSIVE and forces a relaunch.
+        defeat = player_defeated(r.tails["papyrus"].read(), r.tails["skyrimnet"].read())
         # Reviewer 2026-10-10: timeout-driven FAIL/INCONCLUSIVE under memory pressure is classified separately.
         r.log("NOTE %s: RAM available at end %.1f GB%s" % (tid, game.available_ram_gb(),
               " (UNDER MEMORY PRESSURE: < 3 GB)" if game.available_ram_gb() < 3.0 else ""))
@@ -221,6 +224,10 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
         if crashed:
             r.inconclusive += 1
             r.log("INCONCLUSIVE %s: the game crashed during the test (see the newest SKSE crash-*.log)" % tid)
+        if defeat and not crashed:
+            r.inconclusive += 1
+            r.log("INCONCLUSIVE %s: the player was defeated during the test (%s); relaunching" % (tid, defeat))
+            summary.append("| %s | PLAYER DEFEATED (%s) | | relaunched |" % (tid, defeat))
         if r.forced:
             r.log("NOTE %s: forced state (weaker evidence than natural play)" % tid)
         wtext = r.tails["watch"].read()
@@ -278,6 +285,10 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             ctl = Run("%s_CONTROL" % name)
             if not load_block_save(ctl, b):
                 print("BLOCK ABORT %s: reload after relaunch failed" % name, flush=True)
+                return 1
+        elif defeat:
+            ctl = recover(ctl, name, b, "after a player defeat in " + tid, summary, why="PLAYER DEFEATED")
+            if ctl is None:
                 return 1
         elif game.SAVE_FAILED:
             # A failed console save leaves Papyrus' VM frozen, and a load after it hangs (U1 run 15: IEB_B3b_pre failed
@@ -368,6 +379,20 @@ def start_heartbeat(name):
 
 MAX_CRASHES = 3
 RELAUNCH_MIN_DROP_GB = 1.5      # relaunch only when available RAM also fell this much since the last load
+
+
+DEFEAT_RX = [(re.compile(r"\[SOS\] (?:Defeat|Cause of Death|BlackOut)"), "Shadow of Skyrim defeat"),
+             (re.compile(r"Enter bleedout event: '(?:Prisoner|Lucienne)'"), "player bleedout")]
+
+
+def player_defeated(papyrus_text, skyrimnet_text):
+    """Player defeat/bleedout during a test (T0's player is named "Prisoner"). Shadow of Skyrim's own lines are the
+    authoritative signal; SkyrimNet's bleedout event is the early one."""
+    for rx, what in DEFEAT_RX:
+        m = rx.search(papyrus_text) or rx.search(skyrimnet_text)
+        if m:
+            return "%s: %s" % (what, m.group(0))
+    return None
 
 
 def recover(ctl, name, b, where, summary, why="CRASH"):
