@@ -159,12 +159,14 @@ class Run:
 
     def uuid(self, formid):
         size = os.path.getsize(PAPYRUS)
-        r = self.ctl("UUIDOf", [formid])
+        # UUIDOf logs nothing for an actor that isn't loaded (until the pex logs "UUID <id> none"), so an unloaded
+        # actor is an answer ("" = not loaded), not an unconfirmed call (U1 run 19 K-3: 6 false INCONCLUSIVEs).
+        r = self.ctl("UUIDOf", [formid], sync=False)
         for k in ("returnValue", "result", "return"):
             if isinstance(r, dict) and r.get(k):
                 return str(r[k]), None
-        m = self.logline(r"\[IEB-TEST\] UUID %s (.+?) = ([0-9A-Fa-f]*) child=(\w+)" % fid_any_rx(formid), size)
-        if not m:
+        m = self.logline(r"\[IEB-TEST\] UUID %s (?:(.+?) = ([0-9A-Fa-f]*) child=(\w+)|none)" % fid_any_rx(formid), size, 10)
+        if not m or m.group(2) is None:
             return "", None
         return m.group(2), (m.group(1), m.group(3).upper() == "TRUE")
 

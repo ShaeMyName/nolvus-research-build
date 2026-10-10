@@ -147,6 +147,7 @@ String Function UUIDOf(Int aiFormId)
      do not accept FormIDs. Logged as "[IEB-TEST] UUID <formid> <name> = <uuid>"; "" if the actor is not loaded.}
     Actor a = A(aiFormId)
     If a == None
+        Log("UUID " + PO3_SKSEFunctions.IntToString(aiFormId, True) + " none")   ; not loaded: an answer, not silence
         Return ""
     EndIf
     String u = SkyrimNetApi.GetEntityUUID(a)
