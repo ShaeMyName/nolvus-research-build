@@ -1611,7 +1611,10 @@ def b27(r):
         r.check("### Current Task" in body, "held: IntelEngine '### Current Task' present")
         r.check(("### Where %s Is Right Now" % nm) in body and "is away on an errand for" in body,
                 "held: the bridge's errand line (0802, Held == 1) present")
-        if not need(r, far_from_player(r, F1, N_DEFAULT + 300, 120), "F1 never got beyond N for the rejoin phase"):
+        # U1 run 16: with DEST_MARKET now the Bannered Mare (next to the market, [CHANGED 2026-10-10]) F1 never walks beyond
+        # N of a player standing at the market. Put the player 2,600 u from F1 instead (MoveRel, as B-1/B-3 do).
+        r.ctl("MoveRel", [PLAYER, F1, float(N_DEFAULT + 700), 0.0, 0.0])
+        if not need(r, far_from_player(r, F1, N_DEFAULT + 300, 30), "F1 not beyond N for the rejoin phase after MoveRel"):
             return
         tc = fresh()
         r.ctl("Cancel", [F1])
