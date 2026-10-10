@@ -436,8 +436,8 @@ Bool Function FetchNPC(Actor akAgent, String targetName, String failReason = "no
         EndIf
     EndIf
 
-    ; Find free slot
-    Int slot = Core.FindFreeAgentSlot()
+    ; Find free slot (patch: reserved until TryAllocateSlot)
+    Int slot = Core.ReserveFreeAgentSlot()
     If slot < 0
         Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
         Return false
@@ -452,8 +452,11 @@ Bool Function FetchNPC(Actor akAgent, String targetName, String failReason = "no
     ; Stop following if agent is follower
     Core.DismissFollowerForTask(akAgent)
 
-    ; Allocate slot (defaults to state 1)
-    Core.AllocateSlot(slot, akAgent, "fetch_npc", targetNPC.GetDisplayName(), 1)  ; Jog by default
+    ; Allocate slot (defaults to state 1) (patch: refuses if another live actor holds the alias)
+    If !Core.TryAllocateSlot(slot, akAgent, "fetch_npc", targetNPC.GetDisplayName(), 1)  ; Jog by default
+        Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
+        Return false
+    EndIf
 
     ; Store fetch-specific data
     StorageUtil.SetFormValue(akAgent, "Intel_TargetNPC", targetNPC)
@@ -600,8 +603,8 @@ Bool Function DeliverMessage(Actor akAgent, String targetName, String msgContent
         Return false
     EndIf
 
-    ; Find slot
-    Int slot = Core.FindFreeAgentSlot()
+    ; Find slot (patch: reserved until TryAllocateSlot)
+    Int slot = Core.ReserveFreeAgentSlot()
     If slot < 0
         Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
         Return false
@@ -617,8 +620,11 @@ Bool Function DeliverMessage(Actor akAgent, String targetName, String msgContent
     ; Stop following
     Core.DismissFollowerForTask(akAgent)
 
-    ; Allocate
-    Core.AllocateSlot(slot, akAgent, "deliver_message", targetNPC.GetDisplayName(), 1)
+    ; Allocate (patch: refuses if another live actor holds the alias)
+    If !Core.TryAllocateSlot(slot, akAgent, "deliver_message", targetNPC.GetDisplayName(), 1)
+        Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
+        Return false
+    EndIf
 
     ; Store message data
     StorageUtil.SetFormValue(akAgent, "Intel_TargetNPC", targetNPC)
@@ -757,8 +763,8 @@ Bool Function SearchForActor(Actor akAgent, String targetName, Int speed = 0)
         Return false
     EndIf
 
-    ; Find free slot
-    Int slot = Core.FindFreeAgentSlot()
+    ; Find free slot (patch: reserved until TryAllocateSlot)
+    Int slot = Core.ReserveFreeAgentSlot()
     If slot < 0
         Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
         Return false
@@ -774,8 +780,11 @@ Bool Function SearchForActor(Actor akAgent, String targetName, Int speed = 0)
     ; Stop following if agent is follower
     Core.DismissFollowerForTask(akAgent)
 
-    ; Allocate slot
-    Core.AllocateSlot(slot, akAgent, "search_for_actor", targetNPC.GetDisplayName(), speed)
+    ; Allocate slot (patch: refuses if another live actor holds the alias)
+    If !Core.TryAllocateSlot(slot, akAgent, "search_for_actor", targetNPC.GetDisplayName(), speed)
+        Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
+        Return false
+    EndIf
 
     ; Store search-specific data
     StorageUtil.SetFormValue(akAgent, "Intel_TargetNPC", targetNPC)
@@ -949,8 +958,8 @@ Bool Function EscortTarget(Actor akAgent, String targetName, String destination 
         EndIf
     EndIf
 
-    ; Find free slot
-    Int slot = Core.FindFreeAgentSlot()
+    ; Find free slot (patch: reserved until TryAllocateSlot)
+    Int slot = Core.ReserveFreeAgentSlot()
     If slot < 0
         Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
         Return false
@@ -964,8 +973,11 @@ Bool Function EscortTarget(Actor akAgent, String targetName, String destination 
     ; Stop following if agent is follower
     Core.DismissFollowerForTask(akAgent)
 
-    ; Allocate slot
-    Core.AllocateSlot(slot, akAgent, "escort_target", targetNPC.GetDisplayName(), 1)
+    ; Allocate slot (patch: refuses if another live actor holds the alias)
+    If !Core.TryAllocateSlot(slot, akAgent, "escort_target", targetNPC.GetDisplayName(), 1)
+        Core.SendTaskNarration(akAgent, akAgent.GetDisplayName() + " cannot take on this task right now.")
+        Return false
+    EndIf
 
     ; Store escort-specific data
     StorageUtil.SetFormValue(akAgent, "Intel_TargetNPC", targetNPC)

@@ -166,6 +166,13 @@ Int[] Property SlotSpeeds Auto            ; 0=walk, 1=jog, 2=run
 ; Track if databases are loaded
 Bool databaseLoaded = false
 
+; Patch (slot race, post_u1_build_plan §2): per-slot reservation stamps in real seconds (Utility.GetCurrentRealTime),
+; 0.0 = none. Script variables, not properties (nothing ESP-visible). Cleared in Maintenance on every load; a stamp
+; in the future (previous session) or older than IEB_RESERVE_EXPIRY is expired. Expiry = max(120 s, 2x the worst
+; measured Find->Allocate gap per caller: 3 s, Papyrus logs 2026-10-10) = 120 s.
+Float[] IEB_SlotReservedAt
+Float IEB_RESERVE_EXPIRY = 120.0
+
 ; =============================================================================
 ; INITIALIZATION
 ; =============================================================================
@@ -211,6 +218,8 @@ Function Maintenance(Bool isFirstLoad = false)
     If StoryEngine
         StoryEngine.IEB_QISelfCheck()
     EndIf
+    ; Patch (slot race): no reservation survives a load
+    IEB_SlotReservedAt = new Float[5]
 
     ; On first install (new game), clear all StorageUtil data from previous sessions.
     ; StorageUtil persists outside the save system, so stale data from other saves
@@ -524,11 +533,19 @@ Int Function FindFreeAgentSlot()
         maxAllowed = 1
     EndIf
 
+    ; Patch (slot race): non-reserving, but a live reservation counts as taken
+    Float now = Utility.GetCurrentRealTime()
+    Float[] res = IEB_SlotReservedAt
     Int activeCount = 0
     Int firstFree = -1
     Int i = 0
     While i < MAX_SLOTS
-        If SlotStates[i] != 0
+        Bool reserved = false
+        If res != None
+            Float r = res[i]
+            reserved = r > 0.0 && r <= now && (now - r) < IEB_RESERVE_EXPIRY
+        EndIf
+        If SlotStates[i] != 0 || reserved
             activeCount += 1
         ElseIf firstFree < 0
             firstFree = i
@@ -540,6 +557,81 @@ Int Function FindFreeAgentSlot()
         Return firstFree
     EndIf
     Return -1
+EndFunction
+
+Int Function ReserveFreeAgentSlot()
+    {Patch (slot race): FindFreeAgentSlot that also reserves the slot it returns. Max tasks, the array and the clock
+    are read BEFORE the loop; the loop, the pick and the stamp make no calls, so no other script thread can run in
+    between. Callers must TryAllocateSlot (clears the stamp) or ReleaseSlotReservation on every abort.}
+    Int maxAllowed = GetMaxConcurrentTasks()
+    If maxAllowed > MAX_SLOTS
+        maxAllowed = MAX_SLOTS
+    ElseIf maxAllowed < 1
+        maxAllowed = 1
+    EndIf
+    If IEB_SlotReservedAt == None
+        IEB_SlotReservedAt = new Float[5]
+    EndIf
+    Float now = Utility.GetCurrentRealTime()
+    Int n = MAX_SLOTS
+    Int[] states = SlotStates
+    Float[] res = IEB_SlotReservedAt
+    Float expiry = IEB_RESERVE_EXPIRY
+
+    ; --- no calls from here to the stamp ---
+    Int activeCount = 0
+    Int firstFree = -1
+    Int i = 0
+    While i < n
+        Float r = res[i]
+        If states[i] != 0 || (r > 0.0 && r <= now && (now - r) < expiry)
+            activeCount += 1
+        ElseIf firstFree < 0
+            firstFree = i
+        EndIf
+        i += 1
+    EndWhile
+    If firstFree < 0
+        Return -1
+    EndIf
+    res[firstFree] = now
+    ; --- stamped ---
+    If activeCount >= maxAllowed
+        res[firstFree] = 0.0
+        Return -1
+    EndIf
+    DebugMsg("SLOT_RESERVED slot=" + firstFree)
+    Return firstFree
+EndFunction
+
+Function ReleaseSlotReservation(Int slot)
+    {Patch (slot race): drop this slot's reservation (abort paths between ReserveFreeAgentSlot and TryAllocateSlot).}
+    If slot >= 0 && slot < MAX_SLOTS && IEB_SlotReservedAt != None
+        IEB_SlotReservedAt[slot] = 0.0
+    EndIf
+EndFunction
+
+Bool Function TryAllocateSlot(Int slot, Actor akAgent, String taskType, String targetName, Int speed)
+    {Patch (slot race): AllocateSlot, but refuses (SLOT_REFUSED) when the slot's agent alias already holds a different
+    live actor. Clears the slot's reservation either way. AllocateSlot itself is unchanged.}
+    If slot < 0 || slot >= MAX_SLOTS || akAgent == None
+        ReleaseSlotReservation(slot)
+        DebugMsg("SLOT_REFUSED slot=" + slot + " reason=bad_args type=" + taskType)
+        Return false
+    EndIf
+    Actor holder = None
+    ReferenceAlias slotAlias = GetAgentAlias(slot)
+    If slotAlias
+        holder = slotAlias.GetActorReference()
+    EndIf
+    If holder != None && holder != akAgent && !holder.IsDead()
+        ReleaseSlotReservation(slot)
+        DebugMsg("SLOT_REFUSED slot=" + slot + " reason=held holder=" + holder.GetDisplayName() + " holderId=" + holder.GetFormID() + " requester=" + akAgent.GetDisplayName() + " requesterId=" + akAgent.GetFormID() + " type=" + taskType)
+        Return false
+    EndIf
+    AllocateSlot(slot, akAgent, taskType, targetName, speed)
+    ReleaseSlotReservation(slot)
+    Return true
 EndFunction
 
 Int Function FindSlotByAgent(Actor akAgent)

@@ -1362,8 +1362,8 @@ Function ManifestEvent(String manifestJson)
 
         ManifestLeaderTarget = assTarget
 
-        ; Find a free slot
-        Int slot = Core.FindFreeAgentSlot()
+        ; Find a free slot (patch: reserved until TryAllocateSlot)
+        Int slot = Core.ReserveFreeAgentSlot()
         If slot < 0
             Core.DebugMsg("Battle: No free task slot for assassin — aborting")
             assassin.DisableNoWait()
@@ -1385,7 +1385,17 @@ Function ManifestEvent(String manifestJson)
         EndIf
 
         ; Allocate slot — assigns quest alias + task faction (makes travel packages work)
-        Core.AllocateSlot(slot, assassin, "assassination", leaderName, 0)
+        ; Patch (slot race): refused allocation aborts like a missing slot
+        If !Core.TryAllocateSlot(slot, assassin, "assassination", leaderName, 0)
+            Core.DebugMsg("Battle: assassin task slot refused — aborting")
+            assassin.DisableNoWait()
+            assassin.Delete()
+            ManifestActors[0] = None
+            ManifestCount = 0
+            ManifestLeaderTarget = None
+            ManifestActive = false
+            return
+        EndIf
 
         ; Start travel — exact same pattern as FetchPerson
         ; Intel_DestMarker is required for Travel.CheckForArrival to detect proximity

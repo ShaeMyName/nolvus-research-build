@@ -211,8 +211,8 @@ Bool Function GoToLocation(Actor akNPC, String destination, Int speed = 0, Int w
     ; Override existing task if any
     Core.OverrideExistingTask(akNPC)
 
-    ; Find free slot
-    Int slot = Core.FindFreeAgentSlot()
+    ; Find free slot (patch: reserved until TryAllocateSlot or a release)
+    Int slot = Core.ReserveFreeAgentSlot()
     If slot < 0
         Core.DebugMsg("GoToLocation: No free slots")
         Core.SendTaskNarration(akNPC, akNPC.GetDisplayName() + " cannot take on another task right now.")
@@ -222,6 +222,7 @@ Bool Function GoToLocation(Actor akNPC, String destination, Int speed = 0, Int w
     ; Resolve destination - try semantic first, then named
     ObjectReference destMarker = ResolveDestination(akNPC, destination)
     If destMarker == None
+        Core.ReleaseSlotReservation(slot)
         ; Couldn't resolve - describe the situation factually
         Core.SendTaskNarration(akNPC, akNPC.GetDisplayName() + " was asked to travel to '" + destination + "' but a route could not be determined.")
         Return false
@@ -244,8 +245,11 @@ Bool Function GoToLocation(Actor akNPC, String destination, Int speed = 0, Int w
     Float waitHours = Core.GetDefaultWaitHours()
     waitHours = ClampFloat(waitHours, MIN_WAIT_HOURS, MAX_WAIT_HOURS)
 
-    ; Allocate slot
-    Core.AllocateSlot(slot, akNPC, "travel", destination, speed)
+    ; Allocate slot (patch: refuses if another live actor holds the alias)
+    If !Core.TryAllocateSlot(slot, akNPC, "travel", destination, speed)
+        Core.SendTaskNarration(akNPC, akNPC.GetDisplayName() + " cannot take on another task right now.")
+        Return false
+    EndIf
 
     ; Store wait hours - deadline will be calculated on arrival, not now
     StorageUtil.SetFloatValue(akNPC, "Intel_WaitHours", waitHours)

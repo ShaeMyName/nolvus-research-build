@@ -995,7 +995,7 @@ Function DispatchNPCSocial(Actor npc, Actor target, String narration, String sto
         Core.DebugMsg("NPC Social: " + npc.GetDisplayName() + " is busy or with the player - off-screen only")
         return
     EndIf
-    Int slot = Core.FindFreeAgentSlot()
+    Int slot = Core.ReserveFreeAgentSlot()
     If slot < 0
         ; No free slots -- fall back to off-screen (log already added before visibility branch)
         String summary = BuildInteractionSummary(npc, narration, target)
@@ -1004,7 +1004,13 @@ Function DispatchNPCSocial(Actor npc, Actor target, String narration, String sto
         return
     EndIf
 
-    Core.AllocateSlot(slot, npc, "npc_social", target.GetDisplayName(), 1)
+    ; Patch (slot race): refused allocation falls back to off-screen, as a missing slot does
+    If !Core.TryAllocateSlot(slot, npc, "npc_social", target.GetDisplayName(), 1)
+        String refusedSummary = BuildInteractionSummary(npc, narration, target)
+        AddRecentStoryEvent(storyType + ": " + refusedSummary)
+        Core.DebugMsg("NPC Social: slot refused, off-screen: " + refusedSummary)
+        return
+    EndIf
 
     NPCSocialTraveler = npc
     NPCSocialTarget = target
@@ -1764,7 +1770,7 @@ Function DispatchToTarget(Actor npc, Actor target, String narration, String slot
         EndIf
     EndIf
 
-    Int slot = Core.FindFreeAgentSlot()
+    Int slot = Core.ReserveFreeAgentSlot()
     If slot < 0
         Debug.Trace("[IntelEngine] StoryEngine: No free slots for dispatch")
         ; For NPC targets, log event (facts already injected by caller)
@@ -1782,7 +1788,17 @@ Function DispatchToTarget(Actor npc, Actor target, String narration, String slot
         ActiveSecondNPC = target
     EndIf
 
-    Core.AllocateSlot(slot, npc, slotTaskType, targetName, 1)
+    ; Patch (slot race): refused allocation aborts like a missing slot, and the DM record is marked failed
+    If !Core.TryAllocateSlot(slot, npc, slotTaskType, targetName, 1)
+        Core.DebugMsg("Story DM: slot " + slot + " refused for " + npc.GetDisplayName() + " - dispatch aborted")
+        IntelEngine.MarkLastDispatchFailed("task slot taken by another npc")
+        If target != player
+            ActiveSecondNPC = None
+            AddRecentStoryEvent(ActiveStoryType + ": " + BuildInteractionSummary(npc, narration, target))
+        EndIf
+        ActiveStoryType = ""
+        return
+    EndIf
 
     ActiveStoryNPC = npc
     ActiveNarration = narration

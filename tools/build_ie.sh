@@ -16,7 +16,7 @@ case "$mode" in
 esac
 mkdir -p "$(cygpath -u "$OUT")"
 cd "$(cygpath -u "$SRC")"
-list=("$@"); [ ${#list[@]} -eq 0 ] && list=(IntelEngine_Core IntelEngine_StoryEngine IntelEngine_Battle IntelEngine_Travel IntelEngine_NPCTasks IntelEngine_Schedule)
+list=("$@"); [ ${#list[@]} -eq 0 ] && list=(IntelEngine_Core IntelEngine_StoryEngine IntelEngine_Battle IntelEngine_Travel IntelEngine_NPCTasks)
 rc=0
 for f in "${list[@]}"; do
   "$CAP" "${FLAGS[@]}" -o "$OUT" -i "$INC" $f.psc 2>&1 | grep -vE "^Importing|^Imported|W7000|W1004"

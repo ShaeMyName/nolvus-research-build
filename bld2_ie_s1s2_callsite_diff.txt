@@ -1,0 +1,310 @@
+# BLD-2 IE post-U1 §1+§2. Tool tools/ie_callsites.py (Champollion 1.3.2 -a). Baseline = Caprica build of pinned 3.5.1 (repos/IntelEngine-Native-Gerk @36f02f4, bin/ie_baseline351, step 0: == shipped).
+# Part A: patch-B .pex (b0e26d1; Travel/NPCTasks = 3.5.1) -> this build: the §1/§2 delta only
+## IntelEngine_Core
+functions: patchB 100, s1s2 103
+  FUNC only in s1s2: <auto>.releaseslotreservation(('int',), 'none')
+  FUNC only in s1s2: <auto>.reservefreeagentslot((), 'int')
+  FUNC only in s1s2: <auto>.tryallocateslot(('int', 'actor', 'string', 'string', 'int'), 'bool')
+  VARIABLES only in s1s2: ('ieb_reserve_expiry', 'float')
+  VARIABLES only in s1s2: ('ieb_slotreservedat', 'float[]')
+call sites: patchB 839, s1s2 856
+  findfreeagentslot                  utility.getcurrentrealtime                     0 -> 1
+  reservefreeagentslot               debugmsg                                       0 -> 1
+  reservefreeagentslot               getmaxconcurrenttasks                          0 -> 1
+  reservefreeagentslot               utility.getcurrentrealtime                     0 -> 1
+  tryallocateslot                    allocateslot                                   0 -> 1
+  tryallocateslot                    debugmsg                                       0 -> 2
+  tryallocateslot                    getactorreference                              0 -> 1
+  tryallocateslot                    getagentalias                                  0 -> 1
+  tryallocateslot                    getdisplayname                                 0 -> 2
+  tryallocateslot                    getformid                                      0 -> 2
+  tryallocateslot                    isdead                                         0 -> 1
+  tryallocateslot                    releaseslotreservation                         0 -> 3
+DIFFERENT
+## IntelEngine_StoryEngine
+functions: patchB 101, s1s2 102
+  FUNC only in s1s2: <auto>.ieb_needsfasttick((), 'bool')
+call sites: patchB 1994, s1s2 2002
+  dispatchnpcsocial                  addrecentstoryevent                            2 -> 3
+  dispatchnpcsocial                  allocateslot                                   1 -> 0
+  dispatchnpcsocial                  buildinteractionsummary                        2 -> 3
+  dispatchnpcsocial                  debugmsg                                       3 -> 4
+  dispatchnpcsocial                  findfreeagentslot                              1 -> 0
+  dispatchnpcsocial                  reservefreeagentslot                           0 -> 1
+  dispatchnpcsocial                  tryallocateslot                                0 -> 1
+  dispatchtotarget                   addrecentstoryevent                            1 -> 2
+  dispatchtotarget                   allocateslot                                   1 -> 0
+  dispatchtotarget                   buildinteractionsummary                        1 -> 2
+  dispatchtotarget                   debugmsg                                       2 -> 3
+  dispatchtotarget                   findfreeagentslot                              1 -> 0
+  dispatchtotarget                   getdisplayname                                 5 -> 6
+  dispatchtotarget                   intelengine.marklastdispatchfailed             1 -> 2
+  dispatchtotarget                   reservefreeagentslot                           0 -> 1
+  dispatchtotarget                   tryallocateslot                                0 -> 1
+  ieb_needsfasttick                  intelengine.isbattleactive                     0 -> 1
+  startscheduler                     ieb_needsfasttick                              0 -> 1
+  stopscheduler                      unregisterforupdate                            1 -> 0
+  stopscheduler                      unregisterforupdategametime                    1 -> 0
+DIFFERENT
+## IntelEngine_Battle
+functions: patchB 35, s1s2 35
+  VARIABLES only in s1s2: ('ieb_ending', 'bool')
+call sites: patchB 472, s1s2 472
+  handlebattleend                    unregisterforupdate                            1 -> 0
+  manifestevent                      allocateslot                                   1 -> 0
+  manifestevent                      debugmsg                                      13 -> 14
+  manifestevent                      delete                                         4 -> 5
+  manifestevent                      disablenowait                                  4 -> 5
+  manifestevent                      findfreeagentslot                              1 -> 0
+  manifestevent                      reservefreeagentslot                           0 -> 1
+  manifestevent                      tryallocateslot                                0 -> 1
+  resetstate                         unregisterforupdate                            1 -> 0
+  resetstate                         unregisterforupdategametime                    1 -> 0
+DIFFERENT
+## IntelEngine_Travel
+functions: patchB 32, s1s2 32
+call sites: patchB 541, s1s2 544
+  gotolocation                       allocateslot                                   1 -> 0
+  gotolocation                       findfreeagentslot                              1 -> 0
+  gotolocation                       getdisplayname                                 9 -> 10
+  gotolocation                       releaseslotreservation                         0 -> 1
+  gotolocation                       reservefreeagentslot                           0 -> 1
+  gotolocation                       sendtasknarration                              3 -> 4
+  gotolocation                       tryallocateslot                                0 -> 1
+DIFFERENT
+## IntelEngine_NPCTasks
+functions: patchB 49, s1s2 49
+call sites: patchB 1120, s1s2 1128
+  delivermessage                     allocateslot                                   1 -> 0
+  delivermessage                     findfreeagentslot                              1 -> 0
+  delivermessage                     getdisplayname                                20 -> 21
+  delivermessage                     reservefreeagentslot                           0 -> 1
+  delivermessage                     sendtasknarration                              9 -> 10
+  delivermessage                     tryallocateslot                                0 -> 1
+  escorttarget                       allocateslot                                   1 -> 0
+  escorttarget                       findfreeagentslot                              1 -> 0
+  escorttarget                       getdisplayname                                29 -> 30
+  escorttarget                       reservefreeagentslot                           0 -> 1
+  escorttarget                       sendtasknarration                             12 -> 13
+  escorttarget                       tryallocateslot                                0 -> 1
+  fetchnpc                           allocateslot                                   1 -> 0
+  fetchnpc                           findfreeagentslot                              1 -> 0
+  fetchnpc                           getdisplayname                                23 -> 24
+  fetchnpc                           reservefreeagentslot                           0 -> 1
+  fetchnpc                           sendtasknarration                              9 -> 10
+  fetchnpc                           tryallocateslot                                0 -> 1
+  searchforactor                     allocateslot                                   1 -> 0
+  searchforactor                     findfreeagentslot                              1 -> 0
+  searchforactor                     getdisplayname                                18 -> 19
+  searchforactor                     reservefreeagentslot                           0 -> 1
+  searchforactor                     sendtasknarration                              8 -> 9
+  searchforactor                     tryallocateslot                                0 -> 1
+DIFFERENT
+
+# Part B: full BLD-2, 3.5.1 baseline -> this build (patch B + §1 + §2)
+## IntelEngine_Core
+functions: base351 99, patched 103
+  FUNC only in patched: <auto>.ieb_releaseskyrimnetpackages(('actor',), 'none')
+  FUNC only in patched: <auto>.releaseslotreservation(('int',), 'none')
+  FUNC only in patched: <auto>.reservefreeagentslot((), 'int')
+  FUNC only in patched: <auto>.tryallocateslot(('int', 'actor', 'string', 'string', 'int'), 'bool')
+  VARIABLES only in patched: ('ieb_reserve_expiry', 'float')
+  VARIABLES only in patched: ('ieb_slotreservedat', 'float[]')
+call sites: base351 826, patched 856
+  allocateslot                       sendmodevent                                   0 -> 1
+  clearslot                          sendmodevent                                   0 -> 1
+  clearslot                          storageutil.getstringvalue                     3 -> 4
+  dismissfollowerfortask             actorutil.clearpackageoverride                 1 -> 0
+  dismissfollowerfortask             debugmsg                                       2 -> 3
+  dismissfollowerfortask             getdisplayname                                 2 -> 3
+  dismissfollowerfortask             ieb_releaseskyrimnetpackages                   0 -> 1
+  dismissfollowerfortask             removeintelpackages                            0 -> 1
+  dismissfollowerfortask             storageutil.getintvalue                        0 -> 1
+  findfreeagentslot                  utility.getcurrentrealtime                     0 -> 1
+  ieb_releaseskyrimnetpackages       skyrimnetapi.haspackage                        0 -> 3
+  ieb_releaseskyrimnetpackages       skyrimnetapi.unregisterpackage                 0 -> 3
+  maintenance                        ieb_qiselfcheck                                0 -> 1
+  removeallpackages                  actorutil.clearpackageoverride                 1 -> 0
+  removeallpackages                  evaluatepackage                                1 -> 0
+  removeallpackages                  removeintelpackages                            0 -> 1
+  reservefreeagentslot               debugmsg                                       0 -> 1
+  reservefreeagentslot               getmaxconcurrenttasks                          0 -> 1
+  reservefreeagentslot               utility.getcurrentrealtime                     0 -> 1
+  tryallocateslot                    allocateslot                                   0 -> 1
+  tryallocateslot                    debugmsg                                       0 -> 2
+  tryallocateslot                    getactorreference                              0 -> 1
+  tryallocateslot                    getagentalias                                  0 -> 1
+  tryallocateslot                    getdisplayname                                 0 -> 2
+  tryallocateslot                    getformid                                      0 -> 2
+  tryallocateslot                    isdead                                         0 -> 1
+  tryallocateslot                    releaseslotreservation                         0 -> 3
+DIFFERENT
+## IntelEngine_StoryEngine
+functions: base351 90, patched 102
+  FUNC only in patched: <auto>.ieb_assassinationblocked(('actor',), 'bool')
+  FUNC only in patched: <auto>.ieb_dispatchblocked(('actor',), 'bool')
+  FUNC only in patched: <auto>.ieb_exemptquest(('quest',), 'bool')
+  FUNC only in patched: <auto>.ieb_hasopenobjective(('quest',), 'bool')
+  FUNC only in patched: <auto>.ieb_needsfasttick((), 'bool')
+  FUNC only in patched: <auto>.ieb_qichecklist(('string', 'string'), 'string')
+  FUNC only in patched: <auto>.ieb_qifile((), 'string')
+  FUNC only in patched: <auto>.ieb_qiselfcheck((), 'none')
+  FUNC only in patched: <auto>.ieb_qiwriteprobe(('string',), 'none')
+  FUNC only in patched: <auto>.ieb_questreserved(('actor', 'int'), 'bool')
+  FUNC only in patched: <auto>.ieb_storyblocked(('actor', 'int'), 'bool')
+  FUNC only in patched: <auto>.ieb_storytier(('string',), 'int')
+call sites: base351 1892, patched 2002
+  dispatchnpcsocial                  addrecentstoryevent                            1 -> 3
+  dispatchnpcsocial                  allocateslot                                   1 -> 0
+  dispatchnpcsocial                  buildinteractionsummary                        1 -> 3
+  dispatchnpcsocial                  debugmsg                                       2 -> 4
+  dispatchnpcsocial                  findfreeagentslot                              1 -> 0
+  dispatchnpcsocial                  getdisplayname                                 3 -> 4
+  dispatchnpcsocial                  ieb_dispatchblocked                            0 -> 1
+  dispatchnpcsocial                  reservefreeagentslot                           0 -> 1
+  dispatchnpcsocial                  tryallocateslot                                0 -> 1
+  dispatchtotarget                   addrecentstoryevent                            1 -> 2
+  dispatchtotarget                   allocateslot                                   1 -> 0
+  dispatchtotarget                   buildinteractionsummary                        1 -> 2
+  dispatchtotarget                   debugmsg                                       1 -> 3
+  dispatchtotarget                   findfreeagentslot                              1 -> 0
+  dispatchtotarget                   getdisplayname                                 4 -> 6
+  dispatchtotarget                   ieb_dispatchblocked                            0 -> 1
+  dispatchtotarget                   intelengine.marklastdispatchfailed             0 -> 2
+  dispatchtotarget                   reservefreeagentslot                           0 -> 1
+  dispatchtotarget                   tryallocateslot                                0 -> 1
+  handlemessagedispatch              debugmsg                                       2 -> 3
+  handlemessagedispatch              getdisplayname                                 3 -> 4
+  handlemessagedispatch              ieb_storyblocked                               0 -> 1
+  handlemessagedispatch              intelengine.marklastdispatchfailed             0 -> 1
+  handlequestdispatch                debugmsg                                      25 -> 28
+  handlequestdispatch                getdisplayname                                13 -> 15
+  handlequestdispatch                ieb_storyblocked                               0 -> 3
+  handlequestdispatch                intelengine.marklastdispatchfailed             0 -> 3
+  ieb_assassinationblocked           getactorbase                                   0 -> 1
+  ieb_assassinationblocked           ieb_dispatchblocked                            0 -> 1
+  ieb_assassinationblocked           ieb_qifile                                     0 -> 1
+  ieb_assassinationblocked           ieb_questreserved                              0 -> 1
+  ieb_assassinationblocked           isessential                                    0 -> 2
+  ieb_assassinationblocked           isprotected                                    0 -> 1
+  ieb_assassinationblocked           jsonutil.formlisthas                           0 -> 1
+  ieb_dispatchblocked                findslotbyagent                                0 -> 1
+  ieb_dispatchblocked                game.getformfromfile                           0 -> 1
+  ieb_dispatchblocked                getfactionrank                                 0 -> 1
+  ieb_dispatchblocked                isplayerteammate                               0 -> 1
+  ieb_dispatchblocked                storageutil.getintvalue                        0 -> 1
+  ieb_exemptquest                    ieb_qifile                                     0 -> 1
+  ieb_exemptquest                    jsonutil.stringlistcount                       0 -> 1
+  ieb_exemptquest                    jsonutil.stringlistget                         0 -> 1
+  ieb_exemptquest                    po3_sksefunctions.getformmodname               0 -> 1
+  ieb_hasopenobjective               isobjectivecompleted                           0 -> 1
+  ieb_hasopenobjective               isobjectivedisplayed                           0 -> 1
+  ieb_hasopenobjective               po3_sksefunctions.getallquestobjectives        0 -> 1
+  ieb_needsfasttick                  intelengine.isbattleactive                     0 -> 1
+  ieb_qichecklist                    debug.trace                                    0 -> 1
+  ieb_qichecklist                    jsonutil.formlisttoarray                       0 -> 1
+  ieb_qichecklist                    jsonutil.getintvalue                           0 -> 1
+  ieb_qichecklist                    papyrusutil.countnone                          0 -> 1
+  ieb_qiselfcheck                    debug.notification                             0 -> 1
+  ieb_qiselfcheck                    debug.trace                                    0 -> 2
+  ieb_qiselfcheck                    ieb_qichecklist                                0 -> 2
+  ieb_qiselfcheck                    ieb_qifile                                     0 -> 1
+  ieb_qiselfcheck                    ieb_qiwriteprobe                               0 -> 1
+  ieb_qiselfcheck                    jsonutil.formlistcount                         0 -> 2
+  ieb_qiselfcheck                    jsonutil.geterrors                             0 -> 1
+  ieb_qiselfcheck                    jsonutil.getintvalue                           0 -> 3
+  ieb_qiselfcheck                    jsonutil.isgood                                0 -> 1
+  ieb_qiselfcheck                    jsonutil.jsonexists                            0 -> 1
+  ieb_qiselfcheck                    jsonutil.stringlistcount                       0 -> 1
+  ieb_qiwriteprobe                   debug.trace                                    0 -> 2
+  ieb_qiwriteprobe                   game.getformfromfile                           0 -> 1
+  ieb_qiwriteprobe                   jsonutil.formlistadd                           0 -> 1
+  ieb_qiwriteprobe                   jsonutil.formlistclear                         0 -> 1
+  ieb_qiwriteprobe                   jsonutil.formlisthas                           0 -> 1
+  ieb_qiwriteprobe                   jsonutil.intlistget                            0 -> 1
+  ieb_qiwriteprobe                   jsonutil.save                                  0 -> 1
+  ieb_qiwriteprobe                   jsonutil.stringlistcount                       0 -> 1
+  ieb_qiwriteprobe                   jsonutil.stringlistget                         0 -> 3
+  ieb_questreserved                  getactorbase                                   0 -> 1
+  ieb_questreserved                  getcurrentscene                                0 -> 1
+  ieb_questreserved                  getnthreferencealias                           0 -> 1
+  ieb_questreserved                  getnumreferencealiases                         0 -> 1
+  ieb_questreserved                  getowningquest                                 0 -> 1
+  ieb_questreserved                  ieb_exemptquest                                0 -> 1
+  ieb_questreserved                  ieb_hasopenobjective                           0 -> 1
+  ieb_questreserved                  ieb_qifile                                     0 -> 1
+  ieb_questreserved                  isessential                                    0 -> 2
+  ieb_questreserved                  isprotected                                    0 -> 1
+  ieb_questreserved                  isrunning                                      0 -> 1
+  ieb_questreserved                  isstarting                                     0 -> 1
+  ieb_questreserved                  jsonutil.formlisthas                           0 -> 2
+  ieb_storyblocked                   ieb_dispatchblocked                            0 -> 1
+  ieb_storyblocked                   ieb_questreserved                              0 -> 1
+  ondungeonmasterresponse            debugmsg                                      17 -> 18
+  ondungeonmasterresponse            getdisplayname                                11 -> 12
+  ondungeonmasterresponse            ieb_storyblocked                               0 -> 1
+  ondungeonmasterresponse            ieb_storytier                                  0 -> 1
+  ondungeonmasterresponse            intelengine.marklastdispatchfailed            10 -> 11
+  onmessagearrived                   debugmsg                                       1 -> 2
+  onmessagearrived                   getdisplayname                                 3 -> 4
+  onmessagearrived                   ieb_storyblocked                               0 -> 1
+  onnpcinteractionresponse           ieb_storyblocked                               0 -> 1
+  startscheduler                     ieb_needsfasttick                              0 -> 1
+  stopscheduler                      unregisterforupdate                            1 -> 0
+  stopscheduler                      unregisterforupdategametime                    1 -> 0
+DIFFERENT
+## IntelEngine_Battle
+functions: base351 35, patched 35
+  VARIABLES only in patched: ('ieb_ending', 'bool')
+call sites: base351 468, patched 472
+  handlebattleend                    unregisterforupdate                            1 -> 0
+  manifestevent                      allocateslot                                   1 -> 0
+  manifestevent                      debugmsg                                      12 -> 14
+  manifestevent                      delete                                         3 -> 5
+  manifestevent                      disablenowait                                  3 -> 5
+  manifestevent                      findfreeagentslot                              1 -> 0
+  manifestevent                      ieb_assassinationblocked                       0 -> 1
+  manifestevent                      reservefreeagentslot                           0 -> 1
+  manifestevent                      tryallocateslot                                0 -> 1
+  resetstate                         unregisterforupdate                            1 -> 0
+  resetstate                         unregisterforupdategametime                    1 -> 0
+DIFFERENT
+## IntelEngine_Travel
+functions: base351 32, patched 32
+call sites: base351 541, patched 544
+  gotolocation                       allocateslot                                   1 -> 0
+  gotolocation                       findfreeagentslot                              1 -> 0
+  gotolocation                       getdisplayname                                 9 -> 10
+  gotolocation                       releaseslotreservation                         0 -> 1
+  gotolocation                       reservefreeagentslot                           0 -> 1
+  gotolocation                       sendtasknarration                              3 -> 4
+  gotolocation                       tryallocateslot                                0 -> 1
+DIFFERENT
+## IntelEngine_NPCTasks
+functions: base351 49, patched 49
+call sites: base351 1120, patched 1128
+  delivermessage                     allocateslot                                   1 -> 0
+  delivermessage                     findfreeagentslot                              1 -> 0
+  delivermessage                     getdisplayname                                20 -> 21
+  delivermessage                     reservefreeagentslot                           0 -> 1
+  delivermessage                     sendtasknarration                              9 -> 10
+  delivermessage                     tryallocateslot                                0 -> 1
+  escorttarget                       allocateslot                                   1 -> 0
+  escorttarget                       findfreeagentslot                              1 -> 0
+  escorttarget                       getdisplayname                                29 -> 30
+  escorttarget                       reservefreeagentslot                           0 -> 1
+  escorttarget                       sendtasknarration                             12 -> 13
+  escorttarget                       tryallocateslot                                0 -> 1
+  fetchnpc                           allocateslot                                   1 -> 0
+  fetchnpc                           findfreeagentslot                              1 -> 0
+  fetchnpc                           getdisplayname                                23 -> 24
+  fetchnpc                           reservefreeagentslot                           0 -> 1
+  fetchnpc                           sendtasknarration                              9 -> 10
+  fetchnpc                           tryallocateslot                                0 -> 1
+  searchforactor                     allocateslot                                   1 -> 0
+  searchforactor                     findfreeagentslot                              1 -> 0
+  searchforactor                     getdisplayname                                18 -> 19
+  searchforactor                     reservefreeagentslot                           0 -> 1
+  searchforactor                     sendtasknarration                              8 -> 9
+  searchforactor                     tryallocateslot                                0 -> 1
+DIFFERENT
