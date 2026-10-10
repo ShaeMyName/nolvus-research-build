@@ -851,11 +851,19 @@ def b10(r):
         if not took(r, go(r, F1, DEST_UP, t), nm):
             return
         time.sleep(8)
+        pr = probe(r, F1) or {}                 # where she is when "stay" is asked
+        t_req = time.time()
         r.ctl("Recall", [F1, 1])
         q = wait_ieb(t, ("RECALL_REQ",), nm, 10)
         r.check(q is not None and "stay=1" in q[1], "RECALL_REQ stay=1 (%s)" % (q,))
         end = wait_ieb(t, REL_KW, nm, 20)
         r.check(end is not None and end[0] == "RELEASE_STAY", "RELEASE_STAY (%s)" % (end,))
+        # Reviewer 2026-10-10: the stop delay is real-play behaviour -> record it (flag > 5 s), don't drop it.
+        lat = time.time() - t_req
+        pe = probe(r, F1) or {}
+        dmov = dist2(pr.get("xyz"), pe.get("xyz"))
+        r.log("  stop delay: RECALL request -> RELEASE_STAY %.1f s, moved %s u meanwhile%s"
+              % (lat, "%.0f" % dmov if dmov is not None else "?", "  (FLAG: > 5 s)" if lat > 5 else ""))
         # "the current spot" = where she is at the release (spec): measured after RELEASE_STAY, not before the recall
         # (she jogs ~3 s / ~750 u while the recall goes through: U1 run 14).
         p0 = probe(r, F1) or {}

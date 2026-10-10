@@ -43,9 +43,86 @@ class Run:
         except ValueError:
             return {"text": txt}
 
-    def ctl(self, fn, args=None):
-        return self.tool("execute_quest_function", {"quest_editor_id": "IEB_TestQuest", "script_name": "IEB_TestCtl",
-                                                    "function_name": fn, "arguments": args or []})
+    # [CHANGED 2026-10-10, reviewer] ctl() is synchronous by default: MCP's execute_quest_function returns before
+    # Papyrus runs the call (U1 run 14 B-10: a baseline Snapshot ran 2 s after the errand started), so each call waits
+    # for the function's own "[IEB-TEST] ..." line. Never confirmed -> INCONCLUSIVE (a late baseline could make a leak
+    # look like a PASS). Functions that print no line are listed in CTL_UNSYNC and run unsynchronized (log lines are
+    # added to them in the post-U1 harness install).
+    CTL_DONE = {
+        "Accelerate": "TIMESCALE accelerated|ASSERT FAIL TIMESCALE",
+        "AddTestOverride": "AddTestOverride",
+        "AssertTimescale": "ASSERT\\ FAIL\\ TIMESCALE\\ got|ASSERT\\ PASS\\ TIMESCALE",
+        "Burst": "BURST|BURST\\ END|BURST\\ START|Burst:\\ ModEvent\\.Create\\ failed|Burst\\ requested",
+        "CFProbe": "CFProbe",
+        "CampMuster": "CampMember|CampMuster:\\ chief\\ has\\ no\\ camp|CampMuster:\\ no\\ chief\\ or\\ no\\ Enterprises\\ script|CampMuster\\ camp=",
+        "Cancel": "Cancel",
+        "Check": "Check",
+        "CombatProbe": "CombatProbe|CombatProbe\\ none",
+        "Despawn": "Despawn|Despawn\\ none",
+        "DespawnRef": "DESPAWN",
+        "Dispatch": "Dispatch",
+        "DoorUse": "DoorUse|DoorUse:\\ ModEvent\\.Create\\ failed|DoorUse:\\ no\\ door",
+        "ExpectLend": "ExpectLend",
+        "FastTravelTo": "FastTravelTo|FastTravelTo:\\ no\\ ref",
+        "FurnState": "FurnState",
+        "KillAndSave": "KillAndSave",
+        "Lend": "Lend",
+        "MoveRel": "MoveRel|MoveRel:\\ missing\\ ref",
+        "NFFCombatAware": "NFFCombatAware:\\ no\\ NFF\\ controller|NFFCombatAware\\ was=",
+        "NFFDismiss": "NFFDismiss|NFFDismiss:\\ no\\ actor\\ or\\ no\\ NFF\\ controller",
+        "NFFFollow": "NFFFollow",
+        "NFFWait": "NFFWait",
+        "Narrate": "Narrate",
+        "PlaceRel": "PLACE",
+        "Probe": "probe",
+        "QAlias": "QALIAS|QALIAS\\ none",
+        "QPClear": "QPClear",
+        "QPFill": "QPFill",
+        "QR": "QR",
+        "QScan": "QSCAN|QSCAN\\ END\\ n=|QSCAN\\ END\\ n=0\\ \\(no\\ IntelEngine\\)",
+        "RankApply": "RANKAPPLY",
+        "RankProbe": "RANK",
+        "Recall": "Recall",
+        "RecordTimescale": "TIMESCALE\\ recorded",
+        "Rejoin": "Rejoin",
+        "RemoveTestOverride": "RemoveTestOverride",
+        "Restore": "Restore",
+        "RestoreTimescale": "ASSERT (?:PASS|FAIL) TIMESCALE",
+        "SUSetInt": "SU|SU\\ REFUSED\\ child",
+        "SUUnset": "SU",
+        "SceneOff": "SCENE\\ off",
+        "SceneOn": "SCENE\\ on\\ partner=|SCENE\\ refused\\ child",
+        "ScheduleMeeting": "ScheduleMeeting|ScheduleMeeting:\\ no\\ actor\\ or\\ no\\ IE\\ Schedule",
+        "SetDropTeammate": "DropTeammate\\ was=",
+        "SetIEWaitHours": "IEWaitHours\\ prev=",
+        "SetRank": "SETRANK",
+        "SitNearest": "SitNearest",
+        "SkipProbe": "SkipProbe:\\ no\\ StoryEngine|SkipProbe\\ goto=",
+        "Snapshot": "snapshot",
+        "SneakRun": "SNEAK\\ END|SNEAK\\ START|SNEAK\\ rt=|SneakRun:\\ ModEvent\\.Create\\ failed",
+        "Spawn": "SPAWN\\ base=|SPAWN\\ none",
+        "SpawnHostile": "SpawnHostile|SpawnHostile:\\ no\\ base\\ form",
+        "Speak": "Speak",
+        "StartTask": "IntelEngine\\ quest\\ missing|StartTask|StartTask:\\ ModEvent\\.Create\\ failed|StartTask:\\ invalid\\ or\\ dead\\ actor,\\ or\\ no\\ IE\\ Core|StartTask:\\ unknown\\ action|StartTask\\ dispatched",
+        "StepPlayer": "StepPlayer",
+        "UUIDOf": "UUID"
+    }
+    CTL_UNSYNC = ["ExpectWFP", "TestCFRefuse"]
+
+    def ctl(self, fn, args=None, sync=True, timeout=20):
+        size = os.path.getsize(PAPYRUS) if os.path.exists(PAPYRUS) else 0
+        res = self.tool("execute_quest_function", {"quest_editor_id": "IEB_TestQuest", "script_name": "IEB_TestCtl",
+                                                   "function_name": fn, "arguments": args or []})
+        pat = self.CTL_DONE.get(fn)
+        if not sync or pat is None:
+            if sync and fn in self.CTL_UNSYNC:
+                time.sleep(1.0)     # no completion line yet: give Papyrus a moment (unsynchronized call)
+            return res
+        if not self.logline(r"\[IEB-TEST\] (?:%s)" % pat, size, timeout):
+            self.inconclusive += 1
+            self.log("INCONCLUSIVE %s: controller call %s(%s) not confirmed in the Papyrus log within %d s"
+                     % (self.name, fn, args, timeout))
+        return res
 
     def logline(self, pattern, since_size, timeout=15):
         """Wait for a Papyrus log line matching pattern, written after byte offset since_size."""
