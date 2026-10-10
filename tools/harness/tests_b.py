@@ -1116,9 +1116,13 @@ def b16(r):
         r.check(dp is None or dp > 2560, "check %d: F1 not brought to the player (dPlayer=%s, cell %s -> %s)"
                 % (i + 1, p.get("dPlayer"), p0.get("cellid"), p.get("cellid")))
         time.sleep(20)
-    # SA's catch-up log format is not verified: any SeverActionsNative line naming F1 with "catch" counts (INFERRED)
-    hits = [l for l in sa.read().splitlines() if nm in l and re.search(r"(?i)catch", l)]
-    r.check(not hits, "no SA CellCatchup move of F1 (%d SA lines)" % len(hits))
+    # SA's catch-up format, seen live (U1 run 16 B-16, SeverActionsNative.log 14:18:53): "CellCatchup: skip <Name>
+    # (<formid>) — WaitingForPlayer AV" is the expected wfp=1 skip; any other CellCatchup line naming F1 is a move.
+    lines = [l for l in sa.read().splitlines() if nm in l and re.search(r"(?i)CellCatchup", l)]
+    skips = [l for l in lines if re.search(r"(?i)CellCatchup: skip .*WaitingForPlayer", l)]
+    moves = [l for l in lines if l not in skips]
+    r.check(not moves, "no SA CellCatchup move of F1 (%s)" % (moves[:2] or "none"))
+    r.log("  SA CellCatchup skip lines for F1 (wfp=1): %d" % len(skips))
     r.ctl("Cancel", [F1])
 
 
