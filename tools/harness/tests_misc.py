@@ -1484,11 +1484,22 @@ def x7(r):
     else:
         inc(r, "F1 has no line of sight to F2 in the market setup")
     ctl_line(r, "PlaceRel", [F2, PLAYER, 0.0, 0.0, -3000.0], r"\[IEB-TEST\] PLACE")
-    time.sleep(1)
-    b = _attire_probe(r, fu, tu)
-    if not b or b["los"]:
-        return inc(r, "LOS-false setup did not give has_line_of_sight false")
-    r.check(not b["mark"], "without line of sight: no attire line")
+    try:
+        time.sleep(1)
+        b = _attire_probe(r, fu, tu)
+        if not b or b["los"]:
+            return inc(r, "LOS-false setup did not give has_line_of_sight false")
+        r.check(not b["mark"], "without line of sight: no attire line")
+    finally:
+        # Reviewer 2026-10-10: F2 under the terrain can fall, take damage, die or trip NFF's warp. Bring her straight
+        # back and assert she is alive and near the player; X-7 also reloads T0 afterwards (reload=True). Post-U1:
+        # replace the under-terrain placement with a real occluder (F2 inside a closed interior, placed on a marker).
+        con(r, "%08X.moveto player" % F2)
+        time.sleep(2)
+        m = ctl_line(r, "Probe", [F2], r"\[IEB-TEST\] probe .*0x0*%X .*dPlayer=(\S+) .*dead=(\d)" % F2)
+        r.check(bool(m) and m.group(2) == "0", "F2 alive after the under-terrain placement (%s)" % (m.group(0)[-40:] if m else "no probe"))
+        r.check(bool(m) and m.group(1) not in ("NA", "") and float(m.group(1)) < 500,
+                "F2 back beside the player (dPlayer=%s)" % (m.group(1) if m else "?"))
 
 
 @test("X-8", "X", reload=True)
