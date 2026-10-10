@@ -175,7 +175,9 @@ def main(mode):
     plan = ([("c7", "console", False), ("c7p", "papyrus", False)] if not harness else
             [("c8", "console", False), ("c9", "papyrus", False), ("c2", "console", True), ("c3", "papyrus", True),
              ("c4", "F5", True), ("c5", "F5", False)])
-    good = []
+    if len(sys.argv) > 2 and sys.argv[2] != "-":     # rerun a subset: r29_save_cells.py on c4,c5 [IEB_R29_c9,...]
+        plan = [p for p in plan if p[0] in sys.argv[2].split(",")]
+    good = sys.argv[3].split(",") if len(sys.argv) > 3 else []
     for i, (cid, how, errand) in enumerate(plan):
         ctl = fresh(harness)
         if i == 0:
