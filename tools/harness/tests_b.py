@@ -74,7 +74,7 @@ REQLOG = ("C:/Nolvus/Instances/Nolvus Awakening/MODS/mods/SkyrimNet Test - Outpu
           "openrouter_input.log")
 
 DECIDE = ("TAKE", "TAKE_SKIP", "LEND", "REFUSE")
-REL_KW = ("RELEASE", "RELEASE_STAY", "RELEASE_FOLLOW", "RELEASE_SEATLOST", "RELEASE_DEAD", "REJOIN_WAIT")
+REL_KW = ("RELEASE", "RELEASE_STAY", "RELEASE_FOLLOW", "RELEASE_SEATLOST", "RELEASE_DISMISSED", "RELEASE_DEAD", "REJOIN_WAIT")
 REJOIN_EXIT = ("REJOIN_DONE", "REJOIN_TO_WAIT", "REJOIN_CANCELLED")
 N_DEFAULT = 1920.0         # spec §7.2 :1108 (0.75 x 2560)
 
@@ -772,13 +772,132 @@ def b6(r):
         r.check(p.get("nffSeat") == "-1", "NFF seat cleared by the dismissal (nffSeat=%s)" % p.get("nffSeat"))
         r.ctl("Cancel", [F1])
         end = wait_ieb(td, REL_KW, nm, 30)
-        r.check(end is not None and end[0] == "RELEASE_SEATLOST", "RELEASE_SEATLOST (%s)" % (end,))
+        # REVIEW_LOG R32 (460a161): a dismissal seen during the hold ends as RELEASE_DISMISSED; RELEASE_SEATLOST is the
+        # older / no-signal wording. Either is a pass; a follow or wait is not.
+        r.check(end is not None and end[0] in ("RELEASE_DISMISSED", "RELEASE_SEATLOST"),
+                "RELEASE_DISMISSED or RELEASE_SEATLOST (%s)" % (end,))
         time.sleep(10)
         p = probe(r, F1) or {}
         r.check(p.get("nffSeat") == "-1", "F1 not re-recruited (nffSeat=%s)" % p.get("nffSeat"))
         r.check(p.get("tm") == "0", "teammate stays off after the NFF dismissal (tm=%s)" % p.get("tm"))
         later = [e for e in ieb_events(td.read(), nm) if e[0] in ("RELEASE_FOLLOW", "RELEASE_STAY", "REJOIN_WAIT")]
         r.check(not later, "no follow/wait from the bridge after the seat was lost (%s)" % later)
+    finally:
+        r.ctl("Cancel", [F1])
+
+def dismiss_case(r, what, setup, dismiss, via_ok, tm_check=True):
+    """Shared body of B-6b ... B-6d (REVIEW_LOG RV-66): an NFF dismissal that leaves NO DismissedFac / Variable04 signal
+    must still read as a dismissal, never as CMD_FOLLOW. `setup(nm)` returns False if a precondition is missing;
+    `dismiss()` performs the NFF call. Verdict lines: NFF_DISMISSED (via= seat_cleared / signal), RELEASE_DISMISSED or
+    RELEASE_SEATLOST after the Cancel, no CMD_FOLLOW, no follow/wait/teammate write afterwards."""
+    nm = base(r, F1)[0]
+    snap(r, F1)
+    t = fresh()
+    ww = fresh("watch")
+    if not setup(nm):
+        return
+    if not took(r, go(r, F1, DEST_FAR, t), nm):
+        return
+    until(lambda: any(s.get("loaded") == "0" for s in wsamples(ww.read(), F1)), 90)
+    td = fresh()
+    if not dismiss():
+        return
+    time.sleep(6)                 # the bridge decides within the 3 s G1 deferral (HeldUpkeep) plus a poll
+    p = probe(r, F1) or {}
+    r.check(p.get("nffSeat") == "-1", "%s: NFF seat cleared (nffSeat=%s)" % (what, p.get("nffSeat")))
+    evs = ieb_events(td.read(), nm)
+    r.check(not [e for e in evs if e[0] == "CMD_FOLLOW"], "%s: no CMD_FOLLOW (%s)" % (what, [e for e in evs if e[0] == "CMD_FOLLOW"]))
+    dis = [e for e in evs if e[0] == "NFF_DISMISSED"]
+    r.log("  %s: bridge events %s" % (what, [e[0] + " " + e[1][:60] for e in evs][:8]))
+    if via_ok is not None:
+        r.check(bool(dis) and any(v in dis[0][1] for v in via_ok),
+                "%s: NFF_DISMISSED via %s (%s)" % (what, "/".join(via_ok), dis[:1]))
+    r.ctl("Cancel", [F1])
+    end = wait_ieb(td, REL_KW, nm, 30)
+    r.check(end is not None and end[0] in ("RELEASE_DISMISSED", "RELEASE_SEATLOST"),
+            "%s: RELEASE_DISMISSED or RELEASE_SEATLOST (%s)" % (what, end))
+    time.sleep(10)
+    p = probe(r, F1) or {}
+    r.check(p.get("nffSeat") == "-1", "%s: F1 not re-seated (nffSeat=%s)" % (what, p.get("nffSeat")))
+    if tm_check:
+        r.check(p.get("tm") == "0", "%s: teammate stays off (tm=%s; a CMD_FOLLOW/IE restore would set it)" % (what, p.get("tm")))
+    later = [e for e in ieb_events(td.read(), nm) if e[0] in ("RELEASE_FOLLOW", "RELEASE_STAY", "REJOIN_WAIT")]
+    r.check(not later, "%s: no follow/wait from the bridge after the dismissal (%s)" % (what, later))
+
+
+@test("B-6b", "B", reload=True)
+def b6b(r):
+    """REVIEW_LOG RV-66, hired-guard dismiss. NFF's guard dismissal (DismissGuardAction, nwsFollowerControllerScript.psc
+    :914-945; alias cleared :942) sets WaitingForPlayer 0 (:933) with NO DismissedFac and no Variable04, so the faction
+    signal is absent: the bridge must defer the G1 decision (<= 3 s) and read the cleared seat -> NFF_DISMISSED via=
+    seat_cleared, never CMD_FOLLOW. Proposed wrapper NFFGuardOn(F): adds F to nwsFF_GuardFaction (varScript) so
+    RemoveFollower(F, 0, 0) routes to DismissGuardAction (:529-530); then NFFDismiss. A missing wrapper is INCONCLUSIVE.
+    F1 stays dismissed: reload after."""
+    try:
+        def setup(nm):
+            m = ctl_line(r, "NFFGuardOn", [F1], r"\[IEB-TEST\] NFFGuardOn [^\r\n]*", 15)
+            return need(r, m, "NFFGuardOn wrapper missing or silent (guard faction not set)")
+
+        def dismiss():
+            m = ctl_line(r, "NFFDismiss", [F1], r"\[IEB-TEST\] NFFDismiss .* seated=(\w+)", 15)
+            return need(r, m, "NFFDismiss wrapper missing or silent")
+        dismiss_case(r, "hired guard", setup, dismiss, ("seat_cleared", "late_signal"))
+    finally:
+        r.ctl("Cancel", [F1])
+
+
+@test("B-6c", "B")
+def b6c(r):
+    """REVIEW_LOG RV-66, import-route stale faction. ImportAction (psc :662-720) never clears DismissedFac (RecruitAction
+    :387 does), so an imported follower can carry a stale one. Proposed wrapper NFFStaleFac(F, 1) puts F1 in NFF's
+    DismissedFac before the errand (the bridge records IEB_TakeDismissed = 1 at TAKE); a real NFF follow command mid-task
+    must then still be CMD_FOLLOW (not NFF_DISMISSED), end in RELEASE_FOLLOW, and the seat stays. NFFStaleFac(F, 0)
+    removes the faction in the teardown."""
+    try:
+        nm = base(r, F1)[0]
+        snap(r, F1)
+        m = ctl_line(r, "NFFStaleFac", [F1, 1], r"\[IEB-TEST\] NFFStaleFac [^\r\n]*", 15)
+        if not need(r, m, "NFFStaleFac wrapper missing or silent"):
+            return
+        t = fresh()
+        if not took(r, go(r, F1, DEST_UP, t), nm):
+            return
+        time.sleep(6)
+        r.ctl("NFFFollow", [F1])
+        c = wait_ieb(t, ("CMD_FOLLOW", "NFF_DISMISSED"), nm, 20)
+        r.check(c is not None and c[0] == "CMD_FOLLOW", "stale DismissedFac + follow command -> CMD_FOLLOW (%s)" % (c,))
+        end = wait_ieb(t, REL_KW, nm, 20)
+        r.check(end is not None and end[0] == "RELEASE_FOLLOW", "RELEASE_FOLLOW (%s)" % (end,))
+        time.sleep(5)
+        p = probe(r, F1) or {}
+        r.check(p.get("nffSeat") not in (None, "-1"), "seat kept (nffSeat=%s)" % p.get("nffSeat"))
+    finally:
+        ctl_line(r, "NFFStaleFac", [F1, 0], r"\[IEB-TEST\] NFFStaleFac [^\r\n]*", 10)
+        tidy(r, F1)
+
+
+@test("B-6d", "B", reload=True)
+def b6d(r):
+    """REVIEW_LOG RV-66, imported follower dismiss. RemoveFollower on an imported follower routes to ExportAction (psc
+    :527-528; it clears the alias :754 and writes neither DismissedFac nor Variable04). Proposed wrapper NFFImport(F):
+    NFF's ImportAction route (after the NFFDismiss that frees the seat) -> F1 seated with nwsFF_ImportFac. The
+    dismissal must then read as a dismissal (seat cleared), not a follow. A missing wrapper is INCONCLUSIVE."""
+    try:
+        def setup(nm):
+            m = ctl_line(r, "NFFDismiss", [F1], r"\[IEB-TEST\] NFFDismiss .* seated=(\w+)", 15)
+            if not need(r, m, "NFFDismiss wrapper missing or silent (freeing the seat for the import)"):
+                return False
+            time.sleep(4)
+            m = ctl_line(r, "NFFImport", [F1], r"\[IEB-TEST\] NFFImport [^\r\n]* seated=(\w+)", 15)
+            if not need(r, m and m.group(1) == "True", "NFFImport wrapper missing, silent or not seated"):
+                return False
+            bring(r, F1)
+            return True
+
+        def dismiss():
+            m = ctl_line(r, "NFFDismiss", [F1], r"\[IEB-TEST\] NFFDismiss .* seated=(\w+)", 15)
+            return need(r, m, "NFFDismiss wrapper missing or silent")
+        dismiss_case(r, "imported", setup, dismiss, None, tm_check=False)
     finally:
         r.ctl("Cancel", [F1])
 

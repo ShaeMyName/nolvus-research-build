@@ -47,6 +47,16 @@ Function Setup()
     RegisterForModEvent("IntelEngine_TaskEnded", "OnIETaskEnded")
     RegisterForModEvent("maras_status_changed", "OnMarasStatusChanged")
     Log(2, "SETUP agents=" + _agents.Length + " enabled=" + IEB_Enabled.GetValueInt())
+    If IEB_NFFLib.NFFPresent()                       ; REVIEW_LOG RV-66: once per load (Setup runs on init and on each load)
+        Int src = IEB_NFFLib.DismissedFacSource()
+        If src == 1
+            Log(1, "NFF_DISMISSED_FAC source=varScript")
+        ElseIf src == 2
+            Log(0, "WARN NFF_DISMISSED_FAC source=fallback_0x05C84C (controller.varScript.DismissedFac unreadable)")
+        Else
+            Log(0, "WARN NFF_DISMISSED_FAC source=none (no dismissal faction; the seat check still decides)")
+        EndIf
+    EndIf
 EndFunction
 
 ; ============================================================================ event handlers (request + tick only)
@@ -184,6 +194,7 @@ Function Discover()
                 If gate == 0
                     If live == ""
                         Log(2, "DEFER actor=" + a.GetDisplayName() + " reason=slot_teardown")
+                        DeferNote(a, "slot_teardown")
                     ElseIf IEB_IELib.IsStoryType(live) && IEB_NFFLib.Seated(a)
                         DispatchConflict(a)                          ; patch B missing or stale (§6.4)
                     Else
@@ -215,9 +226,16 @@ Function Classify(Actor a)
     EndIf
     If IEB_IELib.RefusePending(a)
         Log(2, "DEFER actor=" + who + " reason=refuse_pending type=" + live)
+        DeferNote(a, "refuse_pending")
         Return
     EndIf
-    String prior = IEB_IELib.RecentRefusal(a, live)
+    DeferClear(a)
+    ; REVIEW_LOG RV-66: the 30 s backstop only ever applies to a story-type task (the refusals it repeats are story
+    ; refusals); a travel or other errand after a story refusal must classify normally.
+    String prior = ""
+    If IEB_IELib.IsStoryType(live)
+        prior = IEB_IELib.RecentRefusal(a, live)
+    EndIf
     If prior != ""
         IEB_IELib.MarkPending(a)
         IEB_IELib.CancelSlotOf(a)
@@ -301,6 +319,7 @@ Function Park(Actor a)
         StorageUtil.UnsetFloatValue(a, "IEB_TakeV04")
     EndIf
     StorageUtil.UnsetIntValue(a, "IEB_NFFDismissed")
+    StorageUtil.UnsetFloatValue(a, "IEB_G1PendAt")
     IEB_NFFLib.Wait(a)                                   ; sync variant only (R1)
     StorageUtil.SetIntValue(a, "IEB_Held", 1)
     StorageUtil.SetIntValue(a, "IEB_Gate", 1)
@@ -601,21 +620,33 @@ Function HeldUpkeep(Actor a)
     Float wfp = a.GetActorValue("WaitingForPlayer")
     ; G1: external follow = a 1 -> 0 transition, Modes 1 (and 4, in Mode4Upkeep) only
     If mode == 1
-        If StorageUtil.GetFloatValue(a, "IEB_LastWFP", 1.0) == 1.0 && wfp == 0.0 && StorageUtil.GetIntValue(a, "IEB_Recall", 0) == 0 && \
-           StorageUtil.GetIntValue(a, "IEB_NFFDismissed", 0) == 0
+        Float pend = StorageUtil.GetFloatValue(a, "IEB_G1PendAt", -1.0)
+        Bool open = StorageUtil.GetIntValue(a, "IEB_Recall", 0) == 0 && StorageUtil.GetIntValue(a, "IEB_NFFDismissed", 0) == 0
+        If pend >= 0.0
+            ; REVIEW_LOG RV-66: a WFP 1 -> 0 with no faction/V04 signal is decided on the NFF seat, up to 3 s later.
+            ; A dismissal clears the alias (RemoveAction nwsFollowerControllerScript.psc:523, DismissGuardAction :942,
+            ; ExportAction :754); a follow command keeps it.
+            Float age = Utility.GetCurrentRealTime() - pend
+            If wfp == 1.0 || !open
+                StorageUtil.UnsetFloatValue(a, "IEB_G1PendAt")       ; parked again, or already decided elsewhere
+            ElseIf !IEB_NFFLib.Seated(a)
+                StorageUtil.UnsetFloatValue(a, "IEB_G1PendAt")
+                G1Dismissed(a, "seat_cleared")
+            ElseIf NFFDismissedDuringHold(a)
+                StorageUtil.UnsetFloatValue(a, "IEB_G1PendAt")
+                G1Dismissed(a, "late_signal")
+            ElseIf age >= 3.0 || age < 0.0
+                StorageUtil.UnsetFloatValue(a, "IEB_G1PendAt")
+                G1Follow(a, "seat_kept")
+            EndIf
+        ElseIf StorageUtil.GetFloatValue(a, "IEB_LastWFP", 1.0) == 1.0 && wfp == 0.0 && open
             If NFFDismissedDuringHold(a)
-                ; REVIEW_LOG R32: NFF's dismissal (RemoveAction sets DismissedFac / animal Variable04=0 before WFP=0),
-                ; not a follow command. Unset Intel_WasFollower BEFORE the cancel so IE's ClearSlotRestoreFollower
-                ; skips its SetPlayerTeammate(true); IEB_Recall stays 0 so Release can't Follow her.
-                StorageUtil.SetIntValue(a, "IEB_SeatLost", 1)
-                StorageUtil.SetIntValue(a, "IEB_NFFDismissed", 1)
-                StorageUtil.UnsetIntValue(a, "Intel_WasFollower")
-                IEB_IELib.CancelSlotOf(a)
-                Log(1, "NFF_DISMISSED actor=" + a.GetDisplayName() + " seated=" + IEB_NFFLib.Seated(a) + " tm=" + a.IsPlayerTeammate())
+                G1Dismissed(a, "signal")                             ; NFF wrote its dismissal signal before WFP=0
+            ElseIf !IEB_NFFLib.Seated(a)
+                G1Dismissed(a, "seat_cleared")
             Else
-                StorageUtil.SetIntValue(a, "IEB_Recall", 1)
-                IEB_IELib.CancelSlotOf(a)
-                Log(1, "CMD_FOLLOW actor=" + a.GetDisplayName())
+                StorageUtil.SetFloatValue(a, "IEB_G1PendAt", Utility.GetCurrentRealTime())
+                Log(2, "G1_DEFER actor=" + a.GetDisplayName() + " reason=no_signal")
             EndIf
         EndIf
         If !IEB_NFFLib.Seated(a)
@@ -626,9 +657,51 @@ Function HeldUpkeep(Actor a)
     StorageUtil.SetFloatValue(a, "IEB_LastWFP", wfp)
 EndFunction
 
+Function G1Dismissed(Actor a, String asWhy)
+    ; REVIEW_LOG R32: NFF's dismissal (RemoveAction sets DismissedFac / animal Variable04=0 before WFP=0; hired guards and
+    ; imported followers leave only the cleared seat), not a follow command. Unset Intel_WasFollower BEFORE the cancel
+    ; so IE's ClearSlotRestoreFollower skips its SetPlayerTeammate(true); IEB_Recall stays 0 so Release can't Follow her.
+    StorageUtil.SetIntValue(a, "IEB_SeatLost", 1)
+    StorageUtil.SetIntValue(a, "IEB_NFFDismissed", 1)
+    StorageUtil.UnsetIntValue(a, "Intel_WasFollower")
+    IEB_IELib.CancelSlotOf(a)
+    Log(1, "NFF_DISMISSED actor=" + a.GetDisplayName() + " via=" + asWhy + " seated=" + IEB_NFFLib.Seated(a) + " tm=" + a.IsPlayerTeammate())
+EndFunction
+
+Function G1Follow(Actor a, String asWhy)
+    StorageUtil.SetIntValue(a, "IEB_Recall", 1)
+    IEB_IELib.CancelSlotOf(a)
+    Log(1, "CMD_FOLLOW actor=" + a.GetDisplayName() + " via=" + asWhy)
+EndFunction
+
+Function DeferNote(Actor a, String asWhy)
+    {REVIEW_LOG RV-66: a DEFER that repeats for more than 10 s on one actor is a WARN (once per streak). A streak ends
+     after 5 s without a DEFER or at the next decision (DeferClear).}
+    Float now = Utility.GetCurrentRealTime()
+    Float since = StorageUtil.GetFloatValue(a, "IEB_DeferSince", -1.0)
+    Float last = StorageUtil.GetFloatValue(a, "IEB_DeferLast", -1.0)
+    StorageUtil.SetFloatValue(a, "IEB_DeferLast", now)
+    If since < 0.0 || since > now || last < 0.0 || now - last > 5.0
+        StorageUtil.SetFloatValue(a, "IEB_DeferSince", now)
+        StorageUtil.UnsetIntValue(a, "IEB_DeferWarned")
+    ElseIf now - since > 10.0 && StorageUtil.GetIntValue(a, "IEB_DeferWarned", 0) == 0
+        StorageUtil.SetIntValue(a, "IEB_DeferWarned", 1)
+        Log(0, "WARN DEFER_STUCK actor=" + a.GetDisplayName() + " reason=" + asWhy + " secs=" + (now - since) as Int)
+    EndIf
+EndFunction
+
+Function DeferClear(Actor a)
+    StorageUtil.UnsetFloatValue(a, "IEB_DeferSince")
+    StorageUtil.UnsetFloatValue(a, "IEB_DeferLast")
+    StorageUtil.UnsetIntValue(a, "IEB_DeferWarned")
+EndFunction
+
 Bool Function NFFDismissedDuringHold(Actor a)
-    {REVIEW_LOG R32: a dismissal signal that APPEARED during the hold (a stale DismissedFac from an earlier dismissal
-     or another recruit path does not count). Holds taken before this build have no IEB_TakeDismissed: read as 0.}
+    {REVIEW_LOG R32 + RV-66: a dismissal signal that APPEARED during the hold. A stale DismissedFac does not count:
+     ImportAction (nwsFollowerControllerScript.psc:662-720) never touches DismissedFac (the only writers are RecruitAction
+     :387 and ExpelFollower :981 remove it; RemoveAction :466 and :1040 add it), so an imported follower can carry it from an earlier dismissal;
+     Park records IEB_TakeDismissed = 1 for her, which turns this signal off and leaves the seat check (HeldUpkeep) to
+     decide. Holds taken before this build have no IEB_TakeDismissed: read as 0.}
     If StorageUtil.GetIntValue(a, "IEB_TakeDismissed", 0) == 0 && IEB_NFFLib.InDismissedFac(a)
         Return True
     EndIf
@@ -821,6 +894,8 @@ Function ClearKeys(Actor a)
     StorageUtil.UnsetFloatValue(a, "IEB_CF_PreGlobal")
     StorageUtil.UnsetIntValue(a, "IEB_SkipLogged")
     StorageUtil.UnsetIntValue(a, "IEB_TakeDismissed")
+    StorageUtil.UnsetFloatValue(a, "IEB_G1PendAt")
+    DeferClear(a)
     StorageUtil.UnsetFloatValue(a, "IEB_TakeV04")
     StorageUtil.UnsetIntValue(a, "IEB_NFFDismissed")
     StorageUtil.FormListRemove(None, "IEB_HeldList", a, True)

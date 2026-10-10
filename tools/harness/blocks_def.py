@@ -4,7 +4,7 @@ from block import block
 
 block("U1", "T0", ["tests_b", "tests_tm_l", "tests_misc"], [
     # B, plain errands
-    "B-1", "B-2", "B-4", "B-7", "B-10", "B-12", "B-14", "B-19", "B-21", "B-3", "B-3b", "B-6", "B-9", "B-16", "B-18",
+    "B-1", "B-2", "B-4", "B-7", "B-10", "B-12", "B-14", "B-19", "B-21", "B-3", "B-3b", "B-6", "B-6b", "B-6c", "B-6d", "B-9", "B-16", "B-18",
     "B-22", "B-27", "B-28", "B-31",
     # B-8 kills F: last before a reload
     "B-8",

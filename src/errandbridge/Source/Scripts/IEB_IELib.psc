@@ -73,7 +73,12 @@ EndFunction
 String Function DecisionTaskType(Actor a) Global
     {REVIEW_LOG R54: the task type read from IntelEngine's own slot state at decision time (Core.SlotTaskTypes[slot]).
      "" = no slot, or the slot is being torn down: Core.ClearSlot unsets Intel_TaskType early but clears the agent
-     alias and SlotTaskTypes last, and MarkSlotProcessing (SlotStates = 0) precedes ClearSlot. No decision on "".}
+     alias and SlotTaskTypes last, and MarkSlotProcessing (SlotStates = 0) precedes ClearSlot. No decision on "".
+     SlotStates 0 is only the teardown/empty value (REVIEW_LOG RV-66): IntelEngine_Core.psc:158 enumerates the states
+     (0 = empty/processing, 1 traveling, 2 at_destination, 3 returning, 5 search_wait, 8 at_target); AllocateSlot
+     writes 1 (:689); the only other writers of a state are SetSlotState callers, which pass 1, 2, 3, 5 or
+     STATE_AT_TARGET (NPCTasks:1374/:1482/:1532/:1909/:2241/:2351/:2368, Travel:638); 0 is written only by ClearSlot
+     (:869) and MarkSlotProcessing (:1013). So no live task phase has SlotStates 0.}
     Int slot = SlotOf(a)
     If slot < 0
         Return ""

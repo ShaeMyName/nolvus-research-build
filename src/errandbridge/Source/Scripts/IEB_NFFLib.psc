@@ -103,7 +103,9 @@ EndFunction
 ; ---- REVIEW_LOG R32: NFF's dismissal signal (nwsFollowerControllerScript.RemoveAction :560-568 sets these BEFORE WFP=0)
 
 Faction Function DismissedFac() Global
-    {NFF's own DismissedFac (controller.varScript.DismissedFac). Fallback: vanilla DismissedFollowerFaction 0x05C84C.}
+    {NFF's own DismissedFac (controller.varScript.DismissedFac). Fallback: vanilla DismissedFollowerFaction 0x05C84C.
+     0x05C84C is what nwsFollowerFramework.esp's VMAD stores for nwsFollowerVariableScript.DismissedFac (QUST 0x23CBC0,
+     master Skyrim.esm; read with build/tools/espio.py, REVIEW_LOG RV-66).}
     nwsFollowerControllerScript c = Ctl()
     If c != None
         nwsFollowerVariableScript v = c.varScript
@@ -112,6 +114,22 @@ Faction Function DismissedFac() Global
         EndIf
     EndIf
     Return Game.GetFormFromFile(0x0005C84C, "Skyrim.esm") as Faction
+EndFunction
+
+Int Function DismissedFacSource() Global
+    {Which form DismissedFac() resolves to: 1 = NFF's varScript property, 2 = the 0x05C84C fallback, 0 = none.
+     Logged once per load by IEB_Main.Setup (a 2 is a WARN).}
+    nwsFollowerControllerScript c = Ctl()
+    If c != None
+        nwsFollowerVariableScript v = c.varScript
+        If v != None && v.DismissedFac != None
+            Return 1
+        EndIf
+    EndIf
+    If (Game.GetFormFromFile(0x0005C84C, "Skyrim.esm") as Faction) != None
+        Return 2
+    EndIf
+    Return 0
 EndFunction
 
 Bool Function InDismissedFac(Actor a) Global
