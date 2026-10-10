@@ -40,7 +40,10 @@ DOOR_BELETHOR_EXT, DOOR_BELETHOR_INT, CELL_BELETHOR = 0x0001A6F5, 0x00016607, 0x
 DOOR_ARCADIA_EXT, DOOR_ARCADIA_INT, CELL_ARCADIA = 0x0001A6F3, 0x000165C9, 0x000165B6      # ext (24939,-8409)
 DOOR_MARE_EXT, DOOR_MARE_INT, CELL_MARE = 0x0001A6F4, 0x00016072, 0x0001605E               # ext (25726,-7631)
 HOME_REF = CARLOTTA       # "market": Carlotta's stall (she is the settle probe, so she is loaded there by day)
-AWAY_REF = 0x0001A6F7     # Drunken Huntsman exterior door (21716,-6742): ~4100 u from the Bannered Mare door, same
+# [CHANGED 2026-10-10, U1 run 17 TM-8: the player ended up clipped inside a wall] A moveto onto a DOOR ref puts the
+# player at the door's own position, inside the door frame. AWAY_REF is now the Whiterun map marker (GATE, 0x000162CE,
+# (19855,-7423); map markers sit on the navmesh), 5,874 u from the Bannered Mare door, same worldspace, still > N.
+AWAY_REF = 0x000162CE     # was 0x0001A6F7, the Drunken Huntsman exterior door (21716,-6742): ~4100 u from the Mare door, same
                           # worldspace. > N = 0.75 x 2560 = 1920 (IEB_RejoinWarpFactor default, gen_errandbridge.py:23;
                           # NFF warp range default 2560, IEB_NFFLib.psc:87), so RejoinTest is false while F stays loaded.
 
@@ -85,7 +88,13 @@ def console(r, cmd):
     return r.tool("execute_console_command", {"command": cmd})
 
 
+# Door refs: never a player.moveto target (lands inside the door frame / wall).
+DOOR_REFS = {0x0001A6F7, DOOR_ARCADIA_EXT, DOOR_ARCADIA_INT, DOOR_MARE_EXT, DOOR_MARE_INT, DOOR_BELETHOR_EXT, DOOR_BELETHOR_INT}
+
+
 def moveto(r, ref, settle=6):
+    if ref in DOOR_REFS:
+        raise ValueError("harness: player.moveto onto a door ref %08X puts the player inside the wall" % ref)
     console(r, "player.moveto %08X" % ref)
     time.sleep(settle)
 
