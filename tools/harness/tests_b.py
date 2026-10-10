@@ -821,10 +821,15 @@ def b8(r):
         return
     time.sleep(5)
     con(r, "setessential %s 0" % hexid(JENASSA_BASE))
-    # U1 run 17: a plain console kill left F1 alive (dead=0). NFF puts its followers in the nwsFollowerProtect alias when
-    # nwsDoProtect is on (nwsFollowerControllerScript.psc:375-376), i.e. protected: only the player can kill them. So
-    # the kill names the player as the killer (console Kill <killer>; INFERRED that this satisfies "protected").
-    con(r, "%s.kill 14" % hexid(F1))
+    # U1 run 17: a plain console kill left F1 alive (dead=0): NFF puts followers in its nwsFollowerProtect alias when
+    # nwsDoProtect is on (nwsFollowerControllerScript.psc:375-376). NOT "kill 14": a player-attributed murder next to
+    # Whiterun guards is an instant bounty and arrest (reviewer, after the run 16 jail). Post-U1 harness wrapper
+    # KillUnattributed: base SetProtected(false) + SetEssential(false), then Kill(None); out of witness range if needed.
+    # Undone by B-8's own reload (reload=True). Until it is installed, B-8 stays INCONCLUSIVE.
+    if "KillUnattributed" in r.CTL_DONE:
+        r.ctl("KillUnattributed", [F1])
+    else:
+        con(r, "%s.kill" % hexid(F1))
     time.sleep(3)
     p = probe(r, F1) or {}
     if not need(r, p.get("dead") == "1", "console kill did not kill F1 (dead=%s; essential/protected?)" % p.get("dead")):
@@ -838,6 +843,9 @@ def b8(r):
     i = txt.find("RELEASE_DEAD actor=%s" % nm)
     after = ieb_events(txt[i:], nm)[1:] if i >= 0 else []
     r.check(not after, "no bridge action on F1 after death (%s)" % after)
+    sn = r.tails["skyrimnet"].read()
+    crime = re.search(r"Menu 'Dialogue Menu' is opening|\(Dialogue\) [^:]*Guard: |DialogueCrimeGuards", sn)
+    r.check(not crime, "no guard alarm / arrest after the kill (%s)" % (crime.group(0) if crime else "none"))
 
 
 @test("B-9", "B")
