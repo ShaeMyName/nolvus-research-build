@@ -21,6 +21,12 @@ ACTIONS = ["Undress", "UnequipArmor", "SitOrLayDown"]
 CTL_FAILED = re.compile(r"(?i)\[IEB-TEST\] \w+: (?:ModEvent\.Create failed|no door|no ref\b)")
 
 
+def s32arg(x):
+    """Papyrus Int is signed 32-bit: FormIDs of light/high-index plugins (0xFE.., 0x80..-0xFF..) passed as Python ints
+    above 0x7FFFFFFF don't bind (U1 run 18 L-6: StartTask(4266236491 = 0xFE499A4B, ...) never ran)."""
+    return x - (1 << 32) if isinstance(x, int) and not isinstance(x, bool) and 0x7FFFFFFF < x <= 0xFFFFFFFF else x
+
+
 class Run:
     def __init__(self, name):
         self.name, self.lines, self.fails, self.inconclusive = name, [], 0, 0
@@ -117,7 +123,7 @@ class Run:
     def ctl(self, fn, args=None, sync=True, timeout=20):
         size = os.path.getsize(PAPYRUS) if os.path.exists(PAPYRUS) else 0
         res = self.tool("execute_quest_function", {"quest_editor_id": "IEB_TestQuest", "script_name": "IEB_TestCtl",
-                                                   "function_name": fn, "arguments": args or []})
+                                                   "function_name": fn, "arguments": [s32arg(x) for x in (args or [])]})
         pat = self.CTL_DONE.get(fn)
         if not sync or pat is None:
             if sync and fn in self.CTL_UNSYNC:
