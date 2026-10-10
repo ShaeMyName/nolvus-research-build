@@ -59,6 +59,7 @@ class Run:
         "Check": "Check",
         "CombatProbe": "CombatProbe|CombatProbe\\ none",
         "Despawn": "Despawn|Despawn\\ none",
+        "ConfigProbe": "(?i:CONFIGPROBE) ",
         "DespawnRef": "(?i:DESPAWN(?:REF)?) ",   # case_folding_audit.md: the installed pex prints "Despawn "
         "Dispatch": "Dispatch",
         "DoorUse": "DoorUse|DoorUse:\\ ModEvent\\.Create\\ failed|DoorUse:\\ no\\ door",

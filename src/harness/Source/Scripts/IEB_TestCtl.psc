@@ -1073,6 +1073,18 @@ Int Function Spawn(Int aiBaseFormId, Float afDist)
     Return r.GetFormID()
 EndFunction
 
+Function ConfigProbe()
+    {R31: does SkyrimNet's config lookup survive Papyrus case folding? IEB_SceneMain reads GetConfigFloat("game", ...);
+     the vanilla Game script puts "Game" in the string pool first, so "game" likely reaches SkyrimNet as "Game". Each read
+     uses a distinct sentinel default: a sentinel in the line = the lookup failed. Expected from SkyrimNet.yaml
+     (interaction:): maxDistance 1600, normalMaxDistance 1600, whisperMaxDistance 200 (unless whisper mode changed it).}
+    Float m = SkyrimNetApi.GetConfigFloat("game", "interaction.maxDistance", -7001.0)
+    Float n = SkyrimNetApi.GetConfigFloat("game", "interaction.normalMaxDistance", -7002.0)
+    Float w = SkyrimNetApi.GetConfigFloat("game", "interaction.whisperMaxDistance", -7003.0)
+    Float x = SkyrimNetApi.GetConfigFloat("SkyrimNet", "interaction.maxDistance", -7004.0)
+    Log("CONFIGPROBE max=" + m + " normal=" + n + " whisper=" + w + " skyrimnet=" + x)
+EndFunction
+
 Function DespawnRef(Int aiRefFormId)
     ObjectReference r = Game.GetForm(aiRefFormId) as ObjectReference
     If r != None
