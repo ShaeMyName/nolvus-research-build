@@ -345,7 +345,7 @@ def save(run, name, timeout=90, route=None):
             size = os.path.getsize(ess)
             if size > 0 and size == last:
                 run.log("SAVE %s: %s" % (name, save_thread(sn.read(), name)))
-                run.log("SAVE %s: OK via " + route + ", complete (%d bytes) after %d s (at send: %s)"
+                run.log(("SAVE %s: OK via " + route + ", complete (%d bytes) after %d s (at send: %s)")
                         % (name, size, time.time() - t0, mem))
                 return True
             last = size
@@ -354,8 +354,8 @@ def save(run, name, timeout=90, route=None):
     SAVE_FAILED = True
     run.log("SAVE %s: %s" % (name, save_thread(sn.read(), name)))
     err = re.search(r"Unknown exception executing console command", sn.read())
-    run.log("SAVE %s: FAILED via " + route + ", not complete after %d s (ess=%s tmp=%s%s; at send: %s; now: Available %.1f GB, "
-            "game %.1f GB private)" % (name, timeout, os.path.exists(ess), os.path.exists(tmp),
+    run.log(("SAVE %s: FAILED via " + route + ", not complete after %d s (ess=%s tmp=%s%s; at send: %s; now: Available %.1f GB, "
+            "game %.1f GB private)") % (name, timeout, os.path.exists(ess), os.path.exists(tmp),
                                         ", SkyrimNet 'Unknown exception'" if err else "", mem, available_ram_gb(),
                                         game_private_gb()))
     return False
