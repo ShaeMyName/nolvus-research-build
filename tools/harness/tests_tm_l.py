@@ -895,7 +895,7 @@ def l10(r):
         p = probe(r, H)
         r.check(bool(p) and p.get("iebLent") == 1 and p.get("ieSlot", -1) >= 0, "after load: H still lent and in its slot")
         r.check(bool(p) and p.get("wfp") == 1.0, "after load: H WFP 1 (wfp=%s)" % (p and p.get("wfp")))
-        r.check(bool(p) and p.get("sched") == (-1, -1, -1), "after load: no schedule alias (schedIdx=%s)" % (p and p.get("sched")))
+        r.check(bool(p) and p.get("sched") == (-1, -1, -1), "after load: no schedule alias (schedIdx=%s)" % ((p and p.get("sched")),))
         moveto(r, AWAY_REF)
         if not timeout_at_dest(r, H):
             return inconclusive(r, "H's errand never reached its end after the load")
