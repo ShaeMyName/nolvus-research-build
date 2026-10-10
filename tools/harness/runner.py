@@ -20,6 +20,7 @@ ACTIONS = ["Undress", "UnequipArmor", "SitOrLayDown"]
 class Run:
     def __init__(self, name):
         self.name, self.lines, self.fails, self.inconclusive = name, [], 0, 0
+        self.t0 = time.time()
         self.c = MCP()
 
     def log(self, s):
@@ -74,6 +75,14 @@ class Run:
         open(p, "w", encoding="utf-8").write("\n".join(self.lines) + "\n")
         verdict = "%d FAIL" % self.fails if self.fails else ("INCONCLUSIVE (%d)" % self.inconclusive if self.inconclusive else "ALL PASS")
         self.log("saved %s; %s" % (p, verdict))
+        # Per-test timing log (Shae, 2026-10-09): real seconds per run, used to re-estimate the remaining families.
+        t = OUT + "timings.csv"
+        new = not os.path.exists(t)
+        with open(t, "a", encoding="utf-8") as f:
+            if new:
+                f.write("test,start,end,seconds,verdict\n")
+            f.write("%s,%s,%s,%d,%s\n" % (self.name, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.t0)),
+                                          time.strftime("%Y-%m-%d %H:%M:%S"), time.time() - self.t0, verdict))
 
 
 def eligible(res):
