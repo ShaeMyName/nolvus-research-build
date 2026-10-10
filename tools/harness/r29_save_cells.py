@@ -17,6 +17,9 @@ OUT = "C:/nolvus-research/test_runs/"
 F1 = 0x000E1BA9
 LOG = []
 LOADED_AT = [0.0]
+BOX_OPEN = [False]
+MENU = {}
+RESULT = {}
 SHOTS = OUT + "R29_shots/"
 
 
@@ -39,14 +42,35 @@ def fresh(harness):
     if not harness:
         # no auto-clear: the Timeline Mismatch box may open after the load; Esc = Keep (2026-10-10)
         game.load(ctl, "T0", None, timeout=8 * 60)
-        for _ in range(3):
-            if keys.focus_game():
-                keys.press("ESC")
-            time.sleep(5)
+        BOX_OPEN[0] = not clear_box(ctl)
     else:
         game.load(ctl, "T0", None)
     LOADED_AT[0] = time.time()
     return ctl
+
+
+def probe_menus(ctl):
+    t = game.Tail(game.LOGS["papyrus"])
+    ctl.ctl("MenuProbe", [], sync=False)
+    m = t.wait(r"\[IEB-TEST\] MENUPROBE[^\r\n]*", 15)
+    return m.group(0) if m else None
+
+
+def clear_box(ctl):
+    """Harness OFF: SkyrimNet's Timeline Mismatch box opens after the load. Esc = Keep History. Keys go only to a
+    verified-foreground game window (MO2's exit dialog has "Exit Now" as its default button). True = no box open."""
+    for i in range(8):
+        line = probe_menus(ctl)
+        if line and "msgbox=False" in line:
+            say("Timeline box: closed (try %d): %s" % (i, line))
+            return True
+        focused = keys.focus_game()
+        say("Timeline box: %s; game window focused=%s" % ("open" if line else "no MENUPROBE answer", focused))
+        if focused:
+            keys.press("ESC")
+        time.sleep(5)
+    say("Timeline box: STILL OPEN after 8 tries: harness-OFF cells INCONCLUSIVE")
+    return False
 
 
 def menus(ctl, cid):
@@ -54,6 +78,7 @@ def menus(ctl, cid):
     t = game.Tail(game.LOGS["papyrus"])
     ctl.ctl("MenuProbe", [], sync=False)
     m = t.wait(r"\[IEB-TEST\] MENUPROBE[^\r\n]*", 15)
+    MENU[cid] = m.group(0).split("MENUPROBE ", 1)[1] if m else "no MENUPROBE line (Papyrus paused?)"
     say("%s before save (%.0f s after load): %s" % (cid, time.time() - LOADED_AT[0],
                                                      m.group(0) if m else "no MENUPROBE line in 15 s (Papyrus paused?)"))
     try:
@@ -83,6 +108,10 @@ def newest_quicksave(after):
 
 def cell(ctl, cid, how, errand):
     name = "IEB_R29_%s" % cid
+    if BOX_OPEN[0]:
+        RESULT[cid] = (how, errand, "Timeline box still open", "INCONCLUSIVE (not attempted)")
+        say("%s skipped: Timeline box still open" % cid)
+        return False, None
     if errand:
         t = game.Tail(game.LOGS["papyrus"])
         ctl.ctl("StartTask", [F1, "GoToLocation", "Dragonsreach", "1", "1"])
@@ -109,6 +138,12 @@ def cell(ctl, cid, how, errand):
     else:
         res = game.save(ctl, name, route=("papyrus" if how == "papyrus" else "console"))
         say("%s %s save: %s" % (cid, how, "OK" if res else "FAILED"))
+    mp = MENU.get(cid, "")
+    if mp.startswith("no MENUPROBE") or "msgbox=TRUE" in mp or "console=TRUE" in mp:
+        verdict = "INCONCLUSIVE (menu open or Papyrus paused)" if not res else "OK (a menu was open)"
+    else:
+        verdict = "OK" if res else "FAILED"
+    RESULT[cid] = (how, errand, mp, verdict)
     ctx = sn.read()
     m = re.search(r"\] \[(\d+)\] [^\n]*Executing console command 'save", ctx)
     exc = "Unknown exception" in ctx
@@ -145,6 +180,9 @@ def main(mode):
     for name in good:
         load_alone(name, harness)
     game.close(None, timeout=60, force=True)
+    say("SUMMARY cell | route | errand | MENUPROBE | verdict")
+    for cid, (how, errand, mp, verdict) in RESULT.items():
+        say("SUMMARY %s | %s | %s | %s | %s" % (cid, how, errand, mp, verdict))
     open(OUT + "R29_save_cells_%s_%s.txt" % (mode, time.strftime("%Y%m%d-%H%M%S")), "w", encoding="utf-8").write(
         "\n".join(LOG) + "\n")
     say("R29 DONE %s" % mode)

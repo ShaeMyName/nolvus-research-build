@@ -29,6 +29,11 @@ def focus_game():
     if not h:
         return False
     user32.ShowWindow(h, 9)            # SW_RESTORE
+    # Windows refuses SetForegroundWindow from a background process (foreground lock); a synthetic Alt tap first lifts
+    # it. R29 2026-10-10 19:04: MO2's "waiting on an application to close" dialog held the foreground, so the Esc
+    # presses meant for the Timeline box never reached the game.
+    user32.keybd_event(0x12, 0, 0, 0)
+    user32.keybd_event(0x12, 0, KEYEVENTF_KEYUP, 0)
     user32.SetForegroundWindow(h)
     time.sleep(1.0)
     return user32.GetForegroundWindow() == h
