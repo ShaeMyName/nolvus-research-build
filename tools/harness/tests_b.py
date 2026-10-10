@@ -60,7 +60,9 @@ GATE = 0x000162CE
 STABLES = 0x00072879
 BANDIT = 0x0003DECB
 DEST_NEAR = "The Bannered Mare"
-DEST_MARKET = "the marketplace"
+DEST_MARKET = "the Bannered Mare"   # [CHANGED 2026-10-10] "the marketplace" resolves (IntelEngine's own lookup) to
+#   Windhelm Sewers, Marketplace: a real-play resolver finding (investigation/round10/ie_destination_resolver.md).
+#   A named Whiterun place a player would say; IntelEngine resolves it to the inn's exterior door (25918,-6863).
 DEST_UP = "Dragonsreach"
 DEST_FAR = "Riverwood"
 
@@ -160,16 +162,20 @@ def wsamples(text, fid):
             if " dPlayer=" in l and "BURST" not in l and "ASSERT" not in l and rx.search(l)]
 
 
-def warps(samples, near=900.0, jump=1500.0):
-    """NFF warp signature while held (iebHeld 1/2): the actor lands within `near` of the player after a jump of more
-    than `jump` u between two 3 s samples, or after being unloaded (NFF warps to just behind the player, spec §7.2 :1098,
-    :1119). Thresholds INFERRED. Only call this over windows in which the PLAYER did not teleport."""
+def warps(samples, near=900.0, speed=800.0):
+    """NFF warp signature while held (iebHeld 1/2): the actor lands within `near` of the player after moving faster
+    than `speed` u per real second between two samples (a warp is instant; a sprint is well under 800 u/s), or after
+    being unloaded (NFF warps to just behind the player, spec §7.2 :1098, :1119). Speed-based because the watcher ticks
+    every ~28-31 s in this load order: U1 2026-10-10 flagged a 5203 u jog in 31 s (168 u/s) as a warp. Thresholds
+    INFERRED. Only call this over windows in which the PLAYER did not teleport."""
     out, prev = [], None
     for s in samples:
         dp = num(s.get("dPlayer"))
         if prev is not None and s.get("iebHeld") in ("1", "2") and dp is not None and dp < near:
-            if s["xyz"] and prev["xyz"] and dist2(s["xyz"], prev["xyz"]) > jump:
-                out.append("jump %.0f u to dPlayer %.0f at gt=%s" % (dist2(s["xyz"], prev["xyz"]), dp, s.get("gt")))
+            dt = (num(s.get("rt")) or 0) - (num(prev.get("rt")) or 0)
+            d = dist2(s["xyz"], prev["xyz"]) if s["xyz"] and prev["xyz"] else None
+            if d is not None and dt > 0 and d / dt > speed:
+                out.append("jump %.0f u in %.0f s (%.0f u/s) to dPlayer %.0f at gt=%s" % (d, dt, d / dt, dp, s.get("gt")))
             elif prev.get("loaded") == "0" and s.get("loaded") == "1":
                 out.append("unloaded -> loaded at dPlayer %.0f at gt=%s" % (dp, s.get("gt")))
         prev = s

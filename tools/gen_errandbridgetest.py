@@ -3,8 +3,11 @@ never in Lucienne's profile, so the freeze rule does not apply (records may chan
   GLOB 0x800 IEB_TestCFRefuse (0)  every registry entry gets one extra refuse term while 1 (CF tests)
   GLOB 0x801 IEB_TestWatch    (1)  watcher on
   GLOB 0x802 IEB_TestSoakProbe(0)  soak probe CSV on (only during the soak)
-  QUST 0x810 IEB_TestQuest         start game; scripts IEB_Watcher, IEB_TestCtl, IEB_SoakProbe (no properties: forms
-                                   are looked up with GetFormFromFile)
+  QUST 0x810 IEB_TestQuest         start game; scripts IEB_Watcher, IEB_TestCtl (no properties: forms are looked up with
+                                   GetFormFromFile)
+  QUST 0x830 IEB_TestSoakQuest     start game; script IEB_SoakProbe. [CHANGED 2026-10-10] Its own quest: Papyrus keeps one
+                                   update registration per form, so on IEB_TestQuest the probe's 30 s re-arm overwrote
+                                   the watcher's 3 s loop (the watcher ticked every ~30 s).
   QUST 0x820 IEB_TestStoryQuest    synthetic story quest (S-26, MA-7): type 8 (Side Quest, a §10.2.1 story type), start
                                    game, one optional reference alias "TestActor" (empty; filled by IEB_TestCtl.QPFill)
                                    carrying one package. [CHANGED in build 2026-10-09] The package is vanilla
@@ -21,8 +24,9 @@ SELF = 0x01000000
 PLAYER_BASE = 0x00000007
 SANDBOX_PKG = 0x000956B8
 GLOBALS = [(0x800, "IEB_TestCFRefuse", "s", 0), (0x801, "IEB_TestWatch", "s", 1), (0x802, "IEB_TestSoakProbe", "s", 0)]
-TEST_Q, STORY_Q = 0x810, 0x820
-TEST_SCRIPTS = ["IEB_Watcher", "IEB_TestCtl", "IEB_SoakProbe"]
+TEST_Q, STORY_Q, SOAK_Q = 0x810, 0x820, 0x830
+TEST_SCRIPTS = ["IEB_Watcher", "IEB_TestCtl"]
+SOAK_SCRIPTS = ["IEB_SoakProbe"]
 ALIAS_FLAGS = 0x00010202     # Optional | Allow Reserved | Allow Cleared
 
 
@@ -41,12 +45,20 @@ def dnam(qtype):
     return sub("DNAM", {"flags": 0x11, "priority": 0, "formVersion": 255, "unknown": 0, "type": qtype, "pad": bytes(3)})
 
 
-def test_quest():
+def script_quest(lid, edid, scripts):
     vmad = {"version": 5, "objFormat": 2,
-            "scripts": [{"name": n, "status": 0, "props": []} for n in TEST_SCRIPTS],
+            "scripts": [{"name": n, "status": 0, "props": []} for n in scripts],
             "quest": {"unk": 2, "fragments": [], "fileName": "", "aliases": []}}
-    return E.Record("QUST", formid=SELF | TEST_Q, subs=[sub("EDID", "IEB_TestQuest"), sub("VMAD", vmad), dnam(0),
-                                                          sub("NEXT", None), sub("ANAM", 0)])
+    return E.Record("QUST", formid=SELF | lid, subs=[sub("EDID", edid), sub("VMAD", vmad), dnam(0),
+                                                       sub("NEXT", None), sub("ANAM", 0)])
+
+
+def test_quest():
+    return script_quest(TEST_Q, "IEB_TestQuest", TEST_SCRIPTS)
+
+
+def soak_quest():
+    return script_quest(SOAK_Q, "IEB_TestSoakQuest", SOAK_SCRIPTS)
 
 
 def story_quest():
@@ -58,7 +70,7 @@ def story_quest():
 
 def build():
     groups = [E.Group(b"GLOB", 0, children=[glob(*g) for g in GLOBALS]),
-              E.Group(b"QUST", 0, children=[test_quest(), story_quest()])]
+              E.Group(b"QUST", 0, children=[test_quest(), story_quest(), soak_quest()])]
     header = E.Record("TES4", flags=0x200, formid=0, subs=[
         sub("HEDR", {"version": struct.pack("<f", 1.71), "numRecords": 0, "nextObjectId": 0}),
         sub("CNAM", "shae"),
@@ -68,7 +80,7 @@ def build():
     p.localized = False
     h = header.subs[0].value
     h["numRecords"] = E.count_records_and_groups(p)
-    h["nextObjectId"] = STORY_Q + 1
+    h["nextObjectId"] = SOAK_Q + 1
     return p
 
 
@@ -83,6 +95,6 @@ if __name__ == "__main__":
     assert E.emit(q) == data, "re-emit differs"
     ids = [r.formid for g in q.groups for r in g.children]
     assert all(0x800 <= (i & 0xFFFFFF) <= 0xFFF for i in ids)
-    print("ErrandBridgeTest.esp: %d bytes, ESL %s, records %d, globals %d, quests 2 (test scripts %s; story quest type 8, "
-          "alias TestActor + package 0x%06X)" % (len(data), bool(q.header.flags & 0x200), len(ids), len(GLOBALS),
-                                                 ", ".join(TEST_SCRIPTS), SANDBOX_PKG))
+    print("ErrandBridgeTest.esp: %d bytes, ESL %s, records %d, globals %d, quests 3 (test scripts %s; soak %s; story quest "
+          "type 8, alias TestActor + package 0x%06X)" % (len(data), bool(q.header.flags & 0x200), len(ids), len(GLOBALS),
+                                                         ", ".join(TEST_SCRIPTS), ", ".join(SOAK_SCRIPTS), SANDBOX_PKG))
