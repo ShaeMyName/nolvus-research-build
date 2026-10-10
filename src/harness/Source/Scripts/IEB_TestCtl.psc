@@ -47,9 +47,12 @@ Function ExpectWFP(Int aiFormId, Float afWFP)
 EndFunction
 
 Function StartTask(Int aiFormId, String asAction, String a1, String a2, String a3)
-    {IntelEngine's Director path (IE Core OnDashboardExecuteAction): GoToLocation (destination, speed, waitForPlayer),
-     FetchPerson / SearchForActor (targetName, speed), DeliverMessage (targetName, msgContent, meetLocation),
-     EscortTarget (targetName, destination, shouldWait).}
+    {IntelEngine's Director dispatch (IE Core OnDashboardExecuteAction, 3.5.1 :2406-2455): GoToLocation (destination, speed,
+     waitForPlayer), FetchPerson / SearchForActor (targetName, speed), DeliverMessage (targetName, msgContent, meetLocation),
+     EscortTarget (targetName, destination, shouldWait).
+     [CHANGED in build 2026-10-10] IE's own event carries the actor as a Float FormID, exact only up to 0xFFFFFF, so mod, DLC
+     and ESL actors could resolve to the wrong form. The task now goes out as our own async mod event carrying the Actor
+     itself (OnIEBStartTask below), which makes the same IE calls the Director handler makes.}
     Actor a = A(aiFormId)
     If a == None
         Return
@@ -67,14 +70,59 @@ Function StartTask(Int aiFormId, String asAction, String a1, String a2, String a
         j += ",\"targetName\":\"" + a1 + "\",\"destination\":\"" + a2 + "\",\"shouldWait\":\"" + Def(a3, "0") + "\""
     EndIf
     j += "}"
-    Quest ie = IEB_IELib.IEQuest()
-    If ie == None
+    If IEB_IELib.IEQuest() == None
         Log("IntelEngine quest missing")
         Return
     EndIf
-    ie.SendModEvent("IntelEngine_DashboardExecuteAction", j, aiFormId as Float)
+    RegisterForModEvent("IEB_TestStartTask", "OnIEBStartTask")
+    Int h = ModEvent.Create("IEB_TestStartTask")
+    If h == 0
+        Log("StartTask: ModEvent.Create failed")
+        Return
+    EndIf
+    ModEvent.PushString(h, j)
+    ModEvent.PushForm(h, a)
+    ModEvent.Send(h)
     Log("StartTask " + asAction + " " + a.GetDisplayName() + " " + j)
 EndFunction
+
+Event OnIEBStartTask(String asJson, Form akNpc)
+    {Same calls as IE Core OnDashboardExecuteAction (3.5.1 :2406-2455), with the Actor passed exactly.}
+    Actor npc = akNpc as Actor
+    IntelEngine_Core core = IEB_IELib.IEQuest() as IntelEngine_Core
+    If npc == None || npc.IsDead() || core == None
+        Log("StartTask: invalid or dead actor, or no IE Core")
+        Return
+    EndIf
+    String act = IntelEngine.StoryResponseGetField(asJson, "actionName")
+    If act == "GoToLocation"
+        core.Travel.GoToLocation(npc, IntelEngine.StoryResponseGetField(asJson, "destination"), IntelEngine.StoryResponseGetField(asJson, "speed") as Int, IntelEngine.StoryResponseGetField(asJson, "waitForPlayer") as Int, false)
+    ElseIf act == "FetchPerson"
+        String fr = IntelEngine.StoryResponseGetField(asJson, "failReason")
+        If fr == ""
+            fr = "none"
+        EndIf
+        core.NPCTasks.FetchNPC(npc, IntelEngine.StoryResponseGetField(asJson, "targetName"), fr)
+    ElseIf act == "SearchForActor"
+        core.NPCTasks.SearchForActor(npc, IntelEngine.StoryResponseGetField(asJson, "targetName"), IntelEngine.StoryResponseGetField(asJson, "speed") as Int)
+    ElseIf act == "DeliverMessage"
+        String ml = IntelEngine.StoryResponseGetField(asJson, "meetLocation")
+        If ml == ""
+            ml = "none"
+        EndIf
+        core.NPCTasks.DeliverMessage(npc, IntelEngine.StoryResponseGetField(asJson, "targetName"), IntelEngine.StoryResponseGetField(asJson, "msgContent"), ml, "none")
+    ElseIf act == "EscortTarget"
+        String dst = IntelEngine.StoryResponseGetField(asJson, "destination")
+        If dst == ""
+            dst = "home"
+        EndIf
+        core.NPCTasks.EscortTarget(npc, IntelEngine.StoryResponseGetField(asJson, "targetName"), dst, IntelEngine.StoryResponseGetField(asJson, "shouldWait") as Int)
+    Else
+        Log("StartTask: unknown action " + act)
+        Return
+    EndIf
+    Log("StartTask dispatched " + act + " " + npc.GetDisplayName() + " " + PO3_SKSEFunctions.IntToString(npc.GetFormID(), True))
+EndEvent
 
 Function Cancel(Int aiFormId)
     Actor a = A(aiFormId)

@@ -6,7 +6,9 @@
   I7  SkyrimNet: no "character_bio submodule validation failed"; 0 rejected layers at boot; every one of our 8 layers
       registered (or already present) and none moved below a third-party layer by a later order change.
   I8  Narrator (component D) is not built: N/A unless a narrator layer is installed.
-Usage: check_logs.py [--since "HH:MM:SS"]   (Papyrus timestamps are "MM/DD/YYYY - hh:mm:ssAM")
+Usage: check_logs.py [--since "YYYY-MM-DD HH:MM:SS"]   (Papyrus timestamps are "MM/DD/YYYY - hh:mm:ssAM").
+  [CHANGED 2026-10-10] --since compares full date-times, so a block that crosses midnight is filtered correctly; a bare
+  "HH:MM:SS" means that time today.
 Prints ASSERT PASS|FAIL lines and a summary; exit code 1 on any FAIL."""
 import os, re, sys
 from datetime import datetime
@@ -86,12 +88,13 @@ def main():
     since = sys.argv[sys.argv.index("--since") + 1] if "--since" in sys.argv else None
     lines = open(PAPYRUS, encoding="utf-8", errors="replace").read().splitlines() if os.path.exists(PAPYRUS) else []
     if since:
+        cut = (datetime.strptime(since, "%Y-%m-%d %H:%M:%S") if "-" in since
+               else datetime.combine(datetime.now().date(), datetime.strptime(since, "%H:%M:%S").time()))
         keep, on = [], False
         for l in lines:
-            m = re.match(r"\[\d\d/\d\d/\d{4} - (\d\d:\d\d:\d\d)(AM|PM)\]", l)
-            if m:
-                t = datetime.strptime(m.group(1) + m.group(2), "%I:%M:%S%p").strftime("%H:%M:%S")
-                on = t >= since
+            m = re.match(r"\[(\d\d/\d\d/\d{4}) - (\d\d:\d\d:\d\d)(AM|PM)\]", l)
+            if m and not on:
+                on = datetime.strptime(m.group(1) + " " + m.group(2) + m.group(3), "%m/%d/%Y %I:%M:%S%p") >= cut
             if on:
                 keep.append(l)
         lines = keep
