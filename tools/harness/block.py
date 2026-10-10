@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.dirname(__file__))
 import game
 from runner import Run, OUT
+sys.modules.setdefault("block", sys.modules[__name__])   # run as a script: test modules' `from block import test` must hit this module
 
 TESTS = {}      # id -> dict(fn, family, save, reload, forced)
 

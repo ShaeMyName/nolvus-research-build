@@ -1,5 +1,5 @@
 """Block definitions (step 8 time plan §5, re-tier 2026-10-09). Moved out of U1: B-29 -> U2 (needs harness mode, D1 scopes
-it to U2/U4/CF); B-17, B-30, TM-6, TM-7, TM-9, L-5, L-8 -> S-A (Shae); TM-3 -> CF block; D-4 -> soak (SK-10)."""
+it to U2/U4/CF); REL-1 -> U2 (a modal question box would pause the game and stall U1; harness dismiss-ui there); B-17, B-30, TM-6, TM-7, TM-9, L-5, L-8 -> S-A (Shae); TM-3 -> CF block; EX-5/EX-6 -> U3 (need T0-M); D-4 -> soak (SK-10)."""
 from block import block
 
 block("U1", "T0", ["tests_b", "tests_tm_l", "tests_misc"], [
@@ -14,9 +14,9 @@ block("U1", "T0", ["tests_b", "tests_tm_l", "tests_misc"], [
     "L-2", "L-1", "L-3", "L-4", "L-6", "L-7", "L-10", "L-9",
     "D-1", "D-2",
     "Q-1", "Q-2", "Q-3", "Q-4", "Q-5", "Q-6", "Q-7", "Q-8",
-    "REL-1", "REL-2", "REL-3",
+    "REL-2", "REL-3",
     "CS-20", "CS-21", "CS-22", "RS-1", "RS-4", "RS-6", "RS-8",
-    "K-1", "K-2", "K-3", "X-1", "X-2", "X-3", "X-4", "X-7", "X-8", "CS-12", "EX-5", "EX-6",
+    "K-1", "K-2", "K-3", "X-1", "X-2", "X-3", "X-4", "X-7", "X-8", "CS-12",
     # churns saves: always last
     "B-20",
 ], est={"B": 80, "TM/L": 72, "D/Q/REL/CS/RS/K/X/EX": 72}, fixed={"B-20": 70})

@@ -4,9 +4,13 @@ ScriptName nwsFollowerControllerScript Extends Quest conditional
  script needs SkyUI's SKI_ConfigBase, which isn't installed as source.}
 
 Faction Property nwsFF_SparFac Auto
+Int Property nwsCombatAware Auto Conditional Hidden          ; :70 (harness TM-5)
 
 Function FollowerWaitHere(Actor myActor, Int notify, Int doPerm)
 EndFunction
 
 Function FollowerFollowMe(Actor myActor, Int notify)
+EndFunction
+
+Function RemoveFollower(Actor myActor, Int iMessage, Int iSayLine)     ; :430 (harness B-6)
 EndFunction
