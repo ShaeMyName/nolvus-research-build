@@ -20,6 +20,7 @@ ACTIONS = ["Undress", "UnequipArmor", "SitOrLayDown"]
 class Run:
     def __init__(self, name):
         self.name, self.lines, self.fails, self.inconclusive = name, [], 0, 0
+        self.forced = False          # set by block.py for tests on forced-state saves (Shae's rule 3)
         self.t0 = time.time()
         self.c = MCP()
 
@@ -81,8 +82,9 @@ class Run:
         with open(t, "a", encoding="utf-8") as f:
             if new:
                 f.write("test,start,end,seconds,verdict\n")
-            f.write("%s,%s,%s,%d,%s\n" % (self.name, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.t0)),
+            f.write("%s,%s,%s,%d,%s\n" % (self.name + (" [forced state]" if self.forced else ""), time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.t0)),
                                           time.strftime("%Y-%m-%d %H:%M:%S"), time.time() - self.t0, verdict))
+        return verdict
 
 
 def eligible(res):
