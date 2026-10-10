@@ -64,11 +64,19 @@ def ie_test_settings(ctl):
             ctl.tool("execute_quest_function", {"quest_editor_id": "IntelEngine", "script_name": "IntelEngine_Core",
                                                 "function_name": "OnDashboardSetting",
                                                 "arguments": ["IntelEngine_DashboardSetting", key, val, None]})
-    t = game.Tail(game.LOGS["papyrus"])
-    ctl.ctl("SkipProbe")
-    m = t.wait(r"\[IEB-TEST\] SkipProbe (.*)", timeout=20)
-    ok = bool(m) and "=1" not in m.group(1).split(" saved=")[0]
-    ctl.log("IE test settings: skip-follower off, confirm 0 -> %s (%s)" % ("verified" if ok else "NOT VERIFIED", m.group(1) if m else "no probe line"))
+    ok, last = False, "no probe line"
+    for _ in range(8):          # the handler runs in Papyrus, which lags in this load order: re-read until all off
+        t = game.Tail(game.LOGS["papyrus"])
+        ctl.ctl("SkipProbe")
+        m = t.wait(r"\[IEB-TEST\] SkipProbe (.*)", timeout=20)
+        if m:
+            last = m.group(1)
+            if "=1" not in last.split(" saved=")[0]:
+                ok = True
+                time.sleep(10)  # the last Confirm* call was queued after the last skip; SkipProbe doesn't read Confirm*
+                break
+        time.sleep(8)
+    ctl.log("IE test settings: skip-follower off, confirm 0 -> %s (%s)" % ("verified" if ok else "NOT VERIFIED", last))
     return ok
 
 
