@@ -50,6 +50,34 @@ def progress(i, n, tid, verdict, secs, done_est, done_real, remaining_est, start
              time.strftime("%H:%M", time.localtime(time.time() + eta))), flush=True)
 
 
+IE_ACTIONS = ("GoToLocation", "DeliverMessage", "FetchPerson", "EscortTarget", "SearchForActor", "ScheduleFetch",
+              "ScheduleDelivery", "ScheduleMeeting")
+
+
+def ie_test_settings(ctl):
+    """After every load: IntelEngine as the spec's automated-run setup (§15.0) needs it, set through IntelEngine's own
+    dashboard handler (IntelEngine_Core.OnDashboardSetting :2073): all 8 SkipFollower* off (IntelEngine's default; T0
+    carried them ON from an earlier dashboard session, U1 start 2026-10-10) and all 8 Confirm* 0 (automated runs only;
+    Lucienne's game keeps IntelEngine's defaults). Verified by IEB_TestCtl.SkipProbe."""
+    for a in IE_ACTIONS:
+        for key, val in (("skipFollower" + a, 0.0), ("confirm" + a, 0.0)):
+            ctl.tool("execute_quest_function", {"quest_editor_id": "IntelEngine", "script_name": "IntelEngine_Core",
+                                                "function_name": "OnDashboardSetting",
+                                                "arguments": ["IntelEngine_DashboardSetting", key, val, None]})
+    t = game.Tail(game.LOGS["papyrus"])
+    ctl.ctl("SkipProbe")
+    m = t.wait(r"\[IEB-TEST\] SkipProbe (.*)", timeout=20)
+    ok = bool(m) and "=1" not in m.group(1).split(" saved=")[0]
+    ctl.log("IE test settings: skip-follower off, confirm 0 -> %s (%s)" % ("verified" if ok else "NOT VERIFIED", m.group(1) if m else "no probe line"))
+    return ok
+
+
+def load_block_save(ctl, b):
+    if not load_block_save(ctl, b):
+        return False
+    return ie_test_settings(ctl)
+
+
 def settle_probe(r):
     """Actions-ready probe on T0: F1 (Jenassa) has any eligible action. (SitOrLayDown on Carlotta needs furniture in
     range, so it can stay false all day: U1 start 2026-10-10.)"""
@@ -83,7 +111,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             print("BLOCK ABORT %s: game did not launch" % name, flush=True)
             return 1
     ctl = Run("%s_CONTROL" % name)              # MCP session only once the game answers
-    if not game.load(ctl, b["save"], settle_probe(ctl)):
+    if not load_block_save(ctl, b):
         ctl.save()
         return 1
     import runner
@@ -154,7 +182,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             if ctl is None:
                 return 1
         elif meta["reload"]:
-            game.load(ctl, b["save"], settle_probe(ctl))
+            load_block_save(ctl, b)
     if fam:
         family_logs(ctl, fam, fam_start, summary)
     if not keep_open:
@@ -184,7 +212,7 @@ def recover(ctl, name, b, where, summary):
         print("BLOCK ABORT %s: relaunch after a crash failed" % name, flush=True)
         return None
     ctl = Run("%s_CONTROL" % name)
-    if not game.load(ctl, b["save"], settle_probe(ctl)):
+    if not load_block_save(ctl, b):
         print("BLOCK ABORT %s: reload after a crash failed" % name, flush=True)
         return None
     return ctl
