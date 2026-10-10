@@ -74,6 +74,62 @@ def set_gamemaster(on, log=print, wait=180):
     return ok
 
 
+# Reviewer 2026-10-10: MO2 writes the profile's lists and its ini on exit; after a forced close never relaunch on a
+# possibly half-written modlist. The three lists are compared byte-for-byte with a snapshot taken at block start;
+# ModOrganizer.ini changes on every normal exit (window geometry, recent paths), so it is only checked as non-empty
+# and still holding its [General] section.
+PROFILE_DIR = "C:/Nolvus/Instances/Nolvus Awakening/MODS/profiles/SkyrimNet Test/"
+MO2_INI = "C:/Nolvus/Instances/Nolvus Awakening/MO2/ModOrganizer.ini"
+PROFILE_LISTS = ("modlist.txt", "plugins.txt", "loadorder.txt")
+PROFILE_SNAPSHOT = {}
+
+
+def profile_snapshot():
+    import hashlib
+    PROFILE_SNAPSHOT.clear()
+    for n in PROFILE_LISTS:
+        PROFILE_SNAPSHOT[n] = hashlib.sha256(open(PROFILE_DIR + n, "rb").read()).hexdigest()
+    return dict(PROFILE_SNAPSHOT)
+
+
+def profile_intact(log=print):
+    """True when the three profile lists match the block-start snapshot and ModOrganizer.ini looks whole."""
+    import hashlib
+    bad = [n for n in PROFILE_LISTS if PROFILE_SNAPSHOT.get(n) and
+           hashlib.sha256(open(PROFILE_DIR + n, "rb").read()).hexdigest() != PROFILE_SNAPSHOT[n]]
+    ini = open(MO2_INI, "rb").read() if os.path.exists(MO2_INI) else b""
+    ini_ok = len(ini) > 100 and b"[General]" in ini
+    log("PROFILE check: lists %s; ModOrganizer.ini %s" % ("unchanged" if not bad else "CHANGED: " + ", ".join(bad),
+                                                          "ok" if ini_ok else "DAMAGED"))
+    return not bad and ini_ok
+
+
+def skyrimnet_log_advancing(seconds=10):
+    p = LOGS["skyrimnet"]
+    a = os.path.getsize(p) if os.path.exists(p) else 0
+    time.sleep(seconds)
+    b = os.path.getsize(p) if os.path.exists(p) else 0
+    return b != a
+
+
+def mcp_stall_check(log=print, tries=3, gap=20):
+    """Reviewer 2026-10-10: before treating 'MCP unreachable' as a crash, check the game is alive and SkyrimNet.log is
+    still advancing, and try a fresh MCP session `tries` times over ~60 s. Returns True if MCP came back. Logs
+    MCP_STALL with its duration either way."""
+    t0 = time.time()
+    alive = "SkyrimSE.exe" in procs()
+    advancing = alive and skyrimnet_log_advancing(5)
+    for i in range(tries):
+        if mcp_up():
+            log("MCP_STALL recovered after %d s (attempt %d; game alive=%s, SkyrimNet.log advancing=%s)"
+                % (time.time() - t0, i + 1, alive, advancing))
+            return True
+        time.sleep(gap)
+    log("MCP_STALL not recovered after %d s (game alive=%s, SkyrimNet.log advancing=%s)"
+        % (time.time() - t0, "SkyrimSE.exe" in procs(), advancing))
+    return False
+
+
 def procs():
     out = subprocess.run(["tasklist"], capture_output=True, text=True).stdout
     return {n for n in ("SkyrimSE.exe", "ModOrganizer.exe") if n in out}
@@ -316,6 +372,7 @@ def close(run=None, timeout=120, force=False):
         time.sleep(5)
         gone = "SkyrimSE.exe" not in procs()
         (run.log if run else print)("CLOSE: force-killed SkyrimSE.exe (%s)" % ("gone" if gone else "STILL RUNNING"))
+        forced_mo2 = [False]
         # U1 run 18: after a force-kill MO2 (started by our launcher) stays open, so the relaunch was refused. Ask it to
         # close (WM_CLOSE, no /F), wait, and force it only if it ignores that.
         if gone and "ModOrganizer.exe" in procs():
@@ -325,8 +382,12 @@ def close(run=None, timeout=120, force=False):
                 time.sleep(2)
             if "ModOrganizer.exe" in procs():
                 subprocess.run(["taskkill", "/F", "/IM", "ModOrganizer.exe"], capture_output=True)
+                forced_mo2[0] = True
                 time.sleep(3)
             (run.log if run else print)("CLOSE: ModOrganizer.exe %s" % ("closed" if "ModOrganizer.exe" not in procs()
                                                                      else "STILL RUNNING"))
+        if gone and not procs() and forced_mo2[0] and not profile_intact(run.log if run else print):
+            (run.log if run else print)("CLOSE: MO2 was force-closed and the profile changed; NOT relaunching")
+            return False
         return gone and not procs()
     return False

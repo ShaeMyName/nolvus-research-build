@@ -129,6 +129,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
         summary.append("| %s | NOT IMPLEMENTED | | skipped |" % ", ".join(missing))
         order = [t for t in order if t in TESTS]
     start_heartbeat(name)          # before the launch: a resumed block is covered from its first second
+    game.profile_snapshot()        # reviewer: compared after any forced MO2 close, before a relaunch
     phase("LAUNCH")
     if game.harness_mode() != b["harness"]:
         if "SkyrimSE.exe" in game.procs():
@@ -181,6 +182,12 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             r = Run(tid)
         except Exception as e:          # MCP gone: the game died between tests
             r = None
+        if r is None and "SkyrimSE.exe" in game.procs() and game.mcp_stall_check(print):
+            summary.append("| MCP_STALL | before %s, recovered without a relaunch | | |" % tid)
+            try:
+                r = Run(tid)
+            except Exception:
+                r = None
         if r is None or "SkyrimSE.exe" not in game.procs():
             ctl = recover(ctl, name, b, "before " + tid, summary)
             if ctl is None:
