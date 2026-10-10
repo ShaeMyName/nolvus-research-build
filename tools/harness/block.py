@@ -96,6 +96,7 @@ def ie_test_settings(ctl):
 
 
 def load_block_save(ctl, b):
+    phase("LOAD")
     if not game.load(ctl, b["save"], settle_probe(ctl)):
         return False
     return ie_test_settings(ctl)
@@ -122,7 +123,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
         summary.append("| %s | NOT IMPLEMENTED | | skipped |" % ", ".join(missing))
         order = [t for t in order if t in TESTS]
     start_heartbeat(name)          # before the launch: a resumed block is covered from its first second
-    HEARTBEAT["test"] = "(start-up: launch/load/settle)"
+    phase("LAUNCH")
     if game.harness_mode() != b["harness"]:
         if "SkyrimSE.exe" in game.procs():
             print("BLOCK ABORT %s: harness mode must be %s; close the game first" % (name, b["harness"]), flush=True)
@@ -170,7 +171,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             r.log("NOTE %s: the last load's settle nudge added one F1 narration to SkyrimNet history (%s)"
                   % (tid, game.LAST_NUDGE))
         r.tails = {k: game.Tail(p) for k, p in game.LOGS.items()}
-        HEARTBEAT["test"] = tid
+        phase(tid)
         r.log("NOTE %s: RAM available at start %.1f GB (game %.1f GB private)" % (tid, game.available_ram_gb(),
                                                                                 game.game_private_gb()))
         t0 = time.time()
@@ -246,6 +247,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             print("BLOCK RELAUNCH %s after %s: %.1f GB RAM available (game %.1f GB private)" % (name, tid, av, gb),
                   flush=True)
             summary.append("| relaunch | %.1f GB RAM available after %s (game %.1f GB) | | |" % (av, tid, gb))
+            phase("RELAUNCH")
             game.close(ctl)
             time.sleep(15)
             if not game.launch(print, voices=b["voices"]):
@@ -260,6 +262,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
     if fam:
         family_logs(ctl, fam, fam_start, summary)
     if not keep_open:
+        phase("CLOSE")
         game.close(ctl)
         if b["harness"]:        # D1: asserted off after each block
             ok = game.set_harness_mode(False, ctl.log)
@@ -295,23 +298,35 @@ def held_gap(text, limit=6.0):   # 6 s = 2x nominal; observed max 4.5 s on T0 af
     return ("%.1f s between ticks while held" % worst) if worst > limit else ""
 
 
-HEARTBEAT = {"test": "", "file": ""}
+HEARTBEAT = {"test": "", "file": "", "since": 0.0, "stuck_said": ""}
 TRANSIENTS = {}     # invariant -> count of watcher TRANSIENT readings in this block
 
 
+def phase(p):
+    """Current phase for the heartbeat: LAUNCH / LOAD / SETTLE / <test id> / RELAUNCH / CLOSE (reviewer 2026-10-10)."""
+    if HEARTBEAT["test"] != p:
+        HEARTBEAT["test"], HEARTBEAT["since"] = p, time.time()
+
+
 def start_heartbeat(name):
-    """Reviewer 2026-10-10: a runner killed from outside prints nothing, so write test_runs/<BLOCK>_heartbeat.txt every
-    30 s (timestamp, current test); the session's Monitor alarms when it is older than 3 min."""
+    """A runner killed from outside prints nothing, so a daemon thread writes test_runs/<BLOCK>_heartbeat.txt every 30 s
+    (epoch, time, phase, seconds in phase) from block start, before the launch; the session's Monitor alarms when it is
+    older than 3 min. A phase that sits more than 10 min prints PHASE STUCK once (a live but stuck runner)."""
     import threading
     HEARTBEAT["file"] = OUT + "%s_heartbeat.txt" % name
+    HEARTBEAT["since"] = time.time()
 
     def beat():
         while True:
+            dur = time.time() - HEARTBEAT["since"]
             try:
                 with open(HEARTBEAT["file"], "w", encoding="utf-8") as f:
-                    f.write("%d %s %s\n" % (time.time(), time.strftime("%H:%M:%S"), HEARTBEAT["test"]))
+                    f.write("%d %s %s %ds\n" % (time.time(), time.strftime("%H:%M:%S"), HEARTBEAT["test"], dur))
             except OSError:
                 pass
+            if dur > 600 and HEARTBEAT["stuck_said"] != HEARTBEAT["test"]:
+                HEARTBEAT["stuck_said"] = HEARTBEAT["test"]
+                print("PHASE STUCK %s: %s for %d s" % (name, HEARTBEAT["test"], dur), flush=True)
             time.sleep(30)
     threading.Thread(target=beat, daemon=True).start()
 

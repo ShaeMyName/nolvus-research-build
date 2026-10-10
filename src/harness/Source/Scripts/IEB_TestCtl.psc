@@ -1082,6 +1082,24 @@ Function DespawnRef(Int aiRefFormId)
     EndIf
 EndFunction
 
+Function CombatProbe(Int aiFormId)
+    {B-4 (reviewer 2026-10-10): combat state of one actor: in combat, its combat target, Aggression and Confidence,
+     dead, current package. Works for spawned refs (signed Int FormIDs).}
+    Actor a = Game.GetForm(aiFormId) as Actor
+    If a == None
+        Log("CombatProbe none " + PO3_SKSEFunctions.IntToString(aiFormId, True))
+        Return
+    EndIf
+    Actor t = a.GetCombatTarget()
+    String tn = "None"
+    If t != None
+        tn = t.GetDisplayName() + " " + Watcher().Hex(t)
+    EndIf
+    Log("CombatProbe " + a.GetDisplayName() + " " + Watcher().Hex(a) + " combat=" + (a.IsInCombat() as Int) + " target=" + tn + \
+        " aggression=" + a.GetActorValue("Aggression") + " confidence=" + a.GetActorValue("Confidence") + " dead=" + (a.IsDead() as Int) + \
+        " dPlayer=" + (a.GetDistance(Game.GetPlayer()) as Int) + " pkg=" + Watcher().Hex(a.GetCurrentPackage()))
+EndFunction
+
 String Function Def(String s, String d)
     If s == ""
         Return d

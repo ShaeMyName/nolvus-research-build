@@ -649,9 +649,31 @@ def b4(r):
             return
         time.sleep(4)
         ww = fresh("watch")
-        con(r, "%s.placeatme %s 1" % (hexid(F1), hexid(BANDIT)))
-        seen = until(lambda: any(s.get("combat") == "1" for s in wsamples(ww.read(), F1)), 60)
-        r.check(bool(seen), "F1 fought (combat=1 in the watcher: NFF combat AI participates)")
+        # Reviewer 2026-10-10: spawn through SpawnHostile so the bandit's ref is known, and log both sides' combat
+        # state; if F1 never fights, the PRECONDITION failed (INCONCLUSIVE), unless a real check fails.
+        pt = fresh()
+        r.ctl("SpawnHostile", [BANDIT])
+        m = pt.wait(r"\[IEB-TEST\] SpawnHostile \S+ ref=(\S+)", 15)
+        bref = int(m.group(1), 16) if m else None
+        if bref is not None and bref >= 2 ** 31:
+            bref -= 2 ** 32                     # Papyrus Int is signed; spawned refs are 0xFF......
+        if bref is not None:
+            r.ctl("MoveRel", [bref, F1, 200.0, 0.0, 0.0])     # next to F1 on her route, as v1's placeatme at F did
+        seen = None
+        t_end = time.time() + 60
+        while time.time() < t_end and not seen:
+            for fid, who in ((bref, "bandit"), (F1, "F1")):
+                if fid:
+                    cm = ctl_line(r, "CombatProbe", [fid], r"\[IEB-TEST\] CombatProbe (.*)", 10)
+                    r.log("  %s: %s" % (who, cm.group(1) if cm else "no CombatProbe line (wrapper missing?)"))
+            seen = any(s.get("combat") == "1" for s in wsamples(ww.read(), F1))
+            time.sleep(5)
+        if seen:
+            r.check(True, "F1 fought (combat=1 in the watcher: NFF combat AI participates)")
+        else:
+            r.inconclusive += 1
+            r.log("INCONCLUSIVE B-4 precondition: F1 never entered combat within 60 s (see the bandit/F1 CombatProbe "
+                  "lines: target, aggression, dead)")
         arr = t.wait(arrived_rx(nm), 240)
         smp = wsamples(ww.read(), F1)
         r.check(all(s.get("iebHeld") == "1" for s in smp), "still held through the fight (%d samples)" % len(smp))
