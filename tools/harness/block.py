@@ -77,14 +77,11 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             print("BLOCK ABORT %s: could not set harness mode" % name, flush=True)
             return 1
     print("HARNESS mode %s for %s" % ("on" if game.harness_mode() else "off", name), flush=True)
-    ctl = Run("%s_CONTROL" % name)
     if "SkyrimSE.exe" not in game.procs():
-        if not launch or not game.launch(ctl.log):
-            ctl.log("ABORT: game not running")
+        if not launch or not game.launch(print):
             print("BLOCK ABORT %s: game did not launch" % name, flush=True)
-            ctl.save()
             return 1
-        ctl = Run("%s_CONTROL" % name)          # fresh MCP session after launch
+    ctl = Run("%s_CONTROL" % name)              # MCP session only once the game answers
     if not game.load(ctl, b["save"], settle_probe(ctl)):
         ctl.save()
         return 1
