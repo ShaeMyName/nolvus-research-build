@@ -1085,6 +1085,49 @@ Int Function Spawn(Int aiBaseFormId, Float afDist)
     Return r.GetFormID()
 EndFunction
 
+Function SaveNamed(String asSave)
+    {REVIEW_LOG R29: save through Papyrus (Game.SaveGame), not the MCP console. Log FIRST, the save LAST: a save captures
+     the stack, so anything after SaveGame would run again after a load of this save (seen with KillAndSave, run 18
+     L-9). Completion is confirmed by the host on the .ess file (game.save), never by a log line.}
+    Log("SAVENAMED " + asSave)
+    Game.SaveGame(asSave)
+EndFunction
+
+Function KillUnattributed(Int aiFormId)
+    {B-8 (reviewer): kill a follower without naming the player as killer (a player-attributed murder next to guards is
+     a bounty and an arrest). Clears protected/essential on the base first (undone by B-8's reload of T0).}
+    Actor a = A(aiFormId)
+    If a == None
+        Log("KILLUNATTR none")
+        Return
+    EndIf
+    ActorBase b = a.GetActorBase()
+    b.SetProtected(False)
+    b.SetEssential(False)
+    a.Kill(None)
+    Utility.Wait(1.0)
+    Log("KILLUNATTR " + Watcher().Hex(a) + " dead=" + a.IsDead())
+EndFunction
+
+Function CrimeProbe()
+    {Player defeat trace (REVIEW_LOG R44): crime gold the player owes Whiterun's crime faction and the current hold's
+     faction. FormIDs: CrimeFactionWhiterun 0x000267EA (Skyrim.esm, INFERRED; the line prints what it read).}
+    Actor p = Game.GetPlayer()
+    Faction wr = Game.GetFormFromFile(0x000267EA, "Skyrim.esm") as Faction
+    Int g = -1
+    Int gv = -1
+    If wr != None
+        g = wr.GetCrimeGold()
+        gv = wr.GetCrimeGoldViolent()
+    EndIf
+    Faction cur = p.GetCrimeFaction()
+    Int cg = -1
+    If cur != None
+        cg = cur.GetCrimeGold()
+    EndIf
+    Log("CRIMEPROBE whiterun=" + g + " violent=" + gv + " curFaction=" + Watcher().Hex(cur) + " curGold=" + cg)
+EndFunction
+
 Function ConfigProbe()
     {R31: does SkyrimNet's config lookup survive Papyrus case folding? IEB_SceneMain reads GetConfigFloat("game", ...);
      the vanilla Game script puts "Game" in the string pool first, so "game" likely reaches SkyrimNet as "Game". Each read

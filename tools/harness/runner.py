@@ -72,6 +72,9 @@ class Run:
         "CombatProbe": "CombatProbe|CombatProbe\\ none",
         "Despawn": "Despawn|Despawn\\ none",
         "ConfigProbe": "(?i:CONFIGPROBE) ",
+        "SaveNamed": "(?i:SAVENAMED) ",
+        "KillUnattributed": "(?i:KILLUNATTR) ",
+        "CrimeProbe": "(?i:CRIMEPROBE) ",
         "SUGetInt": "SU \\S+ \\S+ get=",
         "DespawnRef": "(?i:DESPAWN(?:REF)?) ",   # case_folding_audit.md: the installed pex prints "Despawn "
         "Dispatch": "Dispatch",
