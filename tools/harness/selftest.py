@@ -35,4 +35,7 @@ check(block.player_defeated("", "[2026-10-10 14:50:06.201] [14272] [info] [Enter
 check(not block.player_defeated("", "Enter bleedout event: 'Whiterun Guard'"), "defeat: an NPC's bleedout is not a player defeat")
 check(block.player_defeated("", "[2026-10-10 14:49:54.210] [48460] [info] [CombatEventHandler.cpp:57] Combat event: 'Whiterun Guard' combat state changed to 'Combat' with target 'Prisoner'"), "defeat: guard combat on the player (early)")
 check(not block.player_defeated("", "Combat event: 'Whiterun Guard' combat state changed to 'Combat' with target 'Bandit'"), "defeat: guard vs a bandit is not a player signal")
+check(block.player_defeated("", "[2026-10-10 14:48:41.703] [13932] [info] [MenuEventHandler.cpp:259] Menu 'Dialogue Menu' is opening"), "defeat: dialogue menu opened")
+check(block.player_defeated("", "[2026-10-10 14:48:41.622] [30312] [info] [TopicInfoEventHandler.cpp:358] (Dialogue) Whiterun Guard: You have committed crimes against Skyrim and her people."), "defeat: guard arrest greeting")
+check(not block.player_defeated("", "(Background Dialogue) Carlotta Valentia: That's close enough."), "defeat: background dialogue is not an arrest")
 sys.exit(0 if ok else 1)

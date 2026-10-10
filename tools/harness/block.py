@@ -391,6 +391,12 @@ RELAUNCH_MIN_DROP_GB = 1.5      # relaunch only when available RAM also fell thi
 
 DEFEAT_RX = [(re.compile(r"\[SOS\] (?:Defeat|Cause of Death|BlackOut)"), "Shadow of Skyrim defeat"),
              (re.compile(r"Enter bleedout event: '(?:Prisoner|Lucienne)'"), "player bleedout"),
+             # earliest signals (player_defeat_jail.md): a guard arrest greeting opened the Dialogue Menu at 14:48:41 and it
+             # stayed open 71 s under the harness; B-11's player.moveto then closed it, which counted as resisting arrest.
+             # The harness never opens a dialogue menu itself, so any open one means the game wants the player.
+             (re.compile(r"Menu 'Dialogue Menu' is opening"), "a dialogue menu opened (guard arrest?)"),
+             (re.compile(r"Whiterun Guard: You have committed crimes|\(Dialogue\) [^:]*Guard: [^(]*(?:committed crimes|pay with your blood|bounty)"),
+              "guard arrest dialogue"),
              # early signal (U1 run 16: 14:49:54, 12 s before the bleedout): a guard in combat with the player
              (re.compile(r"Combat event: '[^']*Guard' combat state changed to 'Combat' with target '(?:Prisoner|Lucienne)'"),
               "guard in combat with the player")]
