@@ -511,7 +511,7 @@ def tm8(r):
         check_inv(r, F1)
 
 
-@test("TM-10", "TM")
+@test("TM-10", "TM", reload=True)
 def tm10(r):
     """A plain-ClearSlot exit (T3 wait timeout under Accelerate(1000), time plan:136). Pass: F is still a teammate; no
     TEAMMATE_WAS_OFF (IEB_Main:409-411)."""
@@ -613,7 +613,7 @@ def tm12(r):
             "SeverActionsNative.log: no TeammateMonitor removal for F1")
 
 
-@test("TM-13", "TM")
+@test("TM-13", "TM", reload=True)
 def tm13(r):
     """IEB_DropTeammate = 1 (global StorageUtil, IE_Core:1070), repeat TM-1/TM-10. Pass: stock behaviour returns -
     'Dismissed follower' at the take, flag off during the errand, and at the plain-ClearSlot exit the bridge puts the
@@ -766,6 +766,13 @@ def l4(r):
     """G on shift: errand. Pass: LEND with the guard bit (8); no 110 re-added (ReinforceSchedWorkGuard returns at WFP 1,
     FM:6344-6345, so it is silent: checked as G's current package never being SeverActions_GuardBodyguard 0x165677,
     FM:4686-4695); the errand completes; restore re-seats the guard alias (guardIdx >= 0)."""
+    # U1 run 18: L-4 ran at game time 17:20 on day 3 (gt=3.72): TM-10/TM-13's x1000 windows had pushed the clock past
+    # Anoriath's 08:00-17:00 guard post, so he was lent as work+retainer (kind=34) and every guard check FAILED. They now
+    # reload T0 after themselves; L-4 also checks the precondition (guard alias seated) before lending.
+    p0 = probe(r, G)
+    if not p0 or p0.get("guardIdx", -1) < 0:
+        return inconclusive(r, "G not on his guard post before the lend (guardIdx=%s; game time past 17:00?)"
+                            % ((p0 or {}).get("guardIdx"),))
     d, kind = lend(r, G)
     w = tail("watch")
     try:
