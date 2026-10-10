@@ -218,8 +218,10 @@ Function Maintenance(Bool isFirstLoad = false)
     If StoryEngine
         StoryEngine.IEB_QISelfCheck()
     EndIf
-    ; Patch (slot race): no reservation survives a load
+    ; Patch (slot race): no reservation survives a load; expiry set here too (a save made before this build
+    ; would otherwise carry 0.0, which turns reservations off)
     IEB_SlotReservedAt = new Float[5]
+    IEB_RESERVE_EXPIRY = 120.0
 
     ; On first install (new game), clear all StorageUtil data from previous sessions.
     ; StorageUtil persists outside the save system, so stale data from other saves

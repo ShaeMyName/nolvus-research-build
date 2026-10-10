@@ -1,6 +1,6 @@
 """Post-U1 IntelEngine hunks (post_u1_build_plan §1 timer fix F1/F2, §2 slot race) on build/src/intelengine.
 Usage: apply_patch_ie_s1s2.py <group>. Every anchor must match exactly once (CRLF kept). Same edit() as apply_patch_b.py.
-Groups: f1 | f2 | core-slot | callers"""
+Groups: f1 | f2 | core-slot | callers | core-expiry"""
 import sys
 
 D = "C:/nolvus-research/build/src/intelengine/Source/Scripts/"
@@ -508,6 +508,16 @@ elif G == "callers":
         EndIf
 """),
 ])
+elif G == "core-expiry":   # old saves: never depend on the variable initializer
+    edit("IntelEngine_Core.psc", [(
+"""    ; Patch (slot race): no reservation survives a load
+    IEB_SlotReservedAt = new Float[5]
+""",
+"""    ; Patch (slot race): no reservation survives a load; expiry set here too (a save made before this build
+    ; would otherwise carry 0.0, which turns reservations off)
+    IEB_SlotReservedAt = new Float[5]
+    IEB_RESERVE_EXPIRY = 120.0
+""")])
 else:
     sys.exit("unknown group " + G)
 print("ok", G)
