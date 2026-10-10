@@ -421,6 +421,15 @@ def restore_gamemaster():
         return
     if game.procs():
         print("GAMEMASTER STILL OFF: the game/MO2 is running (HALT?); the next GM-on block or the soak sets it on", flush=True)
+        try:    # reviewer: also in the block summary, so a manual session after a HALT sees it
+            import glob
+            name = sys.argv[1] if len(sys.argv) > 1 else ""
+            mds = sorted(glob.glob(OUT + "%s_*.md" % name), key=os.path.getmtime)
+            if mds:
+                with open(mds[-1], "a", encoding="utf-8") as f:
+                    f.write("| GAMEMASTER STILL OFF | game/MO2 left running; set gamemaster.enabled back to true before any manual session | | |\n")
+        except Exception:
+            pass
         return
     game.set_gamemaster(True, lambda m: print(m, flush=True), wait=0)
 
