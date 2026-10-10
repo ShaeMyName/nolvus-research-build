@@ -257,7 +257,11 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             if not load_block_save(ctl, b):
                 print("BLOCK ABORT %s: reload after relaunch failed" % name, flush=True)
                 return 1
-        elif meta["reload"]:
+        elif meta["reload"] or game.SAVE_FAILED:
+            if game.SAVE_FAILED:    # a failed console save leaves Papyrus' VM frozen until the next load
+                ctl.log("RELOAD after %s: a console save failed (VM frozen)" % tid)
+                summary.append("| reload | console save failed in %s (VM frozen until a load) | | |" % tid)
+            game.SAVE_FAILED = False
             load_block_save(ctl, b)
     if fam:
         family_logs(ctl, fam, fam_start, summary)

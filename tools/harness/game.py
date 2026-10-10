@@ -211,6 +211,10 @@ def load(run, save, settle_probe=None, timeout=8 * 60):
 
 
 
+# Set when a console save fails: Papyrus' VM stays frozen until the next load (U1 run 15, IEB_B3 and IEB_B3b_pre),
+# so block.py reloads the block save before the next test. Cleared by block.py.
+SAVE_FAILED = False
+
 def save(run, name, timeout=90):
     """Console save that is only trusted once it has really finished (U1 run 15 B-3, 2026-10-10: 'save IEB_B3' over MCP
     logged "Unknown exception executing console command", left IEB_B3.ess.tmp at 0 bytes, and the test's load of the
@@ -236,6 +240,8 @@ def save(run, name, timeout=90):
                 return True
             last = size
         time.sleep(2)
+    global SAVE_FAILED
+    SAVE_FAILED = True
     err = re.search(r"Unknown exception executing console command", sn.read())
     run.log("SAVE %s: FAILED via MCP console, not complete after %d s (ess=%s tmp=%s%s; at send: %s; now: Available %.1f GB, "
             "game %.1f GB private)" % (name, timeout, os.path.exists(ess), os.path.exists(tmp),
