@@ -821,7 +821,10 @@ def b8(r):
         return
     time.sleep(5)
     con(r, "setessential %s 0" % hexid(JENASSA_BASE))
-    con(r, "%s.kill" % hexid(F1))
+    # U1 run 17: a plain console kill left F1 alive (dead=0). NFF puts its followers in the nwsFollowerProtect alias when
+    # nwsDoProtect is on (nwsFollowerControllerScript.psc:375-376), i.e. protected: only the player can kill them. So
+    # the kill names the player as the killer (console Kill <killer>; INFERRED that this satisfies "protected").
+    con(r, "%s.kill 14" % hexid(F1))
     time.sleep(3)
     p = probe(r, F1) or {}
     if not need(r, p.get("dead") == "1", "console kill did not kill F1 (dead=%s; essential/protected?)" % p.get("dead")):
