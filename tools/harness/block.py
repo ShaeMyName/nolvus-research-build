@@ -51,8 +51,9 @@ def progress(i, n, tid, verdict, secs, done_est, done_real, remaining_est, start
 
 
 def settle_probe(r):
-    """SeverActions-ready probe on T0: Carlotta (adult, market by day) eligible for SitOrLayDown."""
-    return ("SitOrLayDown", lambda: r.uuid(0x1A675)[0])
+    """Actions-ready probe on T0: F1 (Jenassa) has any eligible action. (SitOrLayDown on Carlotta needs furniture in
+    range, so it can stay false all day: U1 start 2026-10-10.)"""
+    return ("__any__", lambda: r.uuid(0xE1BA9)[0])
 
 
 def run_block(name, only=None, start=None, launch=True, keep_open=False):

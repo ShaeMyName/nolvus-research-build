@@ -151,8 +151,13 @@ def load(run, save, settle_probe=None, timeout=8 * 60):
         action, uuid_of = settle_probe
         for _ in range(12):
             u = uuid_of()
-            r = run.tool("check_action_eligibility", {"action_name": action, "actor_uuid": u}) if u else {}
-            if isinstance(r, dict) and (r.get("isEligible") or r.get("eligible")):
+            if action == "__any__":
+                r = run.tool("get_eligible_actions", {"actor_uuid": u}) if u else {}
+                ok = isinstance(r, dict) and (r.get("eligibleCount") or 0) > 0
+            else:
+                r = run.tool("check_action_eligibility", {"action_name": action, "actor_uuid": u}) if u else {}
+                ok = isinstance(r, dict) and (r.get("isEligible") or r.get("eligible"))
+            if ok:
                 run.log("SETTLE ok after %d s (%s eligible)" % (time.time() - t0, action))
                 return True
             time.sleep(10)
