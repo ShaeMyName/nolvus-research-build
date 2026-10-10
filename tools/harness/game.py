@@ -316,5 +316,17 @@ def close(run=None, timeout=120, force=False):
         time.sleep(5)
         gone = "SkyrimSE.exe" not in procs()
         (run.log if run else print)("CLOSE: force-killed SkyrimSE.exe (%s)" % ("gone" if gone else "STILL RUNNING"))
-        return gone
+        # U1 run 18: after a force-kill MO2 (started by our launcher) stays open, so the relaunch was refused. Ask it to
+        # close (WM_CLOSE, no /F), wait, and force it only if it ignores that.
+        if gone and "ModOrganizer.exe" in procs():
+            subprocess.run(["taskkill", "/IM", "ModOrganizer.exe"], capture_output=True)
+            t1 = time.time()
+            while "ModOrganizer.exe" in procs() and time.time() - t1 < 30:
+                time.sleep(2)
+            if "ModOrganizer.exe" in procs():
+                subprocess.run(["taskkill", "/F", "/IM", "ModOrganizer.exe"], capture_output=True)
+                time.sleep(3)
+            (run.log if run else print)("CLOSE: ModOrganizer.exe %s" % ("closed" if "ModOrganizer.exe" not in procs()
+                                                                     else "STILL RUNNING"))
+        return gone and not procs()
     return False
