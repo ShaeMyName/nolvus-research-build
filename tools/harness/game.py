@@ -134,16 +134,29 @@ def load(run, save, settle_probe=None, timeout=8 * 60):
         return False
     if "auto-clearing timeline" in sn.read():
         run.log("LOAD %s: harness mode auto-cleared the timeline (= Delete History)" % save)
+    # SkyrimNet evaluates action eligibility only once something makes it build a prompt (usually the GameMaster's
+    # first lull trigger ~120 s after unpause; once ~9.5 min). Until "Completed eligibility pre-warming" every actor
+    # has 0 eligible actions (notices_research.md, 2026-10-10). Wait for it; after 45 s nudge it with one narration
+    # by F1 (IEB_TestCtl.Narrate = DirectNarration), which builds a prompt.
+    warm = r"Completed eligibility pre-warming"
+    if not sn.wait(warm, timeout=45):
+        run.tool("execute_quest_function", {"quest_editor_id": "IEB_TestQuest", "script_name": "IEB_TestCtl",
+                                             "function_name": "Narrate", "arguments": [0xE1BA9]})
+        run.log("SETTLE: no eligibility warm-up after 45 s; nudged with one F1 narration")
+        if not sn.wait(warm, timeout=120):
+            run.log("SETTLE: SkyrimNet never warmed eligibility (tests that need actions will say so)")
+    else:
+        run.log("SETTLE: SkyrimNet warmed eligibility after %d s" % (time.time() - t0))
     if settle_probe:
         action, uuid_of = settle_probe
-        for _ in range(36):
+        for _ in range(12):
             u = uuid_of()
             r = run.tool("check_action_eligibility", {"action_name": action, "actor_uuid": u}) if u else {}
             if isinstance(r, dict) and (r.get("isEligible") or r.get("eligible")):
                 run.log("SETTLE ok after %d s (%s eligible)" % (time.time() - t0, action))
                 return True
             time.sleep(10)
-        run.log("SETTLE probe never turned eligible within 6 min; continuing (tests that need SA will say so)")
+        run.log("SETTLE probe not eligible within 2 min after warm-up; continuing (tests that need SA will say so)")
         return True
     time.sleep(120)
     run.log("SETTLE fixed 120 s")
