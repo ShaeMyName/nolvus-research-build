@@ -886,10 +886,13 @@ def rel3(r):
     r.log("  SkyrimNet.log: newly-discovered line %s; scanned line %s" % (newly, scanned))
     r.check(newly or scanned, "SkyrimNet.log names layer deadohiosky48.relationships at load")
     txt = open(SNROM, "rb").read().decode("utf-8", "replace") if os.path.exists(SNROM) else ""
+    # The mod logs the content-layer line just BEFORE "Bridge ready" in each load (snrom.log 2026-10-10 :434-435,
+    # Claude review after the shakedown), so look in the last load's block: after the previous "Bridge ready".
     last_ready = txt.rfind("Bridge ready")
-    seg = txt[last_ready:] if last_ready >= 0 else ""
+    prev_ready = txt.rfind("Bridge ready", 0, last_ready) if last_ready > 0 else -1
+    seg = txt[prev_ready + 1:last_ready] if last_ready >= 0 else ""
     r.check("Content layer loaded - RomanceMarkMoment is registered" in seg,
-            "snrom.log: content layer loaded after the last 'Bridge ready'")
+            "snrom.log: content layer loaded in the latest load (before its 'Bridge ready')")
 
 
 # ============================================================================ CS (spec §11.10.4; gates must HOLD)

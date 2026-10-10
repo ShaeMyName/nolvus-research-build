@@ -1267,10 +1267,14 @@ def b21(r):
         if not need(r, p1, "no position after the move"):
             return
         d0 = dist2(p1, pa)
+        # The watcher ticks every ~28 s in this load order (measured 2026-10-10 shakedown, also with the game focused),
+        # so the 60 s watch uses the burst sampler (IEB_TestCtl.Burst: package/position only) instead.
         ww = fresh("watch")
-        time.sleep(60)
-        smp = [s for s in wsamples(ww.read(), F1) if s["xyz"]]
-        if not need(r, len(smp) >= 10, "too few watcher samples (%d)" % len(smp)):
+        r.ctl("Burst", [F1, 60.0])
+        time.sleep(66)
+        smp = [{"xyz": tuple(float(v) for v in m.group(1, 2, 3))}
+               for m in re.finditer(r"BURST \S+ \S+ wfp=\S+ pos=(\S+),(\S+),(\S+)", ww.read())]
+        if not need(r, len(smp) >= 10, "too few burst samples (%d)" % len(smp)):
             return
         dmin = min(dist2(s["xyz"], pa) for s in smp)
         r.log("  d(A) start %.0f, min %.0f over %d samples" % (d0, dmin, len(smp)))

@@ -13,6 +13,28 @@ LOGS = {
 }
 LAUNCHER = "C:/nolvus-research/tts-engines/patches/turbo_slim/play_test_profile.ps1"
 SAVES = "C:/Nolvus/Instances/Nolvus Awakening/MODS/profiles/SkyrimNet Test/saves/"
+HARNESS_YAML = ("C:/Nolvus/Instances/Nolvus Awakening/MODS/mods/SkyrimNet Config - Test/SKSE/Plugins/SkyrimNet/config/"
+                "Harness.yaml")     # test config only; writes approved for the soak and the step-8 blocks (D1, extended to U1)
+
+
+def harness_mode():
+    return open(HARNESS_YAML, encoding="utf-8").read().strip().replace(" ", "") == "enabled:true"
+
+
+def set_harness_mode(on, log=print, wait=180):
+    """Write Harness.yaml (file has no line terminator; written the same way). MO2 and the game must be closed:
+    waits up to `wait` s for them to exit, else refuses."""
+    t0 = time.time()
+    while procs() and time.time() - t0 < wait:
+        time.sleep(3)
+    if procs():
+        log("HARNESS refused: %s still running" % sorted(procs()))
+        return False
+    with open(HARNESS_YAML, "w", encoding="utf-8", newline="") as f:
+        f.write("enabled: %s" % ("true" if on else "false"))
+    ok = harness_mode() == on
+    log("HARNESS mode %s (%s)" % ("on" if on else "off", "verified" if ok else "WRITE FAILED"))
+    return ok
 
 
 def procs():
@@ -92,6 +114,20 @@ def load(run, save, settle_probe=None, timeout=8 * 60):
         run.log("LOAD %s: no PostLoadGame within %d s" % (save, timeout))
         return False
     run.log("LOAD %s: in game after %d s" % (save, time.time() - t0))
+    # A modal box (SkyrimNet's Timeline Mismatch without harness mode, a crash notice...) freezes Papyrus and makes
+    # SkyrimNet report the game paused: 0 eligible actions for everyone (shakedown 2026-10-10). Wait it out briefly.
+    pu = run.tool("get_player_info", {}).get("uuid")
+    pu = ("%X" % pu) if isinstance(pu, int) else pu
+    for _ in range(18):
+        p = run.tool("render_template", {"actor_uuid": pu, "content": "{{ isTimePaused }}"}).get("renderedContent")
+        if p == "false":
+            break
+        time.sleep(5)
+    else:
+        run.log("LOAD %s: SkyrimNet still reports the game paused after 90 s (a modal box is open?)" % save)
+        return False
+    if "auto-clearing timeline" in sn.read():
+        run.log("LOAD %s: harness mode auto-cleared the timeline (= Delete History)" % save)
     if settle_probe:
         action, uuid_of = settle_probe
         for _ in range(36):

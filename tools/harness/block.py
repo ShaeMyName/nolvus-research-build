@@ -24,10 +24,10 @@ def test(tid, family, save="T0", reload=False, forced=False):
 BLOCKS = {}     # name -> dict(save, order: [ids], modules: [module names], est: {family: minutes})
 
 
-def block(name, save, modules, order, est=None, fixed=None):
+def block(name, save, modules, order, est=None, fixed=None, harness=False):
     """est: unpadded estimate in minutes per family (time plan), spread evenly over that family's tests;
     fixed: {test id: minutes} for known long tests (B-20). Used only for the live ETA."""
-    BLOCKS[name] = dict(save=save, modules=modules, order=order, est=est or {}, fixed=fixed or {})
+    BLOCKS[name] = dict(save=save, modules=modules, order=order, est=est or {}, fixed=fixed or {}, harness=harness)
 
 
 def test_estimates(b, order):
@@ -69,6 +69,14 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
         print("NOT IMPLEMENTED (skipped): %s" % ", ".join(missing))
         summary.append("| %s | NOT IMPLEMENTED | | skipped |" % ", ".join(missing))
         order = [t for t in order if t in TESTS]
+    if game.harness_mode() != b["harness"]:
+        if "SkyrimSE.exe" in game.procs():
+            print("BLOCK ABORT %s: harness mode must be %s; close the game first" % (name, b["harness"]), flush=True)
+            return 1
+        if not game.set_harness_mode(b["harness"]):
+            print("BLOCK ABORT %s: could not set harness mode" % name, flush=True)
+            return 1
+    print("HARNESS mode %s for %s" % ("on" if game.harness_mode() else "off", name), flush=True)
     ctl = Run("%s_CONTROL" % name)
     if "SkyrimSE.exe" not in game.procs():
         if not launch or not game.launch(ctl.log):
@@ -88,6 +96,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
         return 1
     fam, fam_start, results = None, time.strftime("%Y-%m-%d %H:%M:%S"), []
     est = test_estimates(b, order)
+    crashes = 0
     started, done_est, done_real = time.time(), 0.0, 0.0
     for i, tid in enumerate(order, 1):
         meta = TESTS[tid]
@@ -95,7 +104,16 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             family_logs(ctl, fam, fam_start, summary)
             fam_start = time.strftime("%Y-%m-%d %H:%M:%S")
         fam = meta["family"]
-        r = Run(tid)
+        try:
+            r = Run(tid)
+        except Exception as e:          # MCP gone: the game died between tests
+            r = None
+        if r is None or "SkyrimSE.exe" not in game.procs():
+            ctl = recover(ctl, name, b, "before " + tid, summary)
+            if ctl is None:
+                return 1
+            crashes += 1
+            r = Run(tid)
         r.forced = meta["forced"]
         r.tails = {k: game.Tail(p) for k, p in game.LOGS.items()}
         t0 = time.time()
@@ -104,6 +122,10 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
         except Exception as e:          # a harness bug fails the test, not the block
             r.inconclusive += 1
             r.log("INCONCLUSIVE %s harness error: %r" % (tid, e))
+        crashed = "SkyrimSE.exe" not in game.procs()
+        if crashed:
+            r.inconclusive += 1
+            r.log("INCONCLUSIVE %s: the game crashed during the test (see the newest SKSE crash-*.log)" % tid)
         if r.forced:
             r.log("NOTE %s: forced state (weaker evidence than natural play)" % tid)
         inv = [l for l in r.tails["watch"].read().splitlines() if re.search(r"ASSERT FAIL I\d", l)]
@@ -123,12 +145,25 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             print("BLOCK HALT %s after %s" % (name, tid), flush=True)
             ctl.save()
             return 1
-        if meta["reload"]:
+        if crashed:
+            crashes += 1
+            if crashes > MAX_CRASHES:
+                print("BLOCK ABORT %s: %d game crashes" % (name, crashes), flush=True)
+                ctl.log("ABORT: %d game crashes" % crashes)
+                open(OUT + "%s_%s.md" % (name, stamp), "w", encoding="utf-8").write("\n".join(summary) + "\n")
+                return 1
+            ctl = recover(ctl, name, b, "in " + tid, summary)
+            if ctl is None:
+                return 1
+        elif meta["reload"]:
             game.load(ctl, b["save"], settle_probe(ctl))
     if fam:
         family_logs(ctl, fam, fam_start, summary)
     if not keep_open:
         game.close(ctl)
+        if b["harness"]:        # D1: asserted off after each block
+            ok = game.set_harness_mode(False, ctl.log)
+            summary.append("| harness mode off after the block | %s | | |" % ("verified" if ok else "FAILED"))
     p = OUT + "%s_%s.md" % (name, stamp)
     open(p, "w", encoding="utf-8").write("\n".join(summary) + "\n")
     ctl.log("summary %s" % p)
@@ -136,6 +171,25 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
                                                          len(results), (time.time() - started) / 60), flush=True)
     ctl.save()
     return sum(1 for _, v in results if v != "ALL PASS")
+
+
+MAX_CRASHES = 3
+
+
+def recover(ctl, name, b, where, summary):
+    """The game died: note it, relaunch, reload the block save, return a fresh control Run (None if that fails)."""
+    print("BLOCK CRASH %s %s: relaunching" % (name, where), flush=True)
+    summary.append("| CRASH | game crashed %s | | relaunched |" % where)
+    game.close(None, timeout=30)
+    time.sleep(10)
+    if not game.launch(print):
+        print("BLOCK ABORT %s: relaunch after a crash failed" % name, flush=True)
+        return None
+    ctl = Run("%s_CONTROL" % name)
+    if not game.load(ctl, b["save"], settle_probe(ctl)):
+        print("BLOCK ABORT %s: reload after a crash failed" % name, flush=True)
+        return None
+    return ctl
 
 
 def family_logs(ctl, fam, since, summary):
