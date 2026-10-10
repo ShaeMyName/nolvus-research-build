@@ -25,4 +25,8 @@ s, m = tests_b.sa_catchup_split(resume, "Jenassa")
 check(m == [resume], "B-16: SA 'resumed follow (same cell)' counts as a non-skip")
 s, m = tests_b.sa_catchup_split(other, "Jenassa")
 check(not s and not m, "B-16: another actor's move is ignored")
+import runner
+check(runner.CTL_FAILED.search("[IEB-TEST] DoorUse: ModEvent.Create failed"), "ctl: DoorUse create-failed line is a failure")
+check(runner.CTL_FAILED.search("[IEB-TEST] DoorUse: no door"), "ctl: DoorUse no-door line is a failure")
+check(not runner.CTL_FAILED.search("[IEB-TEST] DoorUse door=0x1A2B3C sent"), "ctl: a normal DoorUse line is not a failure")
 sys.exit(0 if ok else 1)

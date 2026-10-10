@@ -17,6 +17,10 @@ OUT = "C:/nolvus-research/test_runs/"
 ACTIONS = ["Undress", "UnequipArmor", "SitOrLayDown"]
 
 
+# A controller's own failure report on its confirmation line (wrapper ran, action did not happen).
+CTL_FAILED = re.compile(r"(?i)\[IEB-TEST\] \w+: (?:ModEvent\.Create failed|no door|no ref\b)")
+
+
 class Run:
     def __init__(self, name):
         self.name, self.lines, self.fails, self.inconclusive = name, [], 0, 0
@@ -119,10 +123,17 @@ class Run:
             if sync and fn in self.CTL_UNSYNC:
                 time.sleep(1.0)     # no completion line yet: give Papyrus a moment (unsynchronized call)
             return res
-        if not self.logline(r"\[IEB-TEST\] (?:%s)" % pat, size, timeout):
+        m = self.logline(r"\[IEB-TEST\] (?:%s)[^\r\n]*" % pat, size, timeout)
+        if not m:
             self.inconclusive += 1
             self.log("INCONCLUSIVE %s: controller call %s(%s) not confirmed in the Papyrus log within %d s"
                      % (self.name, fn, args, timeout))
+        elif CTL_FAILED.search(m.group(0)):
+            # consumer_proof_list.md: a wrapper's own failure line (e.g. "DoorUse: ModEvent.Create failed", "no door")
+            # confirms the call ran, not that it worked
+            self.inconclusive += 1
+            self.log("INCONCLUSIVE %s: controller call %s(%s) reported failure: %s" % (self.name, fn, args,
+                                                                                    m.group(0).strip()))
         return res
 
     def logline(self, pattern, since_size, timeout=15):

@@ -830,8 +830,14 @@ def l6(r):
         if "TAKE" in d:
             r.log("NOTE L-6: a mustered member that is not SA-posted is classified Mode 2 (IEB_Main:229-253: the war_band "
                   "check runs only inside the IsPosted branch)")
-        ev = sn.wait(r"Papyrus::RegisterEvent(?: called: Type=|: Successfully registered event )'ieb_errand_refused'", 20)
-        r.check(bool(ev), "ieb_errand_refused event registered (SkyrimNet.log)")
+        # consumer_proof_list.md: "RegisterEvent called" also appears when SkyrimNet then drops the event as too far away;
+        # only "Successfully registered event" proves it reached history (case-sensitive consumer: exact case).
+        ev = sn.wait(r"Successfully registered event 'ieb_errand_refused'", 20)
+        if not ev and re.search(r"(?i)Successfully registered event 'ieb_errand_refused'", sn.read()):
+            r.check(False, "FOLDED ieb_errand_refused (registered under another case)")
+        r.check(bool(ev), "ieb_errand_refused event registered (SkyrimNet.log 'Successfully registered event')")
+        far = re.search(r"(?i)ieb_errand_refused.*interaction distance|interaction distance.*ieb_errand_refused", sn.read())
+        r.check(not far, "ieb_errand_refused not skipped as too far (%s)" % (far.group(0)[:120] if far else "none"))
     finally:
         ctl_wait(r, "CampMuster", [CHIEF, 0], r"\[IEB-TEST\] CampMuster camp=\d+ on=0", 30)
 
