@@ -490,6 +490,14 @@ EndFunction
 """        StorageUtil.SetIntValue(akActor, "SNRom_PlayerStance", STANCE_ACCEPTED())
         IEB_WriteRomTrack(akActor)   ; Patch (IEB §11.14.1)
         If changed
+"""),
+    # ApplyCharacter: orientation may change RomanceApplicability (was a hand edit in 3ffd0b4; folded in r55)
+    ("""    IEB_LockChildIntimacy(akActor)   ; Patch R5 (IEB §11.10.2)
+    If SNRom_Decorators.FieldValue(asResponse, "ARDOR:") != ""
+""",
+     """    IEB_LockChildIntimacy(akActor)   ; Patch R5 (IEB §11.10.2)
+    IEB_WriteRomTrack(akActor)   ; Patch (IEB §11.14.1): orientation may change RomanceApplicability
+    If SNRom_Decorators.FieldValue(asResponse, "ARDOR:") != ""
 """)])
     append(B, """
 ; ===========================================================================
@@ -725,6 +733,70 @@ Bool Function IEB_IntimacyOn() Global
     Return StorageUtil.GetIntValue(Game.GetPlayer(), "IEB_IntimacyEnabled", 0) == 1
 EndFunction
 """)
+
+elif G == "child-r55":   # round 10 (investigation/round10/child_lock_failure.md §4), approved 2026-10-10
+    edit(B, [
+        # (c) R7b: the child sweep also runs when the cell scan is switched off
+        ("""    If SkyrimNetApi.GetConfigBool(CFG(), "cellScanEnabled", True) == False
+        Return
+    EndIf
+""",
+         """    If SkyrimNetApi.GetConfigBool(CFG(), "cellScanEnabled", True) == False
+        IEB_ChildSweep()   ; Patch R7b (IEB r55): the child lock does not depend on the cell scan
+        Return
+    EndIf
+"""),
+        # (d) R10a: an enrolled child is never listed in anyone's authoring circle
+        ("""        If a != None && a != akExclude && \\
+           StorageUtil.GetIntValue(a, "SNRom_DispositionAuthored", 0) == 1
+""",
+         """        ; Patch R10a (IEB r55, Shae 2026-10-10): a child is never a circle entry
+        If a != None && a != akExclude && !a.IsChild() && \\
+           StorageUtil.GetIntValue(a, "SNRom_DispositionAuthored", 0) == 1
+"""),
+        # (a1) SetCharacterField: lock first, then log what is stored
+        ("""        Diag(LOG_INFO(), "REPAIR: " + who + " INTIMACY set to " + word + \\
+            " (minTier " + tier + ")")
+        IEB_LockChildIntimacy(akActor)   ; Patch R5 (IEB §11.10.2)
+""",
+         """        If IEB_LockChildIntimacy(akActor)   ; Patch R5 (IEB §11.10.2); logged after the lock (r55)
+            Diag(LOG_INFO(), "REPAIR: " + who + " INTIMACY locked (IsChild): requested minTier " + tier + \\
+                " refused, stored minTier " + StorageUtil.GetIntValue(akActor, "SNRom_PhysMinTier", 4) + \\
+                "/bypass " + StorageUtil.GetIntValue(akActor, "SNRom_PhysAttrBypass", 0))
+        Else
+            Diag(LOG_INFO(), "REPAIR: " + who + " INTIMACY set to " + word + \\
+                " (minTier " + tier + ")")
+        EndIf
+"""),
+        # (b) ForceDriftReview: a child is refused, as R9
+        ("""    If _driftActor != None
+        Diag(LOG_WARN(), "Releasing the drift slot held by " + _driftName + \\
+            " to force a review of " + akActor.GetDisplayName())
+""",
+         """    If akActor.IsChild()   ; Patch R9b (IEB r55): the dev tool obeys R9 too
+        Diag(LOG_INFO(), "ForceDriftReview refused for " + akActor.GetDisplayName() + ": IsChild")
+        Return
+    EndIf
+    If _driftActor != None
+        Diag(LOG_WARN(), "Releasing the drift slot held by " + _driftName + \\
+            " to force a review of " + akActor.GetDisplayName())
+"""),
+        # (a2) ApplyCharacter: a child's line reports the stored (locked) values, not the parsed default
+        ("""    Diag(LOG_INFO(), "Character for " + akActor.GetDisplayName() + \\
+        ": " + orientPart + \\
+        " intimacy='" + intimWord + "'->minTier" + minTier + "/bypass" + bypass + \\
+""",
+         """    String intimPart = " intimacy='" + intimWord + "'->minTier" + minTier + "/bypass" + bypass
+    If akActor.IsChild()   ; Patch (IEB r55): report the locked store, not the parse
+        intimPart = " intimacy=LOCKED(IsChild)->minTier" + \\
+            StorageUtil.GetIntValue(akActor, "SNRom_PhysMinTier", 4) + "/bypass" + \\
+            StorageUtil.GetIntValue(akActor, "SNRom_PhysAttrBypass", 0)
+    EndIf
+    Diag(LOG_INFO(), "Character for " + akActor.GetDisplayName() + \\
+        ": " + orientPart + \\
+        intimPart + \\
+"""),
+    ])
 
 else:
     raise SystemExit("unknown group " + G)

@@ -505,6 +505,7 @@ Function SweepFollowers()
       is sufficient is UNTESTED - none of this reproduces without a VR install -
       so cellScanEnabled is the off switch for anyone it still crashes. }
     If SkyrimNetApi.GetConfigBool(CFG(), "cellScanEnabled", True) == False
+        IEB_ChildSweep()   ; Patch R7b (IEB r55): the child lock does not depend on the cell scan
         Return
     EndIf
     Actor player = Game.GetPlayer()
@@ -3230,7 +3231,8 @@ String Function BuildCircle(Actor akExclude)
         ; Only someone actually authored. An unauthored NPC carries nothing
         ; but mapper defaults, and listing those differentiates against a
         ; fiction.
-        If a != None && a != akExclude && \
+        ; Patch R10a (IEB r55, Shae 2026-10-10): a child is never a circle entry
+        If a != None && a != akExclude && !a.IsChild() && \
            StorageUtil.GetIntValue(a, "SNRom_DispositionAuthored", 0) == 1
             ; Rank = when they last traveled with the player, with current
             ; followers lifted above every former one. Game time is days
@@ -7850,9 +7852,14 @@ Function SetCharacterField(Actor akActor, Int aiField, Int aiValue)
         StorageUtil.SetIntValue(akActor, "SNRom_PhysMinTier", tier)
         StorageUtil.SetIntValue(akActor, "SNRom_PhysAttrBypass", \
             SNRom_Decorators.IntimacyToBypass(word))
-        Diag(LOG_INFO(), "REPAIR: " + who + " INTIMACY set to " + word + \
-            " (minTier " + tier + ")")
-        IEB_LockChildIntimacy(akActor)   ; Patch R5 (IEB §11.10.2)
+        If IEB_LockChildIntimacy(akActor)   ; Patch R5 (IEB §11.10.2); logged after the lock (r55)
+            Diag(LOG_INFO(), "REPAIR: " + who + " INTIMACY locked (IsChild): requested minTier " + tier + \
+                " refused, stored minTier " + StorageUtil.GetIntValue(akActor, "SNRom_PhysMinTier", 4) + \
+                "/bypass " + StorageUtil.GetIntValue(akActor, "SNRom_PhysAttrBypass", 0))
+        Else
+            Diag(LOG_INFO(), "REPAIR: " + who + " INTIMACY set to " + word + \
+                " (minTier " + tier + ")")
+        EndIf
     ElseIf aiField == DRIFT_ARDOR()
         Int a = aiValue
         If a < 0
@@ -7898,6 +7905,10 @@ Function ForceDriftReview(Actor akActor, Int aiField)
       one rung. A forced review of someone with a quiet history should come back
       NO, and that is the correct result rather than a failed test. }
     If !_ready || akActor == None
+        Return
+    EndIf
+    If akActor.IsChild()   ; Patch R9b (IEB r55): the dev tool obeys R9 too
+        Diag(LOG_INFO(), "ForceDriftReview refused for " + akActor.GetDisplayName() + ": IsChild")
         Return
     EndIf
     If _driftActor != None
@@ -8453,9 +8464,15 @@ Function ApplyCharacter(Actor akActor, String asResponse)
     If orientWord != "" && !orientStored
         orientPart = "orientation=REJECTED(authored '" + orientWord + "', married to player) - unchanged"
     EndIf
+    String intimPart = " intimacy='" + intimWord + "'->minTier" + minTier + "/bypass" + bypass
+    If akActor.IsChild()   ; Patch (IEB r55): report the locked store, not the parse
+        intimPart = " intimacy=LOCKED(IsChild)->minTier" + \
+            StorageUtil.GetIntValue(akActor, "SNRom_PhysMinTier", 4) + "/bypass" + \
+            StorageUtil.GetIntValue(akActor, "SNRom_PhysAttrBypass", 0)
+    EndIf
     Diag(LOG_INFO(), "Character for " + akActor.GetDisplayName() + \
         ": " + orientPart + \
-        " intimacy='" + intimWord + "'->minTier" + minTier + "/bypass" + bypass + \
+        intimPart + \
         " ardor=" + ardor + " exclusivity=" + excl)
     ; Applied blocks overrule the model on the three fields they answer - after
     ; the authored write, so the log above keeps what the model said and the
