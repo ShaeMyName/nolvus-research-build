@@ -1,6 +1,6 @@
 """Post-U1 IntelEngine hunks (post_u1_build_plan §1 timer fix F1/F2, §2 slot race) on build/src/intelengine.
 Usage: apply_patch_ie_s1s2.py <group>. Every anchor must match exactly once (CRLF kept). Same edit() as apply_patch_b.py.
-Groups: f1 | f2 | core-slot | callers | core-expiry | rv68"""
+Groups: f1 | f2 | core-slot | callers | core-expiry | rv68 | rv68b"""
 import sys
 
 D = "C:/nolvus-research/build/src/intelengine/Source/Scripts/"
@@ -577,6 +577,34 @@ Int Function ShowTaskConfirmation(Actor npc, String promptText)
 """,
 """    If !Core.TryAllocateSlot(slot, akAgent, "escort_target", targetNPC.GetDisplayName(), 1)
         Core.UndoDismissOnRefusal(akAgent)  ; RV-68
+"""),
+])
+elif G == "rv68b":   # RV-68-close (a): a refusal cannot re-apply a SkyrimNet follow package it released; log it
+    # Who registered FollowPlayer is unknown here (SeverActions Follow / Ambush / Arrest use different priorities and
+    # persistence), so re-registering would guess its owner: the release is marked and logged instead.
+    edit("IntelEngine_Core.psc", [
+("""    ; Clear ALL package overrides from all sources
+    RemoveIntelPackages(npc, false)
+    IEB_ReleaseSkyrimNetPackages(npc)
+""",
+"""    ; Clear ALL package overrides from all sources
+    ; Patch (RV-68-close a): remember a released SkyrimNet follow package for the refusal undo
+    StorageUtil.SetIntValue(npc, "IEB_SNFollowReleased", SkyrimNetApi.HasPackage(npc, "FollowPlayer"))
+    RemoveIntelPackages(npc, false)
+    IEB_ReleaseSkyrimNetPackages(npc)
+"""),
+("""    Int doorCell = StorageUtil.GetIntValue(npc, "Intel_UnlockedHomeCellId")
+    If doorCell != 0
+        DebugMsg("DOOR_LEFT_UNLOCKED " + npc.GetDisplayName() + " cell=" + doorCell)
+""",
+"""    If StorageUtil.GetIntValue(npc, "IEB_SNFollowReleased") == 1 && FindSlotByAgent(npc) < 0
+        ; no re-follow: the package owner (SeverActions follow/ambush/arrest) and its priority are unknown here
+        DebugMsg("FOLLOW_PKG_RELEASED " + npc.GetDisplayName())
+        StorageUtil.UnsetIntValue(npc, "IEB_SNFollowReleased")
+    EndIf
+    Int doorCell = StorageUtil.GetIntValue(npc, "Intel_UnlockedHomeCellId")
+    If doorCell != 0
+        DebugMsg("DOOR_LEFT_UNLOCKED " + npc.GetDisplayName() + " cell=" + doorCell)
 """),
 ])
 else:

@@ -1152,6 +1152,8 @@ Function DismissFollowerForTask(Actor npc)
     and reverts to default AI.}
 
     ; Clear ALL package overrides from all sources
+    ; Patch (RV-68-close a): remember a released SkyrimNet follow package for the refusal undo
+    StorageUtil.SetIntValue(npc, "IEB_SNFollowReleased", SkyrimNetApi.HasPackage(npc, "FollowPlayer"))
     RemoveIntelPackages(npc, false)
     IEB_ReleaseSkyrimNetPackages(npc)
     DebugMsg("Removed IntelEngine and SkyrimNet follow packages for " + npc.GetDisplayName())
@@ -1188,6 +1190,11 @@ Function UndoDismissOnRefusal(Actor npc)
                 DebugMsg("SLOT_REFUSED_UNDO: restored teammate flag for " + npc.GetDisplayName())
             EndIf
         EndIf
+    EndIf
+    If StorageUtil.GetIntValue(npc, "IEB_SNFollowReleased") == 1 && FindSlotByAgent(npc) < 0
+        ; no re-follow: the package owner (SeverActions follow/ambush/arrest) and its priority are unknown here
+        DebugMsg("FOLLOW_PKG_RELEASED " + npc.GetDisplayName())
+        StorageUtil.UnsetIntValue(npc, "IEB_SNFollowReleased")
     EndIf
     Int doorCell = StorageUtil.GetIntValue(npc, "Intel_UnlockedHomeCellId")
     If doorCell != 0

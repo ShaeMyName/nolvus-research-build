@@ -1,0 +1,11 @@
+# BLD-2 RV-68-close (a) follow-package release log. Tool tools/ie_callsites.py. A = 5c1b77f IntelEngine_Core.pex, B = this build. Expect: DismissFollowerForTask +HasPackage/+SetIntValue, UndoDismissOnRefusal +FOLLOW_PKG_RELEASED branch; no new functions; other IE pex unchanged (timestamps only, not committed).
+functions: A 104, B 104
+call sites: A 868, B 875
+  dismissfollowerfortask             skyrimnetapi.haspackage                        0 -> 1
+  dismissfollowerfortask             storageutil.setintvalue                        1 -> 2
+  undodismissonrefusal               debugmsg                                       2 -> 3
+  undodismissonrefusal               findslotbyagent                                1 -> 2
+  undodismissonrefusal               getdisplayname                                 2 -> 3
+  undodismissonrefusal               storageutil.getintvalue                        3 -> 4
+  undodismissonrefusal               storageutil.unsetintvalue                      2 -> 3
+DIFFERENT
