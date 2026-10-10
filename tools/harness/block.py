@@ -20,11 +20,33 @@ def test(tid, family, save="T0", reload=False, forced=False):
     return deco
 
 
-BLOCKS = {}     # name -> dict(save, order: [ids], modules: [module names])
+BLOCKS = {}     # name -> dict(save, order: [ids], modules: [module names], est: {family: minutes})
 
 
-def block(name, save, modules, order):
-    BLOCKS[name] = dict(save=save, modules=modules, order=order)
+def block(name, save, modules, order, est=None, fixed=None):
+    """est: unpadded estimate in minutes per family (time plan), spread evenly over that family's tests;
+    fixed: {test id: minutes} for known long tests (B-20). Used only for the live ETA."""
+    BLOCKS[name] = dict(save=save, modules=modules, order=order, est=est or {}, fixed=fixed or {})
+
+
+def test_estimates(b, order):
+    fixed, est = b["fixed"], {}
+    for fam, mins in b["est"].items():
+        ids = [t for t in order if TESTS[t]["family"] in fam.split("/") and t not in fixed]
+        for t in ids:
+            est[t] = mins * 60.0 / max(1, len(ids))
+    for t in order:
+        est.setdefault(t, fixed.get(t, 2.0) * 60.0)
+    return est
+
+
+def progress(i, n, tid, verdict, secs, done_est, done_real, remaining_est, started):
+    """One PROGRESS line per test (the session watches these for live ETA pushes, Shae 2026-10-10)."""
+    ratio = done_real / done_est if done_est else 1.0
+    eta = remaining_est * ratio
+    print("PROGRESS %d/%d %s %s %ds | elapsed %.0f min | pace x%.2f of estimate | ETA %.0f min (done ~%s)"
+          % (i, n, tid, verdict, secs, (time.time() - started) / 60, ratio, eta / 60,
+             time.strftime("%H:%M", time.localtime(time.time() + eta))), flush=True)
 
 
 def settle_probe(r):
@@ -50,6 +72,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
     if "SkyrimSE.exe" not in game.procs():
         if not launch or not game.launch(ctl.log):
             ctl.log("ABORT: game not running")
+            print("BLOCK ABORT %s: game did not launch" % name, flush=True)
             ctl.save()
             return 1
         ctl = Run("%s_CONTROL" % name)          # fresh MCP session after launch
@@ -59,10 +82,13 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
     import runner
     if runner.smoke([]):
         ctl.log("ABORT: smoke failed")
+        print("BLOCK ABORT %s: smoke failed" % name, flush=True)
         ctl.save()
         return 1
     fam, fam_start, results = None, time.strftime("%Y-%m-%d %H:%M:%S"), []
-    for tid in order:
+    est = test_estimates(b, order)
+    started, done_est, done_real = time.time(), 0.0, 0.0
+    for i, tid in enumerate(order, 1):
         meta = TESTS[tid]
         if fam and meta["family"] != fam:
             family_logs(ctl, fam, fam_start, summary)
@@ -85,10 +111,15 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
         verdict = r.save()
         summary.append("| %s | %s | %d | %s |" % (tid, verdict, time.time() - t0, "forced state" if r.forced else ""))
         results.append((tid, verdict))
+        done_est += est[tid]
+        done_real += time.time() - t0
+        progress(i, len(order), tid, verdict, time.time() - t0, done_est, done_real,
+                 sum(est[t] for t in order[i:]), started)
         if inv:     # TASK_C: a failing invariant stops its block; leave the game in place for inspection
             summary.append("| HALT | invariant failed in %s | | game left running |" % tid)
             open(OUT + "%s_%s.md" % (name, stamp), "w", encoding="utf-8").write("\n".join(summary) + "\n")
             ctl.log("HALT after %s: watcher invariant failed; game left running" % tid)
+            print("BLOCK HALT %s after %s" % (name, tid), flush=True)
             ctl.save()
             return 1
         if meta["reload"]:
@@ -100,6 +131,8 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
     p = OUT + "%s_%s.md" % (name, stamp)
     open(p, "w", encoding="utf-8").write("\n".join(summary) + "\n")
     ctl.log("summary %s" % p)
+    print("BLOCK DONE %s %d/%d not ALL PASS; %.0f min" % (name, sum(1 for _, v in results if v != "ALL PASS"),
+                                                         len(results), (time.time() - started) / 60), flush=True)
     ctl.save()
     return sum(1 for _, v in results if v != "ALL PASS")
 
