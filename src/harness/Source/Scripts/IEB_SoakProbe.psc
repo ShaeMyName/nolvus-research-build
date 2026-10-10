@@ -24,13 +24,26 @@ String Function CsvPath()
     Return "Data/SKSE/Plugins/ErrandBridge/soak_probe.csv"
 EndFunction
 
+Bool Function OnOwnQuest()
+    {[2026-10-10] The probe lives on its own quest IEB_TestSoakQuest (0x830). Saves made before that change still carry
+     an instance on IEB_TestQuest (0x810), restored from the save; Papyrus keeps one update registration per form, so that
+     stale instance must never re-arm, or it overwrites the watcher's 3 s loop with 30 s.}
+    Return (Self as Quest) == (Game.GetFormFromFile(0x830, "ErrandBridgeTest.esp") as Quest)
+EndFunction
+
 Event OnInit()
+    If !OnOwnQuest()
+        Return
+    EndIf
     _expectRT = Utility.GetCurrentRealTime() + Every()
     _lastGT = Utility.GetCurrentGameTime()
     RegisterForSingleUpdate(Every())
 EndEvent
 
 Event OnUpdate()
+    If !OnOwnQuest()
+        Return                               ; stale instance on IEB_TestQuest: never re-arm
+    EndIf
     RegisterForSingleUpdate(Every())         ; booked first
     Float now = Utility.GetCurrentRealTime()
     Float gt = Utility.GetCurrentGameTime()
