@@ -1403,6 +1403,10 @@ def b22(r):
         if not need(r, wb.wait(r"BURST END", 45), "first burst did not end"):
             return
         run_burst(r, "take")
+        # U1 run 16: after the 30 s take burst F1 was beyond N (1,920 u), so the release parked her (REJOIN_WAIT) and the
+        # release burst went unjudged. Bring the player within N first, as B-3 does, so the release is RELEASE_FOLLOW.
+        r.ctl("MoveRel", [PLAYER, F1, 600.0, 0.0, 0.0])
+        time.sleep(3)
         wb2 = fresh("watch")
         r.ctl("Burst", [F1, 20.0])
         if not need(r, wb2.wait(r"BURST START", 15), "no second BURST START"):
