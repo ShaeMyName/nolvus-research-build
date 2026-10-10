@@ -121,6 +121,8 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
         print("NOT IMPLEMENTED (skipped): %s" % ", ".join(missing))
         summary.append("| %s | NOT IMPLEMENTED | | skipped |" % ", ".join(missing))
         order = [t for t in order if t in TESTS]
+    start_heartbeat(name)          # before the launch: a resumed block is covered from its first second
+    HEARTBEAT["test"] = "(start-up: launch/load/settle)"
     if game.harness_mode() != b["harness"]:
         if "SkyrimSE.exe" in game.procs():
             print("BLOCK ABORT %s: harness mode must be %s; close the game first" % (name, b["harness"]), flush=True)
@@ -143,7 +145,6 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
         print("BLOCK ABORT %s: smoke failed" % name, flush=True)
         ctl.save()
         return 1
-    start_heartbeat(name)
     fam, fam_start, results = None, time.strftime("%Y-%m-%d %H:%M:%S"), []
     est = test_estimates(b, order)
     crashes = 0
