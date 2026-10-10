@@ -41,6 +41,39 @@ def set_harness_mode(on, log=print, wait=180):
     return ok
 
 
+# GameMaster switch (Shae 2026-10-10, "Yeah, 1 and 2"): off for test blocks that don't test it, on for blocks that do and
+# restored on after every block. Lives in SkyrimNet.yaml of "SkyrimNet Config - Test", the test profile's config mod
+# (disabled in the Nolvus Awakening profile's modlist, so Lucienne's profile never loads it). CRLF file: edited bytewise.
+SKYRIMNET_YAML = os.path.dirname(HARNESS_YAML) + "/SkyrimNet.yaml"
+_GM_RX = re.compile(rb"(\ngamemaster:\r?\n  enabled: )(true|false)(\r?\n)")
+
+
+def gamemaster():
+    m = _GM_RX.search(open(SKYRIMNET_YAML, "rb").read())
+    return None if m is None else m.group(2) == b"true"
+
+
+def set_gamemaster(on, log=print, wait=180):
+    """Write gamemaster.enabled in the test profile's SkyrimNet.yaml. The game and MO2 must be closed (as Harness.yaml)."""
+    t0 = time.time()
+    while procs() and time.time() - t0 < wait:
+        time.sleep(3)
+    if procs():
+        log("GAMEMASTER refused: %s still running" % sorted(procs()))
+        return False
+    b = open(SKYRIMNET_YAML, "rb").read()
+    if len(_GM_RX.findall(b)) != 1:
+        log("GAMEMASTER refused: gamemaster.enabled not found exactly once in %s" % SKYRIMNET_YAML)
+        return False
+    b2 = _GM_RX.sub(lambda m: m.group(1) + (b"true" if on else b"false") + m.group(3), b)
+    if b2 != b:
+        with open(SKYRIMNET_YAML, "wb") as f:
+            f.write(b2)
+    ok = gamemaster() == on
+    log("GAMEMASTER %s (%s)" % ("on" if on else "off", "verified" if ok else "WRITE FAILED"))
+    return ok
+
+
 def procs():
     out = subprocess.run(["tasklist"], capture_output=True, text=True).stdout
     return {n for n in ("SkyrimSE.exe", "ModOrganizer.exe") if n in out}

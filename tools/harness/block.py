@@ -21,10 +21,15 @@ def test(tid, family, save="T0", reload=False, forced=False):
     return deco
 
 
+# Tests that need GameMaster on (Shae 2026-10-10: if unsure, keep it on). A block with gamemaster=False refuses to start
+# if it contains one. Filled from investigation/round10/gamemaster_tests.md.
+GM_TESTS = set()
+GM_STATE = [None]
 BLOCKS = {}     # name -> dict(save, order: [ids], modules: [module names], est: {family: minutes})
 
 
-def block(name, save, modules, order, est=None, fixed=None, harness=False, voices=True, relaunch_avail_gb=3.0):
+def block(name, save, modules, order, est=None, fixed=None, harness=False, voices=True, relaunch_avail_gb=3.0,
+          gamemaster=True):
     """voices=False only for text/state blocks; the soak must run with voices (real-play config, SK-7 memory is the
     point: Shae 2026-10-10), enforced here. relaunch_avail_gb: relaunch between tests when Windows' available physical
     memory drops below this [CHANGED 2026-10-10, Shae: total system memory near 31 GB is the concern, not the game's own
@@ -34,7 +39,7 @@ def block(name, save, modules, order, est=None, fixed=None, harness=False, voice
         raise ValueError("the soak must run with the voice server on (Shae 2026-10-10)")
     """est: unpadded estimate in minutes per family (time plan), spread evenly over that family's tests;
     fixed: {test id: minutes} for known long tests (B-20). Used only for the live ETA."""
-    BLOCKS[name] = dict(save=save, modules=modules, order=order, est=est or {}, fixed=fixed or {}, harness=harness,
+    BLOCKS[name] = dict(save=save, modules=modules, order=order, est=est or {}, fixed=fixed or {}, harness=harness, gamemaster=gamemaster,
                         voices=voices,
                         relaunch_avail_gb=None if name.upper().startswith("SOAK") else relaunch_avail_gb)
 
@@ -132,6 +137,21 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             print("BLOCK ABORT %s: could not set harness mode" % name, flush=True)
             return 1
     print("HARNESS mode %s for %s" % ("on" if game.harness_mode() else "off", name), flush=True)
+    # GameMaster per block (Shae 2026-10-10): off only when the block has no GameMaster-dependent test.
+    gm_need = [t for t in order if t in GM_TESTS]
+    if not b["gamemaster"] and gm_need:
+        print("BLOCK ABORT %s: GameMaster off but these tests need it: %s" % (name, ", ".join(gm_need)), flush=True)
+        return 1
+    if game.gamemaster() != b["gamemaster"]:
+        if "SkyrimSE.exe" in game.procs():
+            print("BLOCK ABORT %s: GameMaster must be %s; close the game first" % (name, b["gamemaster"]), flush=True)
+            return 1
+        if not game.set_gamemaster(b["gamemaster"]):
+            print("BLOCK ABORT %s: could not set GameMaster" % name, flush=True)
+            return 1
+    GM_STATE[0] = game.gamemaster()
+    print("GAMEMASTER %s for %s" % ("on" if GM_STATE[0] else "off", name), flush=True)
+    summary.append("| GameMaster | %s for the block | | |" % ("on" if GM_STATE[0] else "off"))
     if "SkyrimSE.exe" not in game.procs():
         if not launch or not game.launch(print, voices=b["voices"]):
             print("BLOCK ABORT %s: game did not launch" % name, flush=True)
@@ -171,6 +191,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             r.log("NOTE %s: the last load's settle nudge added one F1 narration to SkyrimNet history (%s)"
                   % (tid, game.LAST_NUDGE))
         r.tails = {k: game.Tail(p) for k, p in game.LOGS.items()}
+        r.log("NOTE %s: GameMaster %s" % (tid, "on" if GM_STATE[0] else "off"))
         phase(tid)
         r.log("NOTE %s: RAM available at start %.1f GB (game %.1f GB private)" % (tid, game.available_ram_gb(),
                                                                                 game.game_private_gb()))
@@ -274,6 +295,9 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
     if not keep_open:
         phase("CLOSE")
         game.close(ctl)
+        if not b["gamemaster"]:     # Shae 2026-10-10: restored on after the block (soak and real config untouched)
+            okg = game.set_gamemaster(True, ctl.log)
+            summary.append("| GameMaster restored on after the block | %s | | |" % ("verified" if okg else "FAILED"))
         if b["harness"]:        # D1: asserted off after each block
             ok = game.set_harness_mode(False, ctl.log)
             summary.append("| harness mode off after the block | %s | | |" % ("verified" if ok else "FAILED"))
