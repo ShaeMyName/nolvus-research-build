@@ -833,6 +833,7 @@ def b8(r):
     time.sleep(3)
     p = probe(r, F1) or {}
     if not need(r, p.get("dead") == "1", "console kill did not kill F1 (dead=%s; essential/protected?)" % p.get("dead")):
+        r.ctl("Cancel", [F1])   # end the IE task, so the family log check doesn't see an open slot (run 17: I5 artefact)
         return
     end = wait_ieb(t, REL_KW + ("REJOIN_CANCELLED",), nm, 30)
     r.check(end is not None and end[0] == "RELEASE_DEAD", "RELEASE_DEAD (%s)" % (end,))
