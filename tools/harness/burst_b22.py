@@ -1,8 +1,10 @@
 """B-22 (spec §15.3, §2.1): read the last watcher burst (IEB_TestCtl.Burst) from the ErrandBridgeWatch user log and
 check every NFF wait-box interval: it lasts < 0.5 s, and the actor does not head back toward the take position (the
 first sample) during it or in the second after it. Reads only.
-Usage: burst_b22.py [log path]   Prints ASSERT PASS|FAIL lines; exit code 1 on any FAIL or on no burst found."""
+Usage: burst_b22.py [log path] [--fid ID]   (--fid: the last burst of that actor; any printed FormID form)
+Prints ASSERT PASS|FAIL lines; exit code 1 on any FAIL or on no burst found."""
 import math, os, re, sys
+from fidnorm import fid_norm, fid_any_rx   # one FormID normaliser (REVIEW_LOG R48)
 
 LOG = os.path.expanduser("~/Documents/My Games/Skyrim Special Edition/Logs/Script/User/ErrandBridgeWatch.0.log")
 BACK_TOLERANCE = 64.0      # game units closer to the take position that count as "heading back"
@@ -12,8 +14,15 @@ START = re.compile(r"BURST START (.+?) (\S+) t=(\S+) waitbox=(\S+) waitboxpt=(\S
 SAMPLE = re.compile(r"BURST (\d+\.?\d*) (\S+) wfp=(\S+) pos=(\S+),(\S+),(\S+)")
 
 
-def last_burst(lines):
-    s = max((i for i, l in enumerate(lines) if "BURST START" in l), default=None)
+def burst_fid(head):
+    """The actor FormID of a BURST START match (IEB_TestCtl.psc:251 prints w.Hex(a) = '0xFE499A4B'), normalised."""
+    return fid_norm(head.group(2)) if head else None
+
+
+def last_burst(lines, fid=None):
+    """The last burst (of actor `fid` if given: any printed FormID form, signed or unsigned)."""
+    rx = re.compile(r"BURST START .+? %s t=" % fid_any_rx(fid)) if fid is not None else None
+    s = max((i for i, l in enumerate(lines) if "BURST START" in l and (rx is None or rx.search(l))), default=None)
     if s is None:
         return None, []
     m = START.search(lines[s])
@@ -29,9 +38,15 @@ def last_burst(lines):
 
 
 def main():
-    path = sys.argv[1] if len(sys.argv) > 1 else LOG
+    args = sys.argv[1:]
+    fid = None
+    if "--fid" in args:
+        k = args.index("--fid")
+        fid = fid_norm(args[k + 1])
+        del args[k:k + 2]
+    path = args[0] if args else LOG
     lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
-    head, smp = last_burst(lines)
+    head, smp = last_burst(lines, fid)
     if head is None or not smp:
         print("ASSERT FAIL B-22 no burst found in %s" % path)
         return 1

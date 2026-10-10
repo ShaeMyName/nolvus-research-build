@@ -25,6 +25,7 @@ Source/Scripts/; FM = SA SeverActions_FollowerManager.psc; ENT = SA SeverActions
 import os, re, time
 import game
 from block import test, settle_probe
+from fidnorm import fid_norm, fid_any_rx, fid_hex8   # one FormID normaliser (REVIEW_LOG R48)
 
 # ---------------------------------------------------------------- cast (AGENT_BRIEF.md T0 table; Skyrim.esm refs)
 PLAYER = 0x14
@@ -67,16 +68,18 @@ def tail(key):
 
 
 def hexarg(fid):
-    return "0x%08X" % fid
+    return "0x" + fid_hex8(fid)
 
 
 def fid_rx(fid):
-    """PO3 IntToString(id, true) / SA {:08X}: match with or without 0x and leading zeros (format INFERRED)."""
-    return r"(?:0x)?0*%X\b" % fid
+    """FormID in any printed form (fidnorm.fid_any_rx): PO3 IntToString(id, true) '0xE1BA9' / '0xFE499A4B' (VERIFIED
+    Papyrus.0.log 2026-10-10), SA {:08X}, signed / unsigned decimal; whole token. Signed or unsigned fid accepted."""
+    return fid_any_rx(fid)
 
 
 def nm(fid):
-    return NAMES.get(fid, "%08X" % fid)
+    n = fid_norm(fid)
+    return NAMES.get(n, NAMES.get(fid, "%08X" % n))
 
 
 def inconclusive(r, why):
@@ -160,15 +163,16 @@ def parse_line(line):
 
 
 def actor_lines(text, fid):
-    """Watcher / probe lines for one actor ("<name> <hex> cell=", Watcher:118-119)."""
-    rx = re.compile(r" %s %s cell=" % (re.escape(nm(fid)), fid_rx(fid)), re.I)
+    """Watcher / probe lines for one actor ("<name> <hex> cell=", Watcher:118-119). Matched on the id token right before
+    " cell=" only (R48): a name missing from NAMES (an FE camp member, a spawned ref) or a short one ("Uthgerd" vs the
+    display name "Uthgerd the Unbroken") no longer makes every line miss."""
+    rx = re.compile(r" %s cell=" % fid_rx(fid), re.I)
     return [parse_line(l) for l in text.splitlines() if rx.search(l)]
 
 
 def probe(r, fid, timeout=10):
     """Probe wrapper (proposed): '[IEB-TEST] probe <Watcher.Line> iebKeys=<b> saSandbox=<b>'."""
-    m = ctl_wait(r, "Probe", [fid], r"\[IEB-TEST\] probe [^\n]* %s %s cell=[^\n]*" % (re.escape(nm(fid)), fid_rx(fid)),
-                 timeout)
+    m = ctl_wait(r, "Probe", [fid], r"\[IEB-TEST\] probe [^\n]* %s cell=[^\n]*" % fid_rx(fid), timeout)
     return parse_line(m.group(0)) if m else None
 
 
@@ -832,7 +836,7 @@ def l6(r):
             return inconclusive(r, "muster failed or wrapper missing (%s)" % (m.group(0) if m else "no line"))
         time.sleep(2)
         mem = re.findall(r"\[IEB-TEST\] CampMember (\S+) (.+?) loaded=(\w+) muster=(-?\d+)", t.read())
-        pick = [(int(h, 16), n) for h, n, lo, mu in mem if lo.lower() == "true" and int(mu) >= 0 and int(h, 16) != CHIEF]
+        pick = [(fid_norm(h), n) for h, n, lo, mu in mem if lo.lower() == "true" and int(mu) >= 0 and fid_norm(h) != CHIEF]
         r.log("  camp %s: %d members logged, %d loaded and seated" % (m.group(1), len(mem), len(pick)))
         if not pick:
             return inconclusive(r, "no loaded mustered member besides the chief")

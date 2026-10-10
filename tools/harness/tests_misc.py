@@ -20,6 +20,7 @@ IEB_TestCtl (StartTask, Recall, UUIDOf, Check, Dispatch, Snapshot) or a direct M
 import json, os, re, time
 from block import test
 from runner import eligible
+from fidnorm import fid_norm, fid_any_rx, fid_hex8, fid_s32   # one FormID normaliser (REVIEW_LOG R48)
 import game
 
 # ---------------------------------------------------------------------------- cast (AGENT_BRIEF.md T0 table)
@@ -78,13 +79,12 @@ def inc(r, why):
 
 
 def hx(fid):
-    return "%08X" % (fid & 0xFFFFFFFF)
+    return fid_hex8(fid)
 
 
 def s32(x):
     """Papyrus Int is signed 32-bit: spawned refs (0xFF......) must be passed as negative ints."""
-    x &= 0xFFFFFFFF
-    return x - (1 << 32) if x >= (1 << 31) else x
+    return fid_s32(x)
 
 
 def con(r, cmd):
@@ -125,7 +125,7 @@ def who(r, fid):
     """(uuid, display name, isChild) via IEB_TestCtl.UUIDOf (IEB_TestCtl.psc:145-155). Name is for regex use only."""
     t = tail("papyrus")
     res = r.ctl("UUIDOf", [s32(fid)])
-    m = t.wait(r"\[IEB-TEST\] UUID (\S+) (.+?) = ([0-9A-Fa-f]*) child=(\w+)", timeout=15)
+    m = t.wait(r"\[IEB-TEST\] UUID (%s) (.+?) = ([0-9A-Fa-f]*) child=(\w+)" % fid_any_rx(fid), timeout=15)
     u = retval(res)
     if m:
         return (str(u) if u else m.group(3)), m.group(2), m.group(4).upper() == "TRUE"
@@ -238,7 +238,7 @@ def ctl_line(r, fn, args, pattern, timeout=15):
 
 def qr(r, fid):
     """Proposed IEB_TestCtl.QR: one line of guard inputs for one actor (see report)."""
-    m = ctl_line(r, "QR", [s32(fid)], r"\[IEB-TEST\] QR (\S+) (.*)")
+    m = ctl_line(r, "QR", [s32(fid)], r"\[IEB-TEST\] QR (%s) (.*)" % fid_any_rx(fid))
     return parse_kv(m.group(2)) if m else None
 
 
@@ -254,8 +254,10 @@ def qscan(r, radius=3000.0):
             continue
         d = parse_kv(m.group(2))
         try:
-            d["fid"] = int(m.group(1), 16)
+            d["fid"] = fid_norm(m.group(1))
         except ValueError:
+            continue
+        if d["fid"] is None:
             continue
         out.append(d)
     return out
@@ -263,16 +265,17 @@ def qscan(r, radius=3000.0):
 
 def rank(r, fid):
     """Proposed IEB_TestCtl.RankProbe: vanilla rank, SNRom_Bond tier, track, stored sync keys, points."""
-    m = ctl_line(r, "RankProbe", [s32(fid)], r"\[IEB-TEST\] RANK (\S+) (.*)")
+    m = ctl_line(r, "RankProbe", [s32(fid)], r"\[IEB-TEST\] RANK (%s) (.*)" % fid_any_rx(fid))
     return parse_kv(m.group(2)) if m else None
 
 
 def su_set(r, fid, key, val):
-    return ctl_line(r, "SUSetInt", [s32(fid), key, int(val)], r"\[IEB-TEST\] SU (\S+ %s set=|REFUSED)" % re.escape(key))
+    return ctl_line(r, "SUSetInt", [s32(fid), key, int(val)], r"\[IEB-TEST\] SU (%s %s set=|REFUSED)"
+                    % (fid_any_rx(fid), re.escape(key)))
 
 
 def su_unset(r, fid, key):
-    return ctl_line(r, "SUUnset", [s32(fid), key], r"\[IEB-TEST\] SU \S+ %s unset" % re.escape(key))
+    return ctl_line(r, "SUUnset", [s32(fid), key], r"\[IEB-TEST\] SU %s %s unset" % (fid_any_rx(fid), re.escape(key)))
 
 
 def take_pat(name):
@@ -295,19 +298,16 @@ def recall(r, fid, name, timeout=120):
 
 def watch_all(r, fid, text=None):
     """Watcher lines (IEB_Watcher.Line, IEB_Watcher.psc:85-147) for this actor in the test window, as dicts. The
-    actor's hex FormID follows its name; matched by value (IntToString hex format INFERRED, with or without 0x)."""
+    actor's FormID follows its name ('0xE1BA9', VERIFIED Papyrus.0.log 2026-10-10); matched in any printed form
+    (fidnorm.fid_any_rx), signed or unsigned fid."""
     text = r.tails["watch"].read() if text is None else text
+    rx = re.compile(fid_any_rx(fid))
     out = []
     for line in text.splitlines():
         if not line.startswith("rt=") and " rt=" not in line[:40]:
             continue
-        for tok in re.findall(r"\b(?:0x)?[0-9A-Fa-f]{5,8}\b", line.split(" cell=")[0]):
-            try:
-                if int(tok, 16) == (fid & 0xFFFFFFFF):
-                    out.append(dict(KV.findall(line)))
-                    break
-            except ValueError:
-                pass
+        if rx.search(line.split(" cell=")[0]):
+            out.append(dict(KV.findall(line)))
     return out
 
 
@@ -341,7 +341,8 @@ def body_flag(r, uuid):
 def to_formid(x):
     x = str(x).strip()
     try:
-        return int(x, 16) if x.lower().startswith("0x") or re.search(r"[A-Fa-f]", x) else int(x)
+        v = int(x, 16) if x.lower().startswith("0x") or re.search(r"[A-Fa-f]", x) else int(x)
+        return fid_norm(v)          # a signed (negative) id from JSON -> unsigned, so "%08X" stays valid
     except ValueError:
         return None
 
@@ -368,8 +369,8 @@ def snapshot_sync(r, fid):
     """IEB_TestCtl.Snapshot, waiting for its log line (MCP returns before Papyrus runs it; U1 run 14 B-10)."""
     t = game.Tail(game.LOGS["papyrus"])
     r.ctl("Snapshot", [fid])
-    if not t.wait(r"\[IEB-TEST\] snapshot .*0x0*%X" % fid, 20):
-        r.log("  WARN snapshot line for %08X not seen within 20 s" % fid)
+    if not t.wait(r"\[IEB-TEST\] snapshot .*%s" % fid_any_rx(fid), 20):
+        r.log("  WARN snapshot line for %s not seen within 20 s" % hx(fid))
 
 def ensure_child_enrolled(r):
     """CS-20/21/22, RS-4 setup: Braith enrolled in Relationships (platonic; design §11.10 allows it). Enrollment by
@@ -528,7 +529,7 @@ def q2(r):
         time.sleep(1)
         txt = t.read()
         head = re.search(r"\[IEB-TEST\] QALIAS \S+ (running=.*)", txt)
-        actors = [int(m.group(1), 16) for m in re.finditer(r"\[IEB-TEST\] QALIAS \S+ alias=\d+ actor=((?:0x)?[0-9A-Fa-f]+)", txt)]
+        actors = [fid_norm(m.group(1)) for m in re.finditer(r"\[IEB-TEST\] QALIAS \S+ alias=\d+ actor=((?:0x)?[0-9A-Fa-f]+)", txt)]
         return (parse_kv(head.group(1)) if head else None), actors
 
     h0, _ = qalias()
@@ -1496,7 +1497,7 @@ def x7(r):
         # replace the under-terrain placement with a real occluder (F2 inside a closed interior, placed on a marker).
         con(r, "%08X.moveto player" % F2)
         time.sleep(2)
-        m = ctl_line(r, "Probe", [F2], r"\[IEB-TEST\] probe .*0x0*%X .*dPlayer=(\S+) .*dead=(\d)" % F2)
+        m = ctl_line(r, "Probe", [F2], r"\[IEB-TEST\] probe .*%s .*dPlayer=(\S+) .*dead=(\d)" % fid_any_rx(F2))
         r.check(bool(m) and m.group(2) == "0", "F2 alive after the under-terrain placement (%s)" % (m.group(0)[-40:] if m else "no probe"))
         r.check(bool(m) and m.group(1) not in ("NA", "") and float(m.group(1)) < 500,
                 "F2 back beside the player (dPlayer=%s)" % (m.group(1) if m else "?"))
@@ -1524,7 +1525,7 @@ def x8(r):
         if not m:
             inc(r, "%s spawn failed" % label)
             continue
-        ref = int(m.group(1), 16)
+        ref = fid_norm(m.group(1))
         try:
             time.sleep(2)
             au, _, _ = who(r, ref)

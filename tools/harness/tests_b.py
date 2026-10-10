@@ -47,6 +47,7 @@ sys.path.insert(0, os.path.join(HERE, ".."))
 import game
 from block import test, settle_probe
 from runner import eligible
+from fidnorm import fid_norm, fid_any_rx, fid_hex8   # one FormID normaliser (REVIEW_LOG R48)
 
 # ---------------------------------------------------------------- T0 cast and places (AGENT_BRIEF.md T0 table)
 PLAYER = 0x14
@@ -81,12 +82,14 @@ N_DEFAULT = 1920.0         # spec §7.2 :1108 (0.75 x 2560)
 
 
 def hexid(fid):
-    return "%08X" % fid
+    """'%08X' of the unsigned id: a negative (signed Papyrus) id prints as FE499A4B, not -1B66B5."""
+    return fid_hex8(fid)
 
 
 def hexrx(fid):
-    """PO3 IntToString(id, true) is INFERRED to print 0x-prefixed hex; match with or without leading zeros."""
-    return r"(?i:0x0*%X)\b" % fid
+    """FormID in any printed form (fidnorm.fid_any_rx): PO3 IntToString(id, true) prints '0xE1BA9' / '0xFE499A4B'
+    (VERIFIED Papyrus.0.log 2026-10-10), SA {:08X}, signed / unsigned decimal. Signed or unsigned fid accepted."""
+    return fid_any_rx(fid)
 
 
 def num(v):
@@ -264,7 +267,7 @@ def snap(r, *fids, wfp=0.0):
         t = fresh()
         r.ctl("Snapshot", [f])
         if not t.wait(r"\[IEB-TEST\] snapshot .*%s" % hexrx(f), 20):
-            r.log("  WARN snapshot line for %08X not seen within 20 s" % f)
+            r.log("  WARN snapshot line for %s not seen within 20 s" % hexid(f))
         if wfp is not None:
             r.ctl("ExpectWFP", [f, float(wfp)])
 
@@ -679,9 +682,7 @@ def b4(r):
         pt = fresh()
         r.ctl("SpawnHostile", [BANDIT])
         m = pt.wait(r"\[IEB-TEST\] SpawnHostile \S+ ref=(\S+)", 15)
-        bref = int(m.group(1), 16) if m else None
-        if bref is not None and bref >= 2 ** 31:
-            bref -= 2 ** 32                     # Papyrus Int is signed; spawned refs are 0xFF......
+        bref = fid_norm(m.group(1)) if m else None   # unsigned; runner.s32arg signs it for Papyrus (0xFF...... refs)
         if bref is not None:
             r.ctl("MoveRel", [bref, F1, 200.0, 0.0, 0.0])     # next to F1 on her route, as v1's placeatme at F did
         seen = None

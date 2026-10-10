@@ -11,6 +11,8 @@ IEB_TestCtl). Test profile only. Prints PASS/FAIL lines; results also appended t
 import json, os, re, sys, time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from mcp_client import MCP
+# The one FormID normaliser (REVIEW_LOG R48): every host-side FormID match goes through these. Re-exported here.
+from fidnorm import fid_norm, fid_any_rx, fid_s32, fid_hex8   # noqa: F401
 
 PAPYRUS = os.path.expanduser("~/Documents/My Games/Skyrim Special Edition/Logs/Script/Papyrus.0.log")
 OUT = "C:/nolvus-research/test_runs/"
@@ -160,7 +162,7 @@ class Run:
         for k in ("returnValue", "result", "return"):
             if isinstance(r, dict) and r.get(k):
                 return str(r[k]), None
-        m = self.logline(r"\[IEB-TEST\] UUID \S+ (.+?) = ([0-9A-Fa-f]*) child=(\w+)", size)
+        m = self.logline(r"\[IEB-TEST\] UUID %s (.+?) = ([0-9A-Fa-f]*) child=(\w+)" % fid_any_rx(formid), size)
         if not m:
             return "", None
         return m.group(2), (m.group(1), m.group(3).upper() == "TRUE")
@@ -196,8 +198,8 @@ def eligible(res):
 
 
 def cs23(args):
-    child = int(next((a.split("=")[1] for a in args if a.startswith("child=")), "0x1A66B"), 16)
-    adult = int(next((a.split("=")[1] for a in args if a.startswith("adult=")), "0x1A675"), 16)
+    child = fid_norm(next((a.split("=")[1] for a in args if a.startswith("child=")), "0x1A66B"), base=16)
+    adult = fid_norm(next((a.split("=")[1] for a in args if a.startswith("adult=")), "0x1A675"), base=16)
     r = Run("CS-23")
     cu, cinfo = r.uuid(child)
     au, ainfo = r.uuid(adult)
