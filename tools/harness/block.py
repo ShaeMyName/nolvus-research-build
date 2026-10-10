@@ -143,6 +143,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
         print("BLOCK ABORT %s: smoke failed" % name, flush=True)
         ctl.save()
         return 1
+    start_heartbeat(name)
     fam, fam_start, results = None, time.strftime("%Y-%m-%d %H:%M:%S"), []
     est = test_estimates(b, order)
     crashes = 0
@@ -168,6 +169,9 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             r.log("NOTE %s: the last load's settle nudge added one F1 narration to SkyrimNet history (%s)"
                   % (tid, game.LAST_NUDGE))
         r.tails = {k: game.Tail(p) for k, p in game.LOGS.items()}
+        HEARTBEAT["test"] = tid
+        r.log("NOTE %s: RAM available at start %.1f GB (game %.1f GB private)" % (tid, game.available_ram_gb(),
+                                                                                game.game_private_gb()))
         t0 = time.time()
         try:
             meta["fn"](r)
@@ -175,6 +179,9 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             r.inconclusive += 1
             r.log("INCONCLUSIVE %s harness error: %r" % (tid, e))
         crashed = "SkyrimSE.exe" not in game.procs()
+        # Reviewer 2026-10-10: timeout-driven FAIL/INCONCLUSIVE under memory pressure is classified separately.
+        r.log("NOTE %s: RAM available at end %.1f GB%s" % (tid, game.available_ram_gb(),
+              " (UNDER MEMORY PRESSURE: < 3 GB)" if game.available_ram_gb() < 3.0 else ""))
         if not crashed:     # Shae 2026-10-10: show it if our own code flips IntelEngine's switches mid-run
             try:
                 pt = game.Tail(game.LOGS["papyrus"])
@@ -279,6 +286,27 @@ def held_gap(text, limit=6.0):   # 6 s = 2x nominal; observed max 4.5 s on T0 af
         if ha and hb and a <= b:
             worst = max(worst, b - a)
     return ("%.1f s between ticks while held" % worst) if worst > limit else ""
+
+
+HEARTBEAT = {"test": "", "file": ""}
+
+
+def start_heartbeat(name):
+    """Reviewer 2026-10-10: a runner killed from outside prints nothing, so write test_runs/<BLOCK>_heartbeat.txt every
+    30 s (timestamp, current test); the session's Monitor alarms when it is older than 3 min."""
+    import threading
+    HEARTBEAT["file"] = OUT + "%s_heartbeat.txt" % name
+
+    def beat():
+        while True:
+            try:
+                with open(HEARTBEAT["file"], "w", encoding="utf-8") as f:
+                    f.write("%d %s %s
+" % (time.time(), time.strftime("%H:%M:%S"), HEARTBEAT["test"]))
+            except OSError:
+                pass
+            time.sleep(30)
+    threading.Thread(target=beat, daemon=True).start()
 
 
 MAX_CRASHES = 3
