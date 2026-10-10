@@ -720,7 +720,7 @@ def l2(r):
         samples = actor_lines(w.read(), H) + ([p] if p else [])
         r.check(bool(samples) and all(s.get("wfp") == 1.0 for s in samples),
                 "H WFP 1 in all %d samples across the doors" % len(samples))
-        r.check(bool(p) and p.get("sched") == (-1, -1, -1), "no schedule alias re-filled on H (schedIdx=%s)" % (p and p.get("sched")))
+        r.check(bool(p) and p.get("sched") == (-1, -1, -1), "no schedule alias re-filled on H (schedIdx=%s)" % ((p and p.get("sched")),))
         r.check(not re.search(r"(Re-evaluated home sandbox for|re-asserted dropped home override for|stripped stray "
                               r"schedule aliases from active follower) %s\b" % nm(H), r.tails["papyrus"].read()),
                 "no SA cell-load AI reset line for H")
