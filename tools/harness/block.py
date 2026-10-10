@@ -250,7 +250,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
     return sum(1 for _, v in results if v != "ALL PASS")
 
 
-def held_gap(text, limit=4.5):
+def held_gap(text, limit=6.0):   # 6 s = 2x nominal; observed max 4.5 s on T0 after the fix (reviewer 2026-10-10)
     """Largest gap between consecutive watcher ticks while any actor is held (iebHeld 1/2), if above `limit` s."""
     ticks = []
     for l in text.splitlines():
