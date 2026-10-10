@@ -75,9 +75,12 @@ def papyrus_counts():
         ctx = " ".join(frames)
         hit = None
         for k, (msg, frame) in KNOWN.items():
-            if l.endswith(msg) and i + 2 < len(lines) and lines[i + 2].strip().endswith(frame):
+            # Case-insensitive: Papyrus' runtime string pool can print a type in another spelling (Caprica's
+            # lower-camel copies, e.g. "intelEngine_Core"; case_folding_audit.md at-risk #2).
+            if l.lower().endswith(msg.lower()) and i + 2 < len(lines) and \
+                    lines[i + 2].strip().lower().endswith(frame.lower()):
                 hit = k
-        if hit is None and any(l.endswith(x) for x in K3_LINES):
+        if hit is None and any(l.lower().endswith(x.lower()) for x in K3_LINES):
             hit = "K3"
         if hit:
             known[hit] += 1

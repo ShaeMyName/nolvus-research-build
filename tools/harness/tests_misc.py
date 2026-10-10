@@ -1527,7 +1527,7 @@ def x8(r):
             r.log("  %s: ActorTypeNPC=%s body=%s" % (label, a["npcType"], body_flag(r, au)))
             r.check(not a["npcType"] and not a["mark"], "%s: excluded (no ActorTypeNPC, no attire line)" % label)
         finally:
-            ctl_line(r, "DespawnRef", [s32(ref)], r"\[IEB-TEST\] DESPAWN")
+            ctl_line(r, "DespawnRef", [s32(ref)], r"\[IEB-TEST\] (?i:DESPAWN(?:REF)?) ")
     # werewolf (player): reload restores the race
     pu, _, _ = who(r, PLAYER)
     con(r, "set IEB_WitnessEnabled to 0")

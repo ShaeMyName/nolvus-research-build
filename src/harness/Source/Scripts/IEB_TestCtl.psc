@@ -1078,7 +1078,7 @@ Function DespawnRef(Int aiRefFormId)
     If r != None
         r.Disable(False)
         r.Delete()
-        Log("DESPAWN " + Watcher().Hex(r))
+        Log("DESPAWNREF " + Watcher().Hex(r))   ; not "DESPAWN ": folds to Despawn()'s "Despawn " at runtime
     EndIf
 EndFunction
 
