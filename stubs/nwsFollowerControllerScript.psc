@@ -14,3 +14,5 @@ EndFunction
 
 Function RemoveFollower(Actor myActor, Int iMessage, Int iSayLine)     ; :430 (harness B-6)
 EndFunction
+
+nwsFollowerVariableScript Property varScript Auto                ; :209 (REVIEW_LOG R32: DismissedFac, animal keywords)

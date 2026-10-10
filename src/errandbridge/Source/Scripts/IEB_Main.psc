@@ -52,6 +52,10 @@ EndFunction
 ; ============================================================================ event handlers (request + tick only)
 
 Event OnIETaskStarted(String asEventName, String asTaskType, Float afSlot, Form akSender)
+    Actor a = akSender as Actor
+    If a != None
+        StorageUtil.UnsetIntValue(a, "IEB_RefusePending")     ; a new allocation (REVIEW_LOG R54); the 30 s marker stays
+    EndIf
     RegisterForSingleUpdate(0.1)
 EndEvent
 
@@ -175,14 +179,18 @@ Function Discover()
                 StorageUtil.UnsetIntValue(a, "IEB_EndedEvt")           ; seen again: a re-task, not an end
                 Int gate = StorageUtil.GetIntValue(a, "IEB_Gate", 0)
                 Int held = StorageUtil.GetIntValue(a, "IEB_Held", 0)
+                ; REVIEW_LOG R54: every decision reads the task type from IntelEngine's slot state now ("" = no decision)
+                String live = IEB_IELib.DecisionTaskType(a)
                 If gate == 0
-                    If IEB_IELib.IsStoryTask(a) && IEB_NFFLib.Seated(a)
+                    If live == ""
+                        Log(2, "DEFER actor=" + a.GetDisplayName() + " reason=slot_teardown")
+                    ElseIf IEB_IELib.IsStoryType(live) && IEB_NFFLib.Seated(a)
                         DispatchConflict(a)                          ; patch B missing or stale (§6.4)
                     Else
                         Classify(a)
                     EndIf
-                ElseIf held == 2
-                    If IEB_IELib.IsStoryTask(a)
+                ElseIf held == 2 && live != ""
+                    If IEB_IELib.IsStoryType(live)
                         DispatchConflict(a)                          ; a story beat on a rejoin-phase follower
                     Else
                         ; §8.4: one continuous hold, no re-park (WFP is already 1)
@@ -200,6 +208,26 @@ EndFunction
 
 Function Classify(Actor a)
     String who = a.GetDisplayName()
+    ; REVIEW_LOG R54: task type from IntelEngine's slot state at decision time, never from IEB_Origin
+    String live = IEB_IELib.DecisionTaskType(a)
+    If live == ""
+        Return
+    EndIf
+    If IEB_IELib.RefusePending(a)
+        Log(2, "DEFER actor=" + who + " reason=refuse_pending type=" + live)
+        Return
+    EndIf
+    String prior = IEB_IELib.RecentRefusal(a, live)
+    If prior != ""
+        IEB_IELib.MarkPending(a)
+        IEB_IELib.CancelSlotOf(a)
+        Log(1, "REFUSE actor=" + who + " reason=" + prior + " backstop=1 type=" + live)
+        Return
+    EndIf
+    Int origin = 1
+    If IEB_IELib.IsStoryType(live)
+        origin = 2
+    EndIf
     Bool seated = IEB_NFFLib.Seated(a)
     Int cf = IEB_CFLib.RegistryIndex(a)
     ; 1a: a registry NPC that NFF also seats (imported) - handed to two systems
@@ -232,7 +260,7 @@ Function Classify(Actor a)
             Refuse(a, "lend_disabled")
             Return
         EndIf
-        String reason = IEB_SALib.RefuseReason(a, StorageUtil.GetIntValue(a, "IEB_Origin", 1), IEB_LendStoryPolicy.GetValueInt())
+        String reason = IEB_SALib.RefuseReason(a, origin, IEB_LendStoryPolicy.GetValueInt())
         If reason != ""
             Refuse(a, reason)
             Return
@@ -265,6 +293,14 @@ Function Park(Actor a)
         Return
     EndIf
     Float pre = a.GetActorValue("WaitingForPlayer")
+    ; REVIEW_LOG R32: NFF dismissal state at TAKE; G1 counts only a change during the hold
+    StorageUtil.SetIntValue(a, "IEB_TakeDismissed", IEB_NFFLib.InDismissedFac(a) as Int)
+    If IEB_NFFLib.IsAnimal(a)
+        StorageUtil.SetFloatValue(a, "IEB_TakeV04", a.GetActorValue("Variable04"))
+    Else
+        StorageUtil.UnsetFloatValue(a, "IEB_TakeV04")
+    EndIf
+    StorageUtil.UnsetIntValue(a, "IEB_NFFDismissed")
     IEB_NFFLib.Wait(a)                                   ; sync variant only (R1)
     StorageUtil.SetIntValue(a, "IEB_Held", 1)
     StorageUtil.SetIntValue(a, "IEB_Gate", 1)
@@ -314,6 +350,11 @@ EndFunction
 ; ============================================================================ §6.4 refuse and dispatch conflict
 
 Function Refuse(Actor a, String asReason)
+    String t = IEB_IELib.DecisionTaskType(a)               ; read before the cancel (REVIEW_LOG R54 backstop key)
+    If t == ""
+        t = StorageUtil.GetStringValue(a, "IEB_TaskType", "")
+    EndIf
+    IEB_IELib.MarkRefused(a, t, asReason)
     IEB_IELib.CancelSlotOf(a)
     SkyrimNetApi.RegisterEvent("ieb_errand_refused", a.GetDisplayName() + " could not leave " + RefusalPlace(asReason) + \
         " for that errand.", a, PlayerRef)
@@ -391,6 +432,13 @@ Function Release(Actor a, String asWhy)
         Return
     EndIf
     Bool seated = IEB_NFFLib.Seated(a)
+    If mode == 1 && StorageUtil.GetIntValue(a, "IEB_NFFDismissed", 0) == 1
+        ; REVIEW_LOG R32: NFF dismissed her mid-errand. No Follow, no Wait, no teammate write, even if NFF still
+        ; holds the seat (it clears the alias last, RemoveAction :520): the player's dismissal stands.
+        ClearKeys(a)
+        Log(1, "RELEASE_DISMISSED actor=" + who + " seated=" + seated)
+        Return
+    EndIf
     If mode == 1 && !seated
         ClearKeys(a)
         Log(1, "RELEASE_SEATLOST actor=" + who)
@@ -553,10 +601,22 @@ Function HeldUpkeep(Actor a)
     Float wfp = a.GetActorValue("WaitingForPlayer")
     ; G1: external follow = a 1 -> 0 transition, Modes 1 (and 4, in Mode4Upkeep) only
     If mode == 1
-        If StorageUtil.GetFloatValue(a, "IEB_LastWFP", 1.0) == 1.0 && wfp == 0.0 && StorageUtil.GetIntValue(a, "IEB_Recall", 0) == 0
-            StorageUtil.SetIntValue(a, "IEB_Recall", 1)
-            IEB_IELib.CancelSlotOf(a)
-            Log(1, "CMD_FOLLOW actor=" + a.GetDisplayName())
+        If StorageUtil.GetFloatValue(a, "IEB_LastWFP", 1.0) == 1.0 && wfp == 0.0 && StorageUtil.GetIntValue(a, "IEB_Recall", 0) == 0 && \
+           StorageUtil.GetIntValue(a, "IEB_NFFDismissed", 0) == 0
+            If NFFDismissedDuringHold(a)
+                ; REVIEW_LOG R32: NFF's dismissal (RemoveAction sets DismissedFac / animal Variable04=0 before WFP=0),
+                ; not a follow command. Unset Intel_WasFollower BEFORE the cancel so IE's ClearSlotRestoreFollower
+                ; skips its SetPlayerTeammate(true); IEB_Recall stays 0 so Release can't Follow her.
+                StorageUtil.SetIntValue(a, "IEB_SeatLost", 1)
+                StorageUtil.SetIntValue(a, "IEB_NFFDismissed", 1)
+                StorageUtil.UnsetIntValue(a, "Intel_WasFollower")
+                IEB_IELib.CancelSlotOf(a)
+                Log(1, "NFF_DISMISSED actor=" + a.GetDisplayName() + " seated=" + IEB_NFFLib.Seated(a) + " tm=" + a.IsPlayerTeammate())
+            Else
+                StorageUtil.SetIntValue(a, "IEB_Recall", 1)
+                IEB_IELib.CancelSlotOf(a)
+                Log(1, "CMD_FOLLOW actor=" + a.GetDisplayName())
+            EndIf
         EndIf
         If !IEB_NFFLib.Seated(a)
             StorageUtil.SetIntValue(a, "IEB_SeatLost", 1)
@@ -564,6 +624,19 @@ Function HeldUpkeep(Actor a)
         RefreshParkTimer(a, wfp)
     EndIf
     StorageUtil.SetFloatValue(a, "IEB_LastWFP", wfp)
+EndFunction
+
+Bool Function NFFDismissedDuringHold(Actor a)
+    {REVIEW_LOG R32: a dismissal signal that APPEARED during the hold (a stale DismissedFac from an earlier dismissal
+     or another recruit path does not count). Holds taken before this build have no IEB_TakeDismissed: read as 0.}
+    If StorageUtil.GetIntValue(a, "IEB_TakeDismissed", 0) == 0 && IEB_NFFLib.InDismissedFac(a)
+        Return True
+    EndIf
+    If StorageUtil.HasFloatValue(a, "IEB_TakeV04") && StorageUtil.GetFloatValue(a, "IEB_TakeV04", 0.0) == 1.0 && \
+       a.GetActorValue("Variable04") == 0.0
+        Return True
+    EndIf
+    Return False
 EndFunction
 
 Function RefreshParkTimer(Actor a, Float wfp)
@@ -671,7 +744,8 @@ Function Reconcile()
                     Release(a, "reconcile")
                 EndIf
             ElseIf held == 1 && !a.IsDead()
-                If mode == 1 && StorageUtil.GetIntValue(a, "IEB_Recall", 0) == 0 && a.GetActorValue("WaitingForPlayer") != 1.0
+                If mode == 1 && StorageUtil.GetIntValue(a, "IEB_Recall", 0) == 0 && a.GetActorValue("WaitingForPlayer") != 1.0 && \
+                   StorageUtil.GetIntValue(a, "IEB_NFFDismissed", 0) == 0
                     IEB_NFFLib.Wait(a)
                     Log(2, "REPARK actor=" + a.GetDisplayName() + " reason=reconcile")
                 ElseIf mode == 4 && StorageUtil.GetIntValue(a, "IEB_Recall", 0) == 0
@@ -746,6 +820,9 @@ Function ClearKeys(Actor a)
     StorageUtil.UnsetIntValue(a, "IEB_CF")
     StorageUtil.UnsetFloatValue(a, "IEB_CF_PreGlobal")
     StorageUtil.UnsetIntValue(a, "IEB_SkipLogged")
+    StorageUtil.UnsetIntValue(a, "IEB_TakeDismissed")
+    StorageUtil.UnsetFloatValue(a, "IEB_TakeV04")
+    StorageUtil.UnsetIntValue(a, "IEB_NFFDismissed")
     StorageUtil.FormListRemove(None, "IEB_HeldList", a, True)
 EndFunction
 

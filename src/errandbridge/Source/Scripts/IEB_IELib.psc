@@ -45,11 +45,15 @@ Int Function SlotOf(Actor a) Global
 EndFunction
 
 Function CopyTask(Actor a) Global
-    {Task copies that survive ClearSlot (spec §4.1).}
+    {Task copies that survive ClearSlot (spec §4.1). Copies only; no bridge decision reads them (REVIEW_LOG R54:
+     decisions use DecisionTaskType). Skipped while the slot is torn down, so a teardown blank never overwrites them.}
     String t = StorageUtil.GetStringValue(a, "Intel_TaskType", "")
+    If t == ""
+        Return
+    EndIf
     StorageUtil.SetStringValue(a, "IEB_TaskType", t)
     StorageUtil.SetStringValue(a, "IEB_TaskTarget", StorageUtil.GetStringValue(a, "Intel_Target", ""))
-    If t == "story" || t == "npc_social"
+    If IsStoryType(t)
         StorageUtil.SetIntValue(a, "IEB_Origin", 2)
     Else
         StorageUtil.SetIntValue(a, "IEB_Origin", 1)
@@ -57,8 +61,86 @@ Function CopyTask(Actor a) Global
 EndFunction
 
 Bool Function IsStoryTask(Actor a) Global
+    {Kept for the harness watcher (IEB_Watcher). Bridge decisions use DecisionTaskType + IsStoryType.}
     String t = StorageUtil.GetStringValue(a, "Intel_TaskType", "")
     Return t == "story" || t == "npc_social"
+EndFunction
+
+Bool Function IsStoryType(String t) Global
+    Return t == "story" || t == "npc_social"
+EndFunction
+
+String Function DecisionTaskType(Actor a) Global
+    {REVIEW_LOG R54: the task type read from IntelEngine's own slot state at decision time (Core.SlotTaskTypes[slot]).
+     "" = no slot, or the slot is being torn down: Core.ClearSlot unsets Intel_TaskType early but clears the agent
+     alias and SlotTaskTypes last, and MarkSlotProcessing (SlotStates = 0) precedes ClearSlot. No decision on "".}
+    Int slot = SlotOf(a)
+    If slot < 0
+        Return ""
+    EndIf
+    String t = StorageUtil.GetStringValue(a, "Intel_TaskType", "")
+    If t == ""
+        Return ""
+    EndIf
+    IntelEngine_Core core = IEQuest() as IntelEngine_Core
+    If core == None
+        Return t
+    EndIf
+    Int[] states = core.SlotStates
+    String[] types = core.SlotTaskTypes
+    If states == None || types == None || slot >= states.Length || slot >= types.Length
+        Return t
+    EndIf
+    If states[slot] == 0
+        Return ""
+    EndIf
+    Return types[slot]
+EndFunction
+
+Function MarkRefused(Actor a, String asType, String asWhy) Global
+    {REVIEW_LOG R54 backstop: actor + IE task type + time (game real time). Never cleared by ClearKeys or by a
+     re-allocation; expires after 30 s (RecentRefusal). IEB_RefusePending = this allocation already refused.}
+    StorageUtil.SetStringValue(a, "IEB_RefusedType", asType)
+    StorageUtil.SetStringValue(a, "IEB_RefusedWhy", asWhy)
+    StorageUtil.SetFloatValue(a, "IEB_RefusedAt", Utility.GetCurrentRealTime())
+    MarkPending(a)
+EndFunction
+
+Function MarkPending(Actor a) Global
+    {This allocation is refused and its cancel is in flight. A backstop refusal calls this alone: the 30 s window
+     runs from the first refusal and is never extended by retries.}
+    StorageUtil.SetIntValue(a, "IEB_RefusePending", 1)
+    StorageUtil.SetFloatValue(a, "IEB_RefusePendingAt", Utility.GetCurrentRealTime())
+EndFunction
+
+String Function RecentRefusal(Actor a, String asType) Global
+    {The refusal reason if this actor was refused for this IE task type within the last 30 s, else "".}
+    If asType == "" || StorageUtil.GetStringValue(a, "IEB_RefusedType", "") != asType
+        Return ""
+    EndIf
+    Float age = Utility.GetCurrentRealTime() - StorageUtil.GetFloatValue(a, "IEB_RefusedAt", -1000.0)
+    If age < 0.0 || age > 30.0                      ; < 0: stamped in an earlier game session
+        Return ""
+    EndIf
+    String why = StorageUtil.GetStringValue(a, "IEB_RefusedWhy", "")
+    If why == ""
+        why = "refused"
+    EndIf
+    Return why
+EndFunction
+
+Bool Function RefusePending(Actor a) Global
+    {True while the allocation just refused is still being cancelled (set by MarkRefused, cleared by the next
+     IntelEngine_TaskStarted for the actor; honoured for 5 s at most so a lost event can't block a later task).}
+    If StorageUtil.GetIntValue(a, "IEB_RefusePending", 0) != 1
+        Return False
+    EndIf
+    Float age = Utility.GetCurrentRealTime() - StorageUtil.GetFloatValue(a, "IEB_RefusePendingAt", -1000.0)
+    If age < 0.0 || age > 5.0
+        StorageUtil.UnsetIntValue(a, "IEB_RefusePending")
+        Return False
+    EndIf
+    Return True
 EndFunction
 
 Function CancelSlotOf(Actor a) Global

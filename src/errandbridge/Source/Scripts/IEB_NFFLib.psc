@@ -99,3 +99,36 @@ Bool Function Sparring(Actor a) Global
     EndIf
     Return a.GetFactionRank(c.nwsFF_SparFac) >= 0
 EndFunction
+
+; ---- REVIEW_LOG R32: NFF's dismissal signal (nwsFollowerControllerScript.RemoveAction :560-568 sets these BEFORE WFP=0)
+
+Faction Function DismissedFac() Global
+    {NFF's own DismissedFac (controller.varScript.DismissedFac). Fallback: vanilla DismissedFollowerFaction 0x05C84C.}
+    nwsFollowerControllerScript c = Ctl()
+    If c != None
+        nwsFollowerVariableScript v = c.varScript
+        If v != None && v.DismissedFac != None
+            Return v.DismissedFac
+        EndIf
+    EndIf
+    Return Game.GetFormFromFile(0x0005C84C, "Skyrim.esm") as Faction
+EndFunction
+
+Bool Function InDismissedFac(Actor a) Global
+    Faction f = DismissedFac()
+    Return a != None && f != None && a.IsInFaction(f)
+EndFunction
+
+Bool Function IsAnimal(Actor a) Global
+    {NFF's own animal test (RemoveAction :560): ActorTypeAnimal or ActorTypeDwarven. Animals get Variable04=0 on
+     dismissal instead of DismissedFac.}
+    nwsFollowerControllerScript c = Ctl()
+    If a == None || c == None
+        Return False
+    EndIf
+    nwsFollowerVariableScript v = c.varScript
+    If v == None
+        Return False
+    EndIf
+    Return (v.ActorTypeAnimal != None && a.HasKeyword(v.ActorTypeAnimal)) || (v.ActorTypeDwarven != None && a.HasKeyword(v.ActorTypeDwarven))
+EndFunction
