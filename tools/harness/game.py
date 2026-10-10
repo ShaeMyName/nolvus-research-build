@@ -17,7 +17,8 @@ HARNESS_YAML = ("C:/Nolvus/Instances/Nolvus Awakening/MODS/mods/SkyrimNet Config
                 "Harness.yaml")     # test config only; writes approved for the soak and the step-8 blocks (D1, extended to U1)
 
 
-LAST_NUDGE = ""     # set when the last load's settle needed the F1 narration nudge (noted in every test record after it)
+LAST_NUDGE = ""
+POST_LOAD_AVAIL = 99.0  # available RAM (GB) right after the last load settled (relaunch guard in block.py)     # set when the last load's settle needed the F1 narration nudge (noted in every test record after it)
 
 
 def harness_mode():
@@ -95,6 +96,15 @@ def game_private_gb():
     return int(out) / 2 ** 30 if out.isdigit() else 0.0
 
 
+def available_ram_gb():
+    """Windows' "Available MBytes" (free + standby) in GB, the counter behind Shae's rule (2026-10-10): relaunch when
+    total physical memory in use gets dangerously close to the machine's 31 GB."""
+    out = subprocess.run(["powershell", "-NoProfile", "-Command",
+                          "(Get-CimInstance Win32_PerfFormattedData_PerfOS_Memory).AvailableMBytes"],
+                         capture_output=True, text=True).stdout.strip()
+    return int(out) / 1024.0 if out.isdigit() else 99.0
+
+
 def launch(log=print, timeout=20 * 60, voices=True):
     """Start the test profile unattended (voices=False adds -NoTTS: text/state blocks only; the soak and real play
     always run with voices, Shae 2026-10-10); return when MCP answers. False on any failure."""
@@ -147,6 +157,7 @@ def load(run, save, settle_probe=None, timeout=8 * 60):
     else:
         run.log("LOAD %s: SkyrimNet still reports the game paused after 90 s (a modal box is open?)" % save)
         return False
+    global POST_LOAD_AVAIL
     if "auto-clearing timeline" in sn.read():
         run.log("LOAD %s: harness mode auto-cleared the timeline (= Delete History)" % save)
     # SkyrimNet evaluates action eligibility only once something makes it build a prompt (usually the GameMaster's
@@ -176,10 +187,13 @@ def load(run, save, settle_probe=None, timeout=8 * 60):
                 r = run.tool("check_action_eligibility", {"action_name": action, "actor_uuid": u}) if u else {}
                 ok = isinstance(r, dict) and (r.get("isEligible") or r.get("eligible"))
             if ok:
-                run.log("SETTLE ok after %d s (%s eligible; game %.1f GB)" % (time.time() - t0, action, game_private_gb()))
+                POST_LOAD_AVAIL = available_ram_gb()
+                run.log("SETTLE ok after %d s (%s eligible; game %.1f GB; %.1f GB RAM available)"
+                        % (time.time() - t0, action, game_private_gb(), POST_LOAD_AVAIL))
                 return True
             time.sleep(10)
         run.log("SETTLE probe not eligible within 2 min after warm-up; continuing (tests that need SA will say so)")
+        POST_LOAD_AVAIL = available_ram_gb()
         return True
     time.sleep(120)
     run.log("SETTLE fixed 120 s")

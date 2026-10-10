@@ -24,16 +24,19 @@ def test(tid, family, save="T0", reload=False, forced=False):
 BLOCKS = {}     # name -> dict(save, order: [ids], modules: [module names], est: {family: minutes})
 
 
-def block(name, save, modules, order, est=None, fixed=None, harness=False, voices=True, relaunch_gb=20.0):
+def block(name, save, modules, order, est=None, fixed=None, harness=False, voices=True, relaunch_avail_gb=3.0):
     """voices=False only for text/state blocks; the soak must run with voices (real-play config, SK-7 memory is the
-    point: Shae 2026-10-10), enforced here. relaunch_gb: relaunch between tests when the game's private memory passes
-    this (test blocks only; the soak never relaunches mid-run)."""
+    point: Shae 2026-10-10), enforced here. relaunch_avail_gb: relaunch between tests when Windows' available physical
+    memory drops below this [CHANGED 2026-10-10, Shae: total system memory near 31 GB is the concern, not the game's own
+    size; one T0 load alone is ~23 GB private]. 3 GB rather than the reviewer's 2 GB: Claude Code's memory-pressure
+    reaper stopped the runner at ~2.1 GB free. Test blocks only; the soak never relaunches mid-run."""
     if name.upper().startswith("SOAK") and not voices:
         raise ValueError("the soak must run with the voice server on (Shae 2026-10-10)")
     """est: unpadded estimate in minutes per family (time plan), spread evenly over that family's tests;
     fixed: {test id: minutes} for known long tests (B-20). Used only for the live ETA."""
     BLOCKS[name] = dict(save=save, modules=modules, order=order, est=est or {}, fixed=fixed or {}, harness=harness,
-                        voices=voices, relaunch_gb=None if name.upper().startswith("SOAK") else relaunch_gb)
+                        voices=voices,
+                        relaunch_avail_gb=None if name.upper().startswith("SOAK") else relaunch_avail_gb)
 
 
 def test_estimates(b, order):
@@ -54,10 +57,12 @@ def progress(i, n, tid, verdict, secs, done_est, done_real, remaining_est, start
     elapsed = time.time() - started
     overhead = max(0.0, elapsed - done_real) / max(i, 1) * (n - i)
     eta = remaining_est * ratio + overhead
-    print("PROGRESS %d/%d %s %s %ds | elapsed %.0f min | pace x%.2f of estimate | overhead %.0f s/test | game %.1f GB | "
+    print("PROGRESS %d/%d %s %s %ds | elapsed %.0f min | pace x%.2f of estimate | overhead %.0f s/test | game %.1f GB, "
+          "%.1f GB RAM available | "
           "ETA %.0f min (done ~%s)"
           % (i, n, tid, verdict, secs, elapsed / 60, ratio, max(0.0, elapsed - done_real) / max(i, 1),
-             game.game_private_gb(), eta / 60, time.strftime("%H:%M", time.localtime(time.time() + eta))), flush=True)
+             game.game_private_gb(), game.available_ram_gb(), eta / 60,
+             time.strftime("%H:%M", time.localtime(time.time() + eta))), flush=True)
 
 
 IE_ACTIONS = ("GoToLocation", "DeliverMessage", "FetchPerson", "EscortTarget", "SearchForActor", "ScheduleFetch",
@@ -219,10 +224,16 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             ctl = recover(ctl, name, b, "in " + tid, summary)
             if ctl is None:
                 return 1
-        elif b["relaunch_gb"] and game.game_private_gb() > b["relaunch_gb"]:
-            gb = game.game_private_gb()
-            print("BLOCK RELAUNCH %s after %s: game at %.1f GB" % (name, tid, gb), flush=True)
-            summary.append("| relaunch | game at %.1f GB after %s | | |" % (gb, tid))
+        elif b["relaunch_avail_gb"] and game.available_ram_gb() < b["relaunch_avail_gb"] and                 game.POST_LOAD_AVAIL - game.available_ram_gb() < RELAUNCH_MIN_DROP_GB:
+            # Low, but not because the game grew since its load: a relaunch can't help (a fresh load lands at the same
+            # level), so warn instead of relaunch-looping (2026-10-10: 4.1 GB available at idle T0, no voices).
+            print("BLOCK MEMORY WARN %s after %s: %.1f GB RAM available, %.1f GB below the post-load level; no relaunch"
+                  % (name, tid, game.available_ram_gb(), game.POST_LOAD_AVAIL - game.available_ram_gb()), flush=True)
+        elif b["relaunch_avail_gb"] and game.available_ram_gb() < b["relaunch_avail_gb"]:
+            av, gb = game.available_ram_gb(), game.game_private_gb()
+            print("BLOCK RELAUNCH %s after %s: %.1f GB RAM available (game %.1f GB private)" % (name, tid, av, gb),
+                  flush=True)
+            summary.append("| relaunch | %.1f GB RAM available after %s (game %.1f GB) | | |" % (av, tid, gb))
             game.close(ctl)
             time.sleep(15)
             if not game.launch(print, voices=b["voices"]):
@@ -271,6 +282,7 @@ def held_gap(text, limit=6.0):   # 6 s = 2x nominal; observed max 4.5 s on T0 af
 
 
 MAX_CRASHES = 3
+RELAUNCH_MIN_DROP_GB = 1.5      # relaunch only when available RAM also fell this much since the last load
 
 
 def recover(ctl, name, b, where, summary):
