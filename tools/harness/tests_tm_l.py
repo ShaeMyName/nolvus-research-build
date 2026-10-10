@@ -456,7 +456,7 @@ def tm5(r):
         check_inv(r, F1)
 
 
-@test("TM-8", "TM")
+@test("TM-8", "TM", reload=True)   # x1000 window: reload T0 after (run 18 L-4 time drift)
 def tm8(r):
     """F's prompts mid-errand and in the rejoin phase (time plan R2: grep openrouter_input.log, never print text).
     Pass: 0600 'member ... traveling in the group' (base 0600_relationships.prompt:17, rendered when is_follower) and
@@ -729,7 +729,7 @@ def l2(r):
         moveto(r, HOME_REF, 8)
 
 
-@test("L-3", "L")
+@test("L-3", "L", reload=True)   # x1000 window: reload T0 after (run 18 L-4 time drift)
 def l3(r):
     """L-1 to completion. Pass: LEND_RESTORE; I4 within 30 s; H walks back (no teleport)."""
     d, kind = lend(r, H)
@@ -761,7 +761,7 @@ def l3(r):
         moveto(r, HOME_REF, 8)
 
 
-@test("L-4", "L")
+@test("L-4", "L", reload=True)   # x1000 window: reload T0 after (run 18 L-4 time drift)
 def l4(r):
     """G on shift: errand. Pass: LEND with the guard bit (8); no 110 re-added (ReinforceSchedWorkGuard returns at WFP 1,
     FM:6344-6345, so it is silent: checked as G's current package never being SeverActions_GuardBodyguard 0x165677,
@@ -882,7 +882,7 @@ def l7(r):
         sa_call(r, "SeverActions_FollowerManager", "RefillSchedAliasesAfterStop", [hexarg(H)])   # FM:6893
 
 
-@test("L-10", "L")
+@test("L-10", "L", reload=True)   # x1000 window: reload T0 after (run 18 L-4 time drift)
 def l10(r):
     """Mid-lend save/load (H alive). Pass: hold persists (WFP 1, no schedule alias); the errand completes; LEND_RESTORE.
     Reconcile re-asserts a lent NPC still in its slot (IEB_Main:658-666)."""
