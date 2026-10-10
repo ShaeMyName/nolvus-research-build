@@ -301,8 +301,7 @@ def start_heartbeat(name):
         while True:
             try:
                 with open(HEARTBEAT["file"], "w", encoding="utf-8") as f:
-                    f.write("%d %s %s
-" % (time.time(), time.strftime("%H:%M:%S"), HEARTBEAT["test"]))
+                    f.write("%d %s %s\n" % (time.time(), time.strftime("%H:%M:%S"), HEARTBEAT["test"]))
             except OSError:
                 pass
             time.sleep(30)
