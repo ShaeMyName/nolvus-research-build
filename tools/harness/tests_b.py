@@ -339,9 +339,20 @@ def far_from_player(r, fid, d, timeout):
     return until(f, timeout)
 
 
-def finish_by_visit(r, fid, tail, leave_to=GATE, timeout=90):
-    """v1 test 1's ending: the player walks to the waiting follower, then 1000+ u away (moveto, INFERRED equivalent)."""
-    player_to(r, fid, wait=10)          # IE CheckWaiting: player < 1000 u -> arrival handling (Travel.psc:717-728)
+VISIT_S = 40     # [CHANGED 2026-10-10, reviewer-approved] was 10 s. IntelEngine's shared quest timer makes its travel loop
+#   tick every ~30 s (upstream defect, investigation/round10/ie_timer_collision.md), so a 10 s visit can fall between two
+#   CheckWaiting ticks and never register (B-1 run 11 FAIL, recorded). 40 s = one tick + margin. After the IE timer fix,
+#   B-1 re-runs with BOTH 10 s (the real-play check) and 40 s.
+
+
+def finish_by_visit(r, fid, tail, leave_to=GATE, timeout=90, visit=None):
+    """v1 test 1's ending: the player walks to the waiting follower, stays `visit` s (default VISIT_S), then goes 1000+ u
+    away (moveto, INFERRED equivalent). Logs IntelEngine's heartbeat ticks around the visit."""
+    visit = VISIT_S if visit is None else visit
+    pt = fresh()
+    player_to(r, fid, wait=visit)       # IE CheckWaiting: player < 1000 u -> arrival handling (Travel.psc:717-728)
+    ticks = [l[1:23] for l in pt.read().splitlines() if "Story: StartScheduler" in l]
+    r.log("  visit %d s; IntelEngine ticks during it: %s" % (visit, ticks or "none"))
     player_to(r, leave_to)
     return wait_ieb(tail, REL_KW, name(r, fid), timeout)
 
@@ -474,7 +485,9 @@ def run_burst(r, label):
 def b1(r):
     """v1 test 1, happy path travel; v2: the end of a remote errand passes through REJOIN_WAIT (spec :3418).
     Route: from the gate to DEST_MARKET (the Bannered Mare; IntelEngine targets its exterior door), so F1 can stay
-    loaded and the v2 REJOIN_WAIT branch can occur; the player then comes back within N of F1's actual position."""
+    loaded and the v2 REJOIN_WAIT branch can occur; the player then comes back within N of F1's actual position.
+    The visit lasts VISIT_S (40 s): the original 10 s visit FAILS because of IntelEngine's ~30 s shared tick (upstream
+    defect, ie_timer_collision.md; run 11 recorded FAIL). After the IE timer fix, re-run with 10 s and 40 s."""
     try:
         nm = base(r, F1, where=GATE)[0]
         snap(r, F1)
