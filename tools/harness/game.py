@@ -315,7 +315,10 @@ def save_thread(text, name):
     return "command thread %s; SaveGame event %s" % (m.group(1), ("on thread %s" % ev.group(1)) if ev else "none")
 
 
-def save(run, name, timeout=90):
+SAVE_ROUTE = "papyrus"     # REVIEW_LOG R29: Papyrus Game.SaveGame (IEB_TestCtl.SaveNamed) first; "console" = the old route
+
+
+def save(run, name, timeout=90, route=None):
     """Console save that is only trusted once it has really finished (U1 run 15 B-3, 2026-10-10: 'save IEB_B3' over MCP
     logged "Unknown exception executing console command", left IEB_B3.ess.tmp at 0 bytes, and the test's load of the
     missing save 10 s later crashed the game). Waits for SkyrimNet's "SaveGame event received", then for <name>.ess to
@@ -324,10 +327,16 @@ def save(run, name, timeout=90):
     sn = Tail(LOGS["skyrimnet"])
     ess, tmp = SAVES + name + ".ess", SAVES + name + ".ess.tmp"
     before = os.path.getmtime(ess) if os.path.exists(ess) else 0
-    # Route: SkyrimNet MCP execute_console_command (the only harness save route; real play saves from the menu).
+    route = route or SAVE_ROUTE
     mem = "Available %.1f GB, game %.1f GB private" % (available_ram_gb(), game_private_gb())
-    run.log("SAVE %s: sent via MCP console (%s)" % (name, mem))
-    run.tool("execute_console_command", {"command": "save %s" % name})
+    if route == "papyrus":
+        # REVIEW_LOG R29: the MCP console save failed 3/3 on 2026-10-10 with harness mode on; Game.SaveGame through
+        # Papyrus worked (run 18 L-9's KillAndSave). Completion is still judged only on the .ess file below.
+        run.log("SAVE %s: sent via Papyrus SaveNamed (%s)" % (name, mem))
+        run.ctl("SaveNamed", [name], sync=False)
+    else:
+        run.log("SAVE %s: sent via MCP console (%s)" % (name, mem))
+        run.tool("execute_console_command", {"command": "save %s" % name})
     if not sn.wait(r"SaveGame event received", timeout=30):
         run.log("SAVE %s: no SaveGame event within 30 s" % name)
     t0, last = time.time(), -1
@@ -336,7 +345,7 @@ def save(run, name, timeout=90):
             size = os.path.getsize(ess)
             if size > 0 and size == last:
                 run.log("SAVE %s: %s" % (name, save_thread(sn.read(), name)))
-                run.log("SAVE %s: OK via MCP console, complete (%d bytes) after %d s (at send: %s)"
+                run.log("SAVE %s: OK via " + route + ", complete (%d bytes) after %d s (at send: %s)"
                         % (name, size, time.time() - t0, mem))
                 return True
             last = size
@@ -345,7 +354,7 @@ def save(run, name, timeout=90):
     SAVE_FAILED = True
     run.log("SAVE %s: %s" % (name, save_thread(sn.read(), name)))
     err = re.search(r"Unknown exception executing console command", sn.read())
-    run.log("SAVE %s: FAILED via MCP console, not complete after %d s (ess=%s tmp=%s%s; at send: %s; now: Available %.1f GB, "
+    run.log("SAVE %s: FAILED via " + route + ", not complete after %d s (ess=%s tmp=%s%s; at send: %s; now: Available %.1f GB, "
             "game %.1f GB private)" % (name, timeout, os.path.exists(ess), os.path.exists(tmp),
                                         ", SkyrimNet 'Unknown exception'" if err else "", mem, available_ram_gb(),
                                         game_private_gb()))
