@@ -413,10 +413,27 @@ def main(a):
     return run_block(a[0], only, opt("--from"), "--no-launch" not in a, "--keep-open" in a)
 
 
+def restore_gamemaster():
+    """Reviewer 2026-10-10: GameMaster goes back ON however the block ended (DONE, ABORT, HALT, exception). Needs the game
+    closed; a HALT leaves it running, so then say so loudly. A killed runner can't restore: every GM-on block and the soak
+    set and assert it ON at their own start."""
+    if game.gamemaster() is not False:
+        return
+    if game.procs():
+        print("GAMEMASTER STILL OFF: the game/MO2 is running (HALT?); the next GM-on block or the soak sets it on", flush=True)
+        return
+    game.set_gamemaster(True, lambda m: print(m, flush=True), wait=0)
+
+
 if __name__ == "__main__":
     try:
         rc = main(sys.argv[1:])
     except BaseException as e:      # reviewer 2026-10-10: an unattended block always ends with DONE, ABORT or HALT
         print("BLOCK ABORT %s: %s %r" % (sys.argv[1] if len(sys.argv) > 1 else "?", type(e).__name__, e), flush=True)
         raise
+    finally:
+        try:
+            restore_gamemaster()
+        except Exception as e:
+            print("GAMEMASTER restore failed: %r" % (e,), flush=True)
     sys.exit(1 if rc else 0)
