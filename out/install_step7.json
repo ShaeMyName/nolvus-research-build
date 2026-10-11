@@ -81,13 +81,14 @@
  "SkyrimNet - Discretion/SKSE/Plugins/SkyrimNet/external/shae.discretion/prompts/submodules/user_final_instructions/0705_ieb_discretion.prompt": "9086b21499938502",
  "SkyrimNet - Marriage/SKSE/Plugins/SkyrimNet/external/shae.marriage/manifest.json": "b066de27b28e966d",
  "SkyrimNet - Marriage/SKSE/Plugins/SkyrimNet/external/shae.marriage/prompts/submodules/guidelines/0501_marriage_chances.prompt": "c7c882521f4a3012",
- "Errand Bridge - Test Harness/ErrandBridgeTest.esp": "f69f5bbf5da9ee8e",
- "Errand Bridge - Test Harness/Scripts/IEB_SoakProbe.pex": "74b17693bc871b1a",
- "Errand Bridge - Test Harness/Scripts/IEB_TestCtl.pex": "dcb8d470870cfbe4",
- "Errand Bridge - Test Harness/Scripts/IEB_Watcher.pex": "64c91af359e96b9a",
+ "Errand Bridge - Test Harness/ErrandBridgeTest.esp": "3e16c113c8917d30",
+ "Errand Bridge - Test Harness/Scripts/IEB_SoakProbe.pex": "a135d06a805aabbc",
+ "Errand Bridge - Test Harness/Scripts/IEB_TestCtl.pex": "f71984c6e5d6e9a1",
+ "Errand Bridge - Test Harness/Scripts/IEB_Watcher.pex": "ab42e4860d5d889d",
  "MARAS Config/SKSE/Plugins/PackageOverrides.ini": "be377dc8e763e024",
  "IE NoWipe + Dispatch Guard/Scripts/IntelEngine_NPCTasks.pex": "610cf788a4910cfb",
  "IE NoWipe + Dispatch Guard/Scripts/IntelEngine_Travel.pex": "27f10bf354a4b649",
  "Lucienne - Private (TEST STUB)/SKSE/Plugins/SkyrimNet/external/shae.lucienne/prompts/submodules/character_bio/0956_luc_azura_priestess.prompt": "d07e5e27a5542666",
- "IE NoWipe + Dispatch Guard/Scripts/IntelEngine_Schedule.pex": "670744f9efa02605"
+ "IE NoWipe + Dispatch Guard/Scripts/IntelEngine_Schedule.pex": "670744f9efa02605",
+ "Errand Bridge - Test Harness/Scripts/IEB_PkgWatch.pex": "71bbb02bf33b6774"
 }

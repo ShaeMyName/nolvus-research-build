@@ -14,7 +14,10 @@ SETS = [("Errand Bridge", "bin/eb/"), ("IE NoWipe + Dispatch Guard", "bin/patche
         ("SkyrimNet Relationships - Private Patch", "bin/rel_patched/"), ("Errand Bridge - Test Harness", "bin/harness/")]
 LAYERS = [("Lucienne - Private (TEST STUB)", "layers/lucienne-test/"), ("SkyrimNet Test - SEC Bio", "layers/sectest/")]
 # single files at a mod's root (2026-10-11: the regenerated test-harness plugin, B-22 package-watch quest 0x840)
-FILES = [("Errand Bridge - Test Harness", "out/ErrandBridgeTest.esp", "ErrandBridgeTest.esp")]
+FILES = [("Errand Bridge - Test Harness", "out/ErrandBridgeTest.esp", "ErrandBridgeTest.esp"),
+         # 2026-10-11: quest_integrity rebuilt with the Creation Club masters (+6 story quests, +20 reserved NPCs)
+         ("IE NoWipe + Dispatch Guard", "out/ErrandBridge/quest_integrity.json", "SKSE/Plugins/ErrandBridge/quest_integrity.json"),
+         ("MARAS Config", "out/PackageOverrides.ini", "SKSE/Plugins/PackageOverrides.ini")]
 # new test-only mod folders this tool may create, added to the TEST profile's modlist (never Nolvus Awakening)
 NEW_TEST_MODS = {"SkyrimNet Test - SEC Bio"}
 PROFILE_MODLIST = "C:/Nolvus/Instances/Nolvus Awakening/MODS/profiles/SkyrimNet Test/modlist.txt"

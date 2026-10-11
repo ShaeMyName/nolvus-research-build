@@ -19,6 +19,13 @@ def lines(p):
 prof = INST + "MODS/profiles/" + PROFILE + "/"
 mods = [l[1:] for l in lines(prof + "modlist.txt") if l.startswith("+")]  # top of file = highest priority
 active = [l[1:] for l in lines(prof + "plugins.txt") if l.startswith("*")]
+# 2026-10-11 (REVIEW_LOG RV-101 follow-up): Creation Club masters load from STOCK GAME/Skyrim.ccc, right after the base
+# masters and before plugins.txt; they were missing here, so quest_integrity / the window table never saw their quests.
+ccc_path = INST + "STOCK GAME/Skyrim.ccc"
+low_active = {a.lower() for a in active}
+ccc = [l for l in (lines(ccc_path) if os.path.exists(ccc_path) else [])
+       if l.strip() and os.path.exists(INST + "STOCK GAME/Data/" + l) and l.lower() not in low_active
+       and l not in BASE]
 
 roots = {}  # lower-case plugin name -> path, first (highest-priority) mod wins
 for m in mods:
@@ -45,7 +52,7 @@ def sha(p):
 have = {f.lower(): f for f in os.listdir(OUT) if not f.startswith("_")}
 copied = same = 0
 missing = []
-for p in active:
+for p in ccc + active:
     src = roots.get(p.lower())
     if not src:
         missing.append(p)
@@ -64,8 +71,8 @@ stale = sorted(have.values())
 for f in stale:
     os.remove(OUT + f)
 with open(OUT + "_loadorder.txt", "w", encoding="utf-8", newline="\n") as fh:
-    fh.write("\n".join(BASE + active) + "\n")
-print("active plugins:", len(active), "| unchanged:", same, "| copied (new or changed):", copied,
+    fh.write("\n".join(BASE + ccc + active) + "\n")
+print("creation club masters:", len(ccc), "| active plugins:", len(active), "| unchanged:", same, "| copied (new or changed):", copied,
       "| removed (no longer active):", len(stale), "| unresolved:", len(missing))
 for m in missing:
     print("UNRESOLVED", m)
