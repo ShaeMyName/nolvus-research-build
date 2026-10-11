@@ -132,7 +132,37 @@ def mcp_stall_check(log=print, tries=3, gap=20):
 
 def procs():
     out = subprocess.run(["tasklist"], capture_output=True, text=True).stdout
-    return {n for n in ("SkyrimSE.exe", "ModOrganizer.exe") if n in out}
+    # REVIEW_LOG RV-73: skse64_loader too (a launch in progress before SkyrimSE.exe appears)
+    return {n for n in ("SkyrimSE.exe", "ModOrganizer.exe", "skse64_loader.exe") if n in out}
+
+
+MIN_AVAIL_GB, MAX_COMMIT_PCT = 8.0, 70.0    # REVIEW_LOG RV-73 pre-launch gate
+
+
+def commit_pct():
+    """System commit charge as a % of the commit limit (Win32_OperatingSystem virtual memory)."""
+    out = subprocess.run(["powershell", "-NoProfile", "-Command",
+                          "$o=Get-CimInstance Win32_OperatingSystem; "
+                          "[int](100*($o.TotalVirtualMemorySize-$o.FreeVirtualMemory)/$o.TotalVirtualMemorySize)"],
+                         capture_output=True, text=True).stdout.strip()
+    return float(out) if out.isdigit() else 100.0
+
+
+def memory_ready(log=print, timeout=600, why="launch"):
+    """REVIEW_LOG RV-73 (Windows bugcheck 0xA5 / insufficient resources at 23:22, 20 s after a relaunch): before a
+    launch, no game/MO2/loader process, Available >= 8 GB and commit <= 70 %; otherwise wait (logged) up to timeout."""
+    t0 = time.time()
+    while True:
+        p, av, cp = procs(), available_ram_gb(), commit_pct()
+        if not p and av >= MIN_AVAIL_GB and cp <= MAX_COMMIT_PCT:
+            log("MEMGATE ok before %s after %d s: Available %.1f GB, commit %d%%" % (why, time.time() - t0, av, cp))
+            return True
+        if time.time() - t0 >= timeout:
+            log("MEMGATE FAILED before %s after %d s: running %s, Available %.1f GB, commit %d%%"
+                % (why, timeout, sorted(p), av, cp))
+            return False
+        log("MEMGATE waiting before %s: running %s, Available %.1f GB, commit %d%%" % (why, sorted(p), av, cp))
+        time.sleep(15)
 
 
 class Tail:
@@ -226,6 +256,23 @@ def archive_logs(tag):
     return n
 
 
+SAMPLER = os.path.join(os.path.dirname(__file__), "mem_sampler.py")
+
+
+def start_sampler():
+    """REVIEW_LOG RV-73 (3): one detached 30 s memory sampler per machine session (pid file guards duplicates)."""
+    pidf = "C:/nolvus-research/test_runs/mem_sampler.pid"
+    try:
+        pid = int(open(pidf).read().strip())
+        if str(pid) in subprocess.run(["tasklist", "/FI", "PID eq %d" % pid], capture_output=True, text=True).stdout:
+            return
+    except Exception:
+        pass
+    p = subprocess.Popen(["python", "-u", SAMPLER], creationflags=0x00000008 | 0x00000200,     # DETACHED, NEW_GROUP
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    open(pidf, "w").write(str(p.pid))
+
+
 def launch(log=print, timeout=20 * 60, voices=True):
     """Start the test profile unattended (voices=False adds -NoTTS: text/state blocks only; the soak and real play
     always run with voices, Shae 2026-10-10); return when MCP answers. False on any failure."""
@@ -234,6 +281,10 @@ def launch(log=print, timeout=20 * 60, voices=True):
         log("LAUNCH refused: already running %s" % sorted(running))
         return False
     archive_logs("prelaunch")     # the previous session's logs rotate away on this launch
+    start_sampler()
+    if not memory_ready(log):
+        log("LAUNCH refused: memory gate (REVIEW_LOG RV-73)")
+        return False
     subprocess.Popen(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden",
                       "-File", LAUNCHER, "-Unattended"] + ([] if voices else ["-NoTTS"]),
                      creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0))
@@ -406,6 +457,8 @@ def close(run=None, timeout=120, force=False):
     while time.time() - t0 < timeout:
         if "SkyrimSE.exe" not in procs():
             (run.log if run else print)("CLOSE ok after %d s" % (time.time() - t0))
+            # REVIEW_LOG RV-73: "window gone" is not enough; wait for MO2/loader to exit and memory to recover
+            memory_ready(run.log if run else print, timeout=300, why="next step (post-close)")
             return True
         time.sleep(3)
     (run.log if run else print)("CLOSE: game still running after %d s" % timeout)
