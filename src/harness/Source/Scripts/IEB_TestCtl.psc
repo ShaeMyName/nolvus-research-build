@@ -2611,6 +2611,41 @@ Function MeleeEnd(Int aiWeaponLocalId)
     Log("FF_MELEE end weapon=" + Watcher().Hex(w) + " has=" + pl.GetItemCount(w) + " drawn=" + (pl.IsWeaponDrawn() as Int))
 EndFunction
 
+; --- RV-174 (1): the S3bp scene filter and its story-held control. Numbers only.
+
+Function StoryHeldProbe(Int aiFormId)
+    {Logs STORYHELD <actor> held=<0|1> scene=<scene> sq=<scene quest> for IEB_EssLib.StoryAliasHeld.}
+    Actor a = Game.GetForm(aiFormId) as Actor
+    If a == None
+        Log("STORYHELD none " + PO3_SKSEFunctions.IntToString(aiFormId, True))
+        Return
+    EndIf
+    Scene sc = a.GetCurrentScene()
+    Quest sq = None
+    If sc != None
+        sq = sc.GetOwningQuest()
+    EndIf
+    Log("STORYHELD " + Watcher().Hex(a) + " held=" + (IEB_EssLib.StoryAliasHeld(a) as Int) + " sceneBranch=" \
+        + (IEB_EssLib.InStoryScene(a) as Int) + " cfScene=" + (IEB_CFData.InStoryScene(a) as Int) + " scene=" + Watcher().Hex(sc) + " sq=" + Watcher().Hex(sq))
+EndFunction
+
+Function QIStoryQuest(Int aiQuestFormId, Bool abAdd)
+    {Test control only: add or remove a quest in quest_integrity's story_quests in memory (JsonUtil), so a known ambient
+     scene can stand in for a story scene. The caller removes it again. Logs QISTORY <quest> has=<0|1>.}
+    String qi = "../ErrandBridge/quest_integrity"
+    Quest q = Game.GetForm(aiQuestFormId) as Quest
+    If q == None
+        Log("QISTORY none")
+        Return
+    EndIf
+    If abAdd
+        JsonUtil.FormListAdd(qi, "story_quests", q, False)
+    Else
+        JsonUtil.FormListRemove(qi, "story_quests", q, True)
+    EndIf
+    Log("QISTORY " + Watcher().Hex(q) + " has=" + (JsonUtil.FormListHas(qi, "story_quests", q) as Int))
+EndFunction
+
 Function Log(String asMsg)
     Debug.Trace("[IEB-TEST] " + asMsg)
 EndFunction

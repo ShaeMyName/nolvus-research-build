@@ -148,7 +148,7 @@ String Function RefuseReason(Int i, Actor a) Global
     If (IEB_CFLib.InFac(a, 0x0000006C, "TT_MARAS.esp") || (IEB_CFLib.MarasOn() && MARAS.GetTenantHouse(a) != None))
         Return "cf_maras_housed"
     EndIf
-    If a.GetCurrentScene() != None
+    If IEB_CFData.InStoryScene(a)                ; REVIEW_LOG RV-175 (3): ambient always-playing scenes do not refuse
         Return "cf_scene"
     EndIf
     If a.IsOnMount()
@@ -344,4 +344,10 @@ String Function RefuseReason(Int i, Actor a) Global
         EndIf
     EndIf
     Return ""
+EndFunction
+
+Bool Function InStoryScene(Actor a) Global
+    {REVIEW_LOG RV-175 (3): the same scene filter as IEB_EssLib.StoryAliasHeld: a scene counts only when its owning
+     quest is non-exempt and is a story quest or has an open objective; a scene with no owning quest counts.}
+    Return IEB_EssLib.InStoryScene(a)
 EndFunction

@@ -51,8 +51,9 @@ def install(only, extra=()):
         say("INSTALL nothing to do")
         return True
     rc, out = sh([B + "tools/install_post_u1.py", "--only=" + ",".join(only)] + list(extra), timeout=600)
-    ok = rc == 0 and "INSTALLED" in out and "not matching the installed file: none" in out
-    say("INSTALL %s: %s" % (",".join(only), "OK" if ok else "FAILED"))
+    same = rc == 0 and re.search(r"(?m)^0 file\(s\)", out) is not None   # RV-175-corr: the installer skips hash-identical files
+    ok = (rc == 0 and "INSTALLED" in out and "not matching the installed file: none" in out) or same
+    say("INSTALL %s: %s" % (",".join(only), "OK (already identical)" if same else "OK" if ok else "FAILED"))
     return ok
 
 
@@ -238,6 +239,25 @@ def s3bp():
         acted = set(re.findall(r"\[IEB\] ESS_(?:APPLY|ADOPT|CONFIRM) actor=(.+?)(?: route=| by=| passes=|$)", text))
         stray = sorted(a.strip() for a in acted if a.strip() not in names)
         out.append((not stray, "ESS_ decisions only for current followers (%d others)" % len(stray)))
+        # REVIEW_LOG RV-174 (1) / RV-175 (3): the scene filter, read on the scene branch alone (sceneBranch=; held= also
+        # counts story aliases, and Fralia holds one, so held= cannot be the control). F1 sits in Goblands' ambient
+        # scene; Fralia in a vanilla ambient scene whose quest 0x37CC2 is put into story_quests (in memory) as control.
+        def probe(fid):
+            m = probe_lines(ctl, "StoryHeldProbe", [fid], r"\[IEB-TEST\] STORYHELD \S+ held=\d [^\n]*")
+            line = m.group(0) if m else "no STORYHELD line"
+            g = lambda k: (re.search(r" %s=(\d)" % k, line) or [None, None])[1]
+            return g("sceneBranch"), g("cfScene"), line
+        sb, cf, line = probe(0x000E1BA9)
+        out.append((sb == "0", "F1's ambient scene does not count (scene branch) (%s)" % line))
+        out.append((cf == "0", "CF refuse filter: F1's ambient scene is not a story scene (%s)" % line))
+        sb, cf, line = probe(0x0001A684)
+        out.append((sb == "0", "Fralia's vanilla ambient scene does not count (scene branch) (%s)" % line))
+        probe_lines(ctl, "QIStoryQuest", [0x00037CC2, True], r"\[IEB-TEST\] QISTORY [^\n]*")
+        sb, cf, line = probe(0x0001A684)
+        out.append((sb == "1" and cf == "1", "control: with its quest in story_quests the scene counts (%s)" % line))
+        probe_lines(ctl, "QIStoryQuest", [0x00037CC2, False], r"\[IEB-TEST\] QISTORY [^\n]*")
+        sb, cf, line = probe(0x0001A684)
+        out.append((sb == "0", "control removed again: the scene does not count (%s)" % line))
         for f in FOLLOWERS:
             m = probe_lines(ctl, "EssProbeX", [f], r"\[IEB-TEST\] ESSX [^\n]*")
             v = m.group(0) if m else ""

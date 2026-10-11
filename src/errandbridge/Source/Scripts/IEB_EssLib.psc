@@ -763,15 +763,8 @@ Bool Function StoryAliasHeld(Actor a) Global
      has an open objective. Ambient always-playing scenes (diag v2: Goblands pins both NFF followers, a vanilla ambient
      scene pins Fralia, story=0, no open objective) no longer hold anyone. A scene with no owning quest still counts.}
     String qi = "../ErrandBridge/quest_integrity"
-    Scene sc = a.GetCurrentScene()
-    If sc != None
-        Quest sq = sc.GetOwningQuest()
-        If sq == None
-            Return True
-        EndIf
-        If !ExemptQuest(sq, qi) && (JsonUtil.FormListHas(qi, "story_quests", sq) || HasOpenObjective(sq))
-            Return True
-        EndIf
+    If InStoryScene(a)
+        Return True
     EndIf
     Int n = a.GetNumReferenceAliases()
     Int i = 0
@@ -789,6 +782,22 @@ Bool Function StoryAliasHeld(Actor a) Global
         i += 1
     EndWhile
     Return False
+EndFunction
+
+Bool Function InStoryScene(Actor a) Global
+    {REVIEW_LOG RV-174 (1) / RV-175 (3): the scene branch alone, shared by StoryAliasHeld and IEB_CFData.RefuseReason.
+     A scene counts only when its owning quest is non-exempt and is a story quest or has an open objective; a scene
+     with no owning quest counts.}
+    Scene sc = a.GetCurrentScene()
+    If sc == None
+        Return False
+    EndIf
+    Quest sq = sc.GetOwningQuest()
+    If sq == None
+        Return True
+    EndIf
+    String qi = "../ErrandBridge/quest_integrity"
+    Return !ExemptQuest(sq, qi) && (JsonUtil.FormListHas(qi, "story_quests", sq) || HasOpenObjective(sq))
 EndFunction
 
 Bool Function ExemptQuest(Quest q, String qi) Global

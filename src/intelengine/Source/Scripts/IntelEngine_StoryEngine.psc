@@ -5262,10 +5262,19 @@ Bool Function IEB_QuestReserved(Actor a, Int tier)
     If a == None || tier < 1
         return false
     EndIf
-    If a.GetCurrentScene() != None
-        return true
-    EndIf
     String qiFile = IEB_QIFile()
+    ; REVIEW_LOG RV-175 (2): a scene counts only when its quest is a story quest or has an open objective (ambient
+    ; always-playing scenes, e.g. Goblands' and vanilla market ones, held F1/F2/Fralia at t1=1 on every poll)
+    Scene sc = a.GetCurrentScene()
+    If sc != None
+        Quest sq = sc.GetOwningQuest()
+        If sq == None
+            return true
+        EndIf
+        If !IEB_ExemptQuest(sq) && (JsonUtil.FormListHas(qiFile, "story_quests", sq) || IEB_HasOpenObjective(sq))
+            return true
+        EndIf
+    EndIf
     Int n = a.GetNumReferenceAliases()
     Int i = 0
     While i < n
