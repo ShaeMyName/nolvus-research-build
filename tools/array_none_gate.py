@@ -8,12 +8,19 @@ Usage: array_none_gate.py [--baseline DIR=BASEDIR ...] DIR|file.pex ...
   hits (stock upstream pattern, reported as UPSTREAM, not ours). Exit 1 on any FAIL."""
 import os, re, sys, tempfile, subprocess, collections
 
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 CH = "C:/nolvus-research/tools/champollion-dl/Champollion.exe"
+import champ_guard   # Job object: hard memory ceiling + timeout (2026-10-11 08:48 bugcheck)
+CHAMP_MAX_MB, CHAMP_TIMEOUT = 3072, 120
+
 
 
 def asm(pex):
     d = tempfile.mkdtemp()
-    subprocess.run([CH, "-a", d, "-p", d, pex], capture_output=True)
+    _rc, _why = champ_guard.run([CH, "-a", d, "-p", d, pex], max_mb=CHAMP_MAX_MB, timeout=CHAMP_TIMEOUT)   # 2026-10-11 bugcheck guard
+    if _why != "ok":
+        raise RuntimeError("Champollion %s on %s (capped at %d MB, %d s)" % (_why, pex, CHAMP_MAX_MB, CHAMP_TIMEOUT))
     p = os.path.join(d, os.path.splitext(os.path.basename(pex))[0] + ".pas")
     # REVIEW_LOG RV-74 (2): an empty or garbled decompile must fail, never pass silently
     lines = open(p, encoding="utf-8", errors="replace").read().splitlines() if os.path.exists(p) else []

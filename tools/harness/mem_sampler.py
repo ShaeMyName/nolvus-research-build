@@ -23,13 +23,40 @@ GROW_MB, CEIL_MB = 800.0, 3072.0             # REVIEW_LOG RV-73: stop on +800 MB
 COMMIT_TRIP_PCT = 85.0                       # REVIEW_LOG RV-73-upd2 (2): stop on system commit > 85 % of the limit
 
 
+RUNAWAY_TOOLS = ("Champollion.exe", "Caprica.exe", "PapyrusCompiler.exe")   # our build tools only; never anything else
+RUNAWAY_MB = 3072
+
+
+def kill_runaway_tools(f):
+    """2026-10-11 08:46-08:48: Champollion grew to 45 GB in ~90 s and Windows bugchecked. Every 5 s: any of OUR build
+    tools above RUNAWAY_MB working set is force-killed (champ_guard's job cap is the first line; this is the second)."""
+    for exe in RUNAWAY_TOOLS:
+        try:
+            out = subprocess.run(["tasklist", "/FI", "IMAGENAME eq %s" % exe, "/FO", "CSV", "/NH"], capture_output=True,
+                                 creationflags=NOWIN, text=True, timeout=10).stdout
+        except Exception:
+            continue
+        for line in out.splitlines():
+            parts = [x.strip('"') for x in line.split('","')]
+            if len(parts) >= 5 and parts[0].lower() == exe.lower():
+                try:
+                    mb = int(parts[4].replace(",", "").replace(".", "").split()[0]) // 1024
+                except ValueError:
+                    continue
+                if mb > RUNAWAY_MB:
+                    subprocess.run(["taskkill", "/F", "/PID", parts[1]], capture_output=True, creationflags=NOWIN)
+                    log(f, "RUNAWAY TOOL KILLED: %s pid %s at %d MB (> %d MB)" % (exe, parts[1], mb, RUNAWAY_MB))
+
+
 def stop_game(f, why):
     """Close the game cleanly (console qqq through SkyrimNet MCP), force it after 90 s, block every further launch."""
     open(FLAG, "w").write("%s %s\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), why))
     log(f, "POOLGATE TRIPPED: %s; closing the game, launches blocked (%s)" % (why, FLAG))
+    kill_runaway_tools(f)                    # a runaway tool of ours is the faster fix than the game
     try:
         import sys
-        sys.path.insert(0, os.path.dirname(__file__))
+        # 2026-10-11 08:47 bug: mcp_client lives in build/tools, one level up (the import failed and the game stayed up)
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
         from mcp_client import MCP
         MCP().request("tools/call", {"name": "execute_console_command", "arguments": {"command": "qqq"}}, timeout=10)
     except Exception as e:
@@ -82,7 +109,9 @@ def main():
                     peak = max(peak, np_)
                     if base is not None and not os.path.exists(FLAG) and (np_ > base + GROW_MB or np_ > CEIL_MB):
                         stop_game(f, "nonpaged %d MB (pre-launch %d MB, limit +%d / %d MB)" % (np_, base, GROW_MB, CEIL_MB))
-            time.sleep(30)
+            for _ in range(6):                   # the runaway-tool check every 5 s between the 30 s samples
+                kill_runaway_tools(f)
+                time.sleep(5)
 
 
 if __name__ == "__main__":

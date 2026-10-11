@@ -6,6 +6,9 @@ sys.path.insert(0, os.path.dirname(__file__))
 import espio as E
 
 CH = "C:/nolvus-research/tools/champollion-dl/Champollion.exe"
+import champ_guard   # Job object: hard memory ceiling + timeout (2026-10-11 08:48 bugcheck)
+CHAMP_MAX_MB, CHAMP_TIMEOUT = 3072, 120
+
 
 
 def vmad_bindings(path):
@@ -29,7 +32,9 @@ def vmad_bindings(path):
 
 def pex_properties(pex):
     d = tempfile.mkdtemp()
-    subprocess.run([CH, "-a", d, "-p", d, pex], capture_output=True)
+    _rc, _why = champ_guard.run([CH, "-a", d, "-p", d, pex], max_mb=CHAMP_MAX_MB, timeout=CHAMP_TIMEOUT)   # 2026-10-11 bugcheck guard
+    if _why != "ok":
+        raise RuntimeError("Champollion %s on %s (capped at %d MB, %d s)" % (_why, pex, CHAMP_MAX_MB, CHAMP_TIMEOUT))
     asm = os.path.join(d, os.path.splitext(os.path.basename(pex))[0] + ".pas")
     props = set()
     for line in open(asm, encoding="utf-8", errors="replace"):
