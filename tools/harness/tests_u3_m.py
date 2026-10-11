@@ -729,10 +729,12 @@ def da9(r):
         r.check(not fired3, "no RDO_DefaultRecruit fired")
     else:
         inc(r, "part 3: no RDO recruit line fired, but the line was not shown fireable: %s" % why3)
-    if ready3:
-        r.check(tm0 == "0" and tm1 == "0", "the friend did not become a teammate (tm %s -> %s)" % (tm0, tm1))
+    # REVIEW_LOG RV-129-da9 (3): only RDO script/INFO evidence is a failure; becoming a teammate without it is an
+    # allowed path (SeverActions' own recruit action), logged, not judged
+    if tm0 == "0" and tm1 == "1" and not fired3:
+        r.log("  part 3: became a teammate with no RDO line fired: allowed path (SA recruit), not a verdict")
     else:
-        r.log("  part 3 teammate flag (not a verdict, line not shown fireable): tm %s -> %s" % (tm0, tm1))
+        r.log("  part 3 teammate flag: tm %s -> %s" % (tm0, tm1))
     # Part 4: the gift INFO's own condition (voice in DefaultNPCVoiceTypes) holds for her, but its topic is reached only
     # through the friend-conversation INFOs, all gated GetIsID(Player) == 1 run on the speaker (VERIFIED in the plugin;
     # INFERRED never true for an NPC) plus GetAllowWorldInteractions (no reader). So no PASS is possible here: the
