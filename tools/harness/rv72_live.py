@@ -43,7 +43,8 @@ def errors(text):
 def probe(ctl, fn, args, pat, label, timeout=20):
     t = game.Tail(game.LOGS["papyrus"])
     ctl.ctl(fn, args, sync=False)
-    m = t.wait(r"\[IEB-TEST\] %s[^\r\n]*" % pat, timeout)
+    # 2026-10-11 00:08: Papyrus case-folds a log literal to a same-named function ("SLOTSPROBE" -> "SlotsProbe")
+    m = t.wait(r"(?i)\[IEB-TEST\] %s[^\r\n]*" % pat, timeout)
     say("%s: %s" % (label, m.group(0) if m else "no %s line" % pat))
     return m.group(0) if m else ""
 
@@ -104,7 +105,7 @@ def main():
         verdict("T0_slot_clean", bool(s) and not re.search(r"state=[1-9]", s), s[-160:])
         r = probe(ctl, "ReserveProbe", [], "RESERVEPROBE", "reservation")
         m = re.search(r"age=(-?[\d.]+) find=(-?\d+) skipped=(\w+) afterRelease=(-?[\d.]+)", r)
-        verdict("S2_reservation", bool(m) and float(m.group(1)) >= 0 and m.group(3) == "True"
+        verdict("S2_reservation", bool(m) and float(m.group(1)) >= 0 and m.group(3).lower() == "true"
                 and float(m.group(4)) == -1.0, r[-120:])
         for l in lines(pap.read(), "IEB_FASTTICK"):
             say("T0 " + l)

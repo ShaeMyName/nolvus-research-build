@@ -146,7 +146,8 @@ class Run:
             if sync and fn in self.CTL_UNSYNC:
                 time.sleep(1.0)     # no completion line yet: give Papyrus a moment (unsynchronized call)
             return res
-        m = self.logline(r"\[IEB-TEST\] (?:%s)[^\r\n]*" % pat, size, timeout)
+        # 2026-10-11: Papyrus case-folds log literals to same-named functions ("SLOTSPROBE" logged as "SlotsProbe")
+        m = self.logline(r"(?i)\[IEB-TEST\] (?:%s)[^\r\n]*" % pat, size, timeout)
         if not m:
             self.inconclusive += 1
             self.log("INCONCLUSIVE %s: controller call %s(%s) not confirmed in the Papyrus log within %d s"
