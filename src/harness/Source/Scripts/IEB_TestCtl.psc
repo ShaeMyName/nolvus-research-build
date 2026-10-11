@@ -309,6 +309,129 @@ Function PkgUnwatch()
     Log("PKGWATCH off")
 EndFunction
 
+; --- T0-M builder (build_t0m.py; investigation/round10/t0m_builder.md). Numbers only, never names.
+
+Int Function MarasFR(Actor a, Int aiFactionId, String asPlugin)
+    {Faction rank of a in a plugin's faction: -2 = not a member, -3 = faction missing.}
+    Faction f = Game.GetFormFromFile(aiFactionId, asPlugin) as Faction
+    If f == None
+        Return -3
+    EndIf
+    Return a.GetFactionRank(f)
+EndFunction
+
+Function MarasSet(Int aiFormId, Int aiStatus)
+    {T0-M: one MARAS status change through MARAS's own natives (MARAS.psc:13, 54): 0 = RegisterCandidate,
+     1..4 = PromoteNPCToStatusByEnum (engaged, married, divorced, jilted). The dialogue fragments make the same native
+     call (TTM_DialogueManagerMisc.psc:14-23). Logs T0M_SET <actor> want=<n> ok=<0|1> st=<status enum after>.}
+    Actor a = A(aiFormId)
+    If a == None
+        Log("T0M_SET none " + PO3_SKSEFunctions.IntToString(aiFormId, True))
+        Return
+    EndIf
+    Bool ok = False
+    If aiStatus == 0
+        ok = MARAS.RegisterCandidate(a)
+    Else
+        ok = MARAS.PromoteNPCToStatusByEnum(a, aiStatus)
+    EndIf
+    Log("T0M_SET " + Watcher().Hex(a) + " want=" + aiStatus + " ok=" + (ok as Int) + " st=" + MARAS.GetNpcStatusEnum(a))
+EndFunction
+
+Function MarasHouse(Int aiFormId, Int aiLocationId)
+    {T0-M: house a spouse in a registered player house. The steps of MARAS's TTM_ServicePlayerHouse.MoveSpouseToHouse
+     (TTM_ServicePlayerHouse.psc:107-117) with TTM_ServiceRelationships.GetTrackedNpcHomeMarker (:184-197) inlined, as
+     natives + StorageUtil only (no TTM_ script is compiled in). Refuses when the house has no MARAS marker yet.
+     Logs T0M_HOUSE <actor> ok=<0|1> house=<location> marker=<ref>.}
+    Actor a = A(aiFormId)
+    Location home = Game.GetForm(aiLocationId) as Location
+    If a == None || home == None
+        Log("T0M_HOUSE none " + PO3_SKSEFunctions.IntToString(aiFormId, True))
+        Return
+    EndIf
+    ObjectReference houseMarker = MARAS.GetHouseMarker(home)
+    If houseMarker == None
+        Log("T0M_HOUSE " + Watcher().Hex(a) + " ok=0 house=None marker=None why=house_not_registered")
+        Return
+    EndIf
+    ObjectReference m = MARAS.GetTrackedNpcHomeMarker(a)
+    If m == None
+        m = StorageUtil.GetFormValue(a, "HomeMarker") as ObjectReference
+        If m == None
+            m = a.PlaceAtMe(Game.GetFormFromFile(0x76, "TT_MARAS.esp"), 1, True)
+        EndIf
+        MARAS.SetTrackedNpcHomeMarker(a, m)
+    EndIf
+    m.MoveTo(houseMarker)
+    StorageUtil.SetFormValue(a, "HomeLocation", home)
+    Bool ok = MARAS.RegisterTenantInPlayerHouse(a, home)
+    Log("T0M_HOUSE " + Watcher().Hex(a) + " ok=" + (ok as Int) + " house=" + Watcher().Hex(MARAS.GetTenantHouse(a)) + " marker=" + Watcher().Hex(m))
+EndFunction
+
+Function MarasProbe(Int aiFormId)
+    {T0-M read-back for one actor: MARAS status enum (-1 unregistered), rank to the player, faction ranks (TT_MARAS
+     tracked 0x7 and housed 0x6C; Skyrim.esm PlayerMarriedFaction 0xC6472, PlayerFaction 0xDB1, PlayerBedOwnership
+     0xF2073, PotentialMarriageFaction 0x19809, MarriageAskedFaction 0xFF7F3, MarriageCourtingFaction 0x7431A,
+     CurrentFollowerFaction 0x5C84E), MARAS tenant house, matrimony rings (0xC5809), whether it fills the
+     LoveInterest alias of 0x74793, disabled, teammate and cell. Logs one T0M_PROBE line.}
+    Actor a = A(aiFormId)
+    If a == None
+        Log("T0M_PROBE none " + PO3_SKSEFunctions.IntToString(aiFormId, True))
+        Return
+    EndIf
+    Actor pl = Game.GetPlayer()
+    Quest mq = Game.GetFormFromFile(0x74793, "Skyrim.esm") as Quest
+    Actor li = None
+    If mq != None
+        ReferenceAlias ra = mq.GetAliasByName("LoveInterest") as ReferenceAlias
+        If ra != None
+            li = ra.GetActorReference()
+        EndIf
+    EndIf
+    Form ringForm = Game.GetFormFromFile(0xC5809, "Skyrim.esm")
+    String s = "T0M_PROBE " + Watcher().Hex(a) + " st=" + MARAS.GetNpcStatusEnum(a) + " r=" + a.GetRelationshipRank(pl)
+    s += " trk=" + MarasFR(a, 0x7, "TT_MARAS.esp") + " housed=" + MarasFR(a, 0x6C, "TT_MARAS.esp")
+    s += " pmf=" + MarasFR(a, 0xC6472, "Skyrim.esm") + " pf=" + MarasFR(a, 0xDB1, "Skyrim.esm") + " bed=" + MarasFR(a, 0xF2073, "Skyrim.esm")
+    s += " pot=" + MarasFR(a, 0x19809, "Skyrim.esm") + " ask=" + MarasFR(a, 0xFF7F3, "Skyrim.esm") + " crt=" + MarasFR(a, 0x7431A, "Skyrim.esm")
+    s += " cfol=" + MarasFR(a, 0x5C84E, "Skyrim.esm") + " house=" + Watcher().Hex(MARAS.GetTenantHouse(a)) + " rings=" + a.GetItemCount(ringForm)
+    s += " lia=" + ((li == a) as Int) + " dis=" + (a.IsDisabled() as Int) + " tm=" + (a.IsPlayerTeammate() as Int) + " cell=" + Watcher().Hex(a.GetParentCell())
+    Log(s)
+EndFunction
+
+Function MarasWorld()
+    {T0-M read-back for the world: polygamy global (TT_MARAS 0x6), MARAS counts by status, registered player houses and
+     Breezehome's (location 0x1F86F) MARAS marker, MARAS's SkipWedding/PlayerHadWedding StorageUtil flags
+     (TTM_Data.psc:11-13, 47-48, 67-68), the player's PlayerMarriedFaction rank, 0x74793's stage, the house purchase
+     (0xA7B33 WhiterunHouseVar, key 0x93B08, cell 0x165A8 owner faction), 0xA2C9E stages 25/200, housecarl ref
+     0xA2C94 disabled, gold, the player's location. Logs one T0M_WORLD line.}
+    Actor pl = Game.GetPlayer()
+    GlobalVariable poly = Game.GetFormFromFile(0x6, "TT_MARAS.esp") as GlobalVariable
+    Quest mq = Game.GetFormFromFile(0x74793, "Skyrim.esm") as Quest
+    Quest hp = Game.GetFormFromFile(0xA7B33, "Skyrim.esm") as Quest
+    Quest fq = Game.GetFormFromFile(0xA2C9E, "Skyrim.esm") as Quest
+    Cell bz = Game.GetFormFromFile(0x165A8, "Skyrim.esm") as Cell
+    Location bzl = Game.GetFormFromFile(0x1F86F, "Skyrim.esm") as Location
+    Actor hc = Game.GetFormFromFile(0xA2C94, "Skyrim.esm") as Actor
+    Faction pmf = Game.GetFormFromFile(0xC6472, "Skyrim.esm") as Faction
+    Int polyV = -1
+    If poly != None
+        polyV = poly.GetValue() as Int
+    EndIf
+    Int hv = -1
+    HousePurchaseScript hps = hp as HousePurchaseScript
+    If hps != None
+        hv = hps.WhiterunHouseVar
+    EndIf
+    String s = "T0M_WORLD poly=" + polyV + " nMar=" + MARAS.GetStatusCountByEnum(2) + " nEng=" + MARAS.GetStatusCountByEnum(1)
+    s += " nAll=" + MARAS.GetStatusCountByEnum(-1) + " houses=" + MARAS.CountPlayerHouses() + " bzMarker=" + Watcher().Hex(MARAS.GetHouseMarker(bzl))
+    s += " skipWed=" + StorageUtil.GetIntValue(None, "SkipWedding", 0) + " hadWed=" + StorageUtil.GetIntValue(None, "PlayerHadWedding", 0)
+    s += " plPmf=" + pl.GetFactionRank(pmf) + " mqStage=" + mq.GetCurrentStageID() + " mqRun=" + (mq.IsRunning() as Int)
+    s += " hpVar=" + hv + " key=" + pl.GetItemCount(Game.GetFormFromFile(0x93B08, "Skyrim.esm")) + " own=" + Watcher().Hex(bz.GetFactionOwner())
+    s += " f25=" + (fq.GetStageDone(25) as Int) + " f200=" + (fq.GetStageDone(200) as Int) + " hcDis=" + (hc.IsDisabled() as Int)
+    s += " gold=" + pl.GetGoldAmount() + " loc=" + Watcher().Hex(pl.GetCurrentLocation()) + " cell=" + Watcher().Hex(pl.GetParentCell())
+    Log(s)
+EndFunction
+
 Function PlayerPlace(Float afX, Float afY, Float afZ)
     {REVIEW_LOG RV-79-upd: put the player at a position in the current (exterior) worldspace, then log it.}
     Game.GetPlayer().SetPosition(afX, afY, afZ)
@@ -857,6 +980,35 @@ Function ScheduleDelivery(Int aiFormId, String asTarget, String asMsg, String as
     EndIf
     Bool ok = core.Schedule.ScheduleDelivery(a, asTarget, asMsg, asWhen)
     Log("ScheduleDelivery " + a.GetDisplayName() + " when=" + asWhen + " ok=" + ok)
+EndFunction
+
+Function EssProbe(Int aiFormId)
+    {REVIEW_LOG RV-95 (3a+3b smoke): the actor's base essential/protected flags and which IEB_Ess* keys exist (values of
+     the int keys; -1 = key absent). Mechanics only.}
+    Actor a = A(aiFormId)
+    If a == None
+        Log("ESSPROBE none")
+        Return
+    EndIf
+    ActorBase b = a.GetActorBase()
+    String k = ""
+    String[] keys = new String[6]
+    keys[0] = "IEB_Ess"
+    keys[1] = "IEB_EssAuth"
+    keys[2] = "IEB_EssReq"
+    keys[3] = "IEB_EssImp"
+    keys[4] = "IEB_EssIEHeld"
+    keys[5] = "IEB_EssKeep"
+    Int i = 0
+    While i < keys.Length
+        If StorageUtil.HasIntValue(a, keys[i])
+            k += " " + keys[i] + "=" + StorageUtil.GetIntValue(a, keys[i])
+        Else
+            k += " " + keys[i] + "=-1"
+        EndIf
+        i += 1
+    EndWhile
+    Log("ESSPROBE " + Watcher().Hex(a) + " baseEss=" + b.IsEssential() + " baseProt=" + b.IsProtected() + k)
 EndFunction
 
 Function SetIEWaitHours(Float afHours)
