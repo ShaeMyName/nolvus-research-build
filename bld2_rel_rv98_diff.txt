@@ -1,9 +1,9 @@
-BLD-2 S2r: Relationships private patch, installed head-start build (de868da) -> HEAD (groups rv98, rv98c, neverenroll); harness IEB_TestCtl GateProbe. Generated 2026-10-11 10:41:28.
- src/relationships/src/scripts/SNRom_Bridge.psc     | 101 ++++++++++++++++++++-
+BLD-2 S2r v2 (REVIEW_LOG RV-117): Relationships private patch, installed head-start build (de868da) -> working tree (groups rv98, rv98c, neverenroll, rv117); SNRom_PlayerAlias.psc NEW to the patch set (upstream 2.0.1 = repos 08619f3, diffed against it); harness IEB_TestCtl GateProbe. Generated 2026-10-11 10:49:27.
+ src/relationships/src/scripts/SNRom_Bridge.psc     | 168 ++++++++++++++++++++-
  src/relationships/src/scripts/SNRom_Decorators.psc |   2 +-
- 2 files changed, 100 insertions(+), 3 deletions(-)
+ 2 files changed, 166 insertions(+), 4 deletions(-)
 diff --git a/src/relationships/src/scripts/SNRom_Bridge.psc b/src/relationships/src/scripts/SNRom_Bridge.psc
-index a24a1e1..6f20477 100644
+index a24a1e1..bc51a10 100644
 --- a/src/relationships/src/scripts/SNRom_Bridge.psc
 +++ b/src/relationships/src/scripts/SNRom_Bridge.psc
 @@ -671,6 +671,9 @@ Bool Function IsPerson(Actor akActor)
@@ -16,23 +16,20 @@ index a24a1e1..6f20477 100644
      Keyword kw = Game.GetFormFromFile(0x00013794, "Skyrim.esm") as Keyword   ; ActorTypeNPC
      If kw == None
          Diag(LOG_ERROR(), "ActorTypeNPC keyword did not resolve from Skyrim.esm - the humans-only " + \
-@@ -4786,7 +4789,15 @@ Function MaintainProposalGate(Actor akActor)
+@@ -4786,7 +4789,11 @@ Function MaintainProposalGate(Actor akActor)
          EndIf
          Return
      EndIf
+-    Bool shouldBlock = PointsOf(akActor) < SPOUSE_MIN()
 +    If akActor.IsChild()
 +        Return                                  ; Patch rv98c: never opened for a child, nothing written
 +    EndIf
-     Bool shouldBlock = PointsOf(akActor) < SPOUSE_MIN()
-+    ; Patch RV-98 (a): M3 also closes the gate (exclusivity >= CONSUMING_MIN with other partners)
-+    If !shouldBlock && StorageUtil.GetIntValue(akActor, "SNRom_Exclusivity", 50) >= CONSUMING_MIN() && SNRom_Decorators.OtherPartners(akActor) > 0
-+        shouldBlock = True
-+    EndIf
++    Bool shouldBlock = IEB_ShouldBlockProposal(akActor)   ; Patch RV-98 (a) + RV-117: one rule for keyword and amulet
 +    IEB_AmuletGate(akActor, shouldBlock)       ; Patch RV-98 (a): the vanilla amulet proposal path
      Bool isBlocked   = akActor.HasKeyword(kw)
      If shouldBlock == isBlocked
          Return                                  ; already correct - the common case
-@@ -4831,6 +4842,10 @@ Event OnMarasStatusChanged(String asEventName, String asStatus, Float afStatusEn
+@@ -4831,6 +4838,10 @@ Event OnMarasStatusChanged(String asEventName, String asStatus, Float afStatusEn
      RefreshPartnerCount()
      ; Patch M4' (IEB §11.12.3): auto-enroll on courtship (candidate / engaged / married)
      String ieSt = SNRom_Decorators.Upper(SNRom_Decorators.Trim(asStatus))
@@ -43,7 +40,7 @@ index a24a1e1..6f20477 100644
      If ieSt == "CANDIDATE" || ieSt == "ENGAGED" || ieSt == "MARRIED"
          IEB_EnrollOnCourtship(who)
      EndIf
-@@ -4858,7 +4873,7 @@ Event OnMarasStatusChanged(String asEventName, String asStatus, Float afStatusEn
+@@ -4858,7 +4869,7 @@ Event OnMarasStatusChanged(String asEventName, String asStatus, Float afStatusEn
      If st == "ENGAGED"
          ; Patch M3 (IEB §11.12.3): exclusivity >= CONSUMING_MIN will not join a marriage shared with others
          If StorageUtil.GetIntValue(who, "SNRom_Exclusivity", 50) >= CONSUMING_MIN() && SNRom_Decorators.OtherPartners(who) > 0
@@ -52,7 +49,7 @@ index a24a1e1..6f20477 100644
                  SkyrimNetApi.RegisterShortLivedEvent("ieb_excl_refusal_" + who.GetFormID(), "ieb_exclusivity_refusal", \
                      who.GetDisplayName() + " would not join a shared marriage", "", 300000, who, Game.GetPlayer())
                  Diag(LOG_INFO(), "Engagement refused for " + who.GetDisplayName() + " - exclusivity " + \
-@@ -4872,7 +4887,7 @@ Event OnMarasStatusChanged(String asEventName, String asStatus, Float afStatusEn
+@@ -4872,7 +4883,7 @@ Event OnMarasStatusChanged(String asEventName, String asStatus, Float afStatusEn
          EndIf
          Int held = PointsOf(who)
          If held < SPOUSE_MIN()
@@ -61,7 +58,7 @@ index a24a1e1..6f20477 100644
                  Diag(LOG_INFO(), "Engagement reversed for " + who.GetDisplayName() + \
                      " - they hold " + held + " pts and Spouse begins at " + SPOUSE_MIN() + \
                      ". A formal proposal is not earned yet, so they are back to candidate. " + \
-@@ -9028,3 +9043,85 @@ Int Function IEB_HeadStartBonus(Actor a, Int aiAward)
+@@ -9028,3 +9039,154 @@ Int Function IEB_HeadStartBonus(Actor a, Int aiAward)
      Diag(LOG_INFO(), "IEB_HEADSTART bonus " + a.GetDisplayName() + " award=" + aiAward + " extra=" + extra)
      Return extra
  EndFunction
@@ -102,21 +99,31 @@ index a24a1e1..6f20477 100644
 +    { RV-98 (a), the amulet path: Skyrim.esm's RelationshipMarriage proposal INFOs require PotentialMarriageFaction
 +      (0x00019809), which MARAS adds at registration (NPCRelationshipManager.cpp:962-964) and which never sends MARAS an
 +      "engaged" event. Below the gate the NPC leaves that faction (remembered in IEB_PMFRemoved); when the gate opens the
-+      membership comes back. Only a membership we removed is ever restored. }
++      membership comes back. Only a membership we removed is ever restored.
++      RV-117: the original rank is kept in IEB_PMFRank and restored with SetFactionRank (the proposal INFOs read it);
++      every actor taken out is listed in IEB_PMFRemovedList so taking the amulet off can put the never-enrolled back.
++      A child is never touched. }
 +    Faction pmf = Game.GetFormFromFile(0x00019809, "Skyrim.esm") as Faction
-+    If pmf == None || akActor == None
++    If pmf == None || akActor == None || akActor.IsChild()
 +        Return
 +    EndIf
 +    If abBlock
 +        If akActor.IsInFaction(pmf)
++            StorageUtil.SetIntValue(akActor, "IEB_PMFRank", akActor.GetFactionRank(pmf))
 +            akActor.RemoveFromFaction(pmf)
 +            StorageUtil.SetIntValue(akActor, "IEB_PMFRemoved", 1)
++            StorageUtil.FormListAdd(None, "IEB_PMFRemovedList", akActor, False)
 +            Diag(LOG_INFO(), "Amulet gate closed for " + akActor.GetDisplayName() + " (left PotentialMarriageFaction).")
 +        EndIf
 +    ElseIf StorageUtil.GetIntValue(akActor, "IEB_PMFRemoved", 0) == 1
++        Int rk = StorageUtil.GetIntValue(akActor, "IEB_PMFRank", 0)
 +        akActor.AddToFaction(pmf)
++        akActor.SetFactionRank(pmf, rk)
 +        StorageUtil.UnsetIntValue(akActor, "IEB_PMFRemoved")
-+        Diag(LOG_INFO(), "Amulet gate OPEN for " + akActor.GetDisplayName() + " (PotentialMarriageFaction restored).")
++        StorageUtil.UnsetIntValue(akActor, "IEB_PMFRank")
++        StorageUtil.FormListRemove(None, "IEB_PMFRemovedList", akActor, True)
++        Diag(LOG_INFO(), "Amulet gate OPEN for " + akActor.GetDisplayName() + " (PotentialMarriageFaction restored at rank " + \
++            rk + ").")
 +    EndIf
 +EndFunction
 +
@@ -147,6 +154,65 @@ index a24a1e1..6f20477 100644
 +    EndIf
 +    Return False
 +EndFunction
++
++; ============================================================================ Patch rv117 (amulet gate coverage, 2026-10-11)
++
++Bool Function IEB_ShouldBlockProposal(Actor akActor)
++    { The one marriage-gate rule, for the keyword and the amulet alike: never-enrolled (0 points) is closed; enrolled is
++      closed below SPOUSE_MIN, or by M3 (exclusivity >= CONSUMING_MIN with other partners). }
++    If !IsEnrolled(akActor)
++        Return True
++    EndIf
++    If PointsOf(akActor) < SPOUSE_MIN()
++        Return True
++    EndIf
++    Return StorageUtil.GetIntValue(akActor, "SNRom_Exclusivity", 50) >= CONSUMING_MIN() && SNRom_Decorators.OtherPartners(akActor) > 0
++EndFunction
++
++Bool Function IEB_WearingAmulet() Global
++    { The vanilla proposal condition: the player wears the Amulet of Mara (Skyrim.esm 0xC891B, GetEquipped). }
++    Form am = Game.GetFormFromFile(0x000C891B, "Skyrim.esm")
++    Return am != None && Game.GetPlayer().IsEquipped(am)
++EndFunction
++
++Function IEB_AmuletSweep()
++    { RV-117 (2): every LOADED actor in PotentialMarriageFaction (or one we took out) gets IEB_ShouldBlockProposal.
++      Called by SNRom_PlayerAlias while the amulet is worn. Children and the dead are skipped with nothing written. }
++    If !_ready
++        Return
++    EndIf
++    Faction pmf = Game.GetFormFromFile(0x00019809, "Skyrim.esm") as Faction
++    If pmf == None
++        Return
++    EndIf
++    Actor pl = Game.GetPlayer()
++    Actor[] near = MiscUtil.ScanCellNPCs(pl, 4096.0)   ; loaded cell(s) around the player, dead excluded
++    Int i = 0
++    While i < near.Length
++        Actor a = near[i]
++        If a != None && a != pl && !a.IsChild() && !a.IsDead()
++            If a.IsInFaction(pmf) || StorageUtil.GetIntValue(a, "IEB_PMFRemoved", 0) == 1
++                IEB_AmuletGate(a, IEB_ShouldBlockProposal(a))
++            EndIf
++        EndIf
++        i += 1
++    EndWhile
++EndFunction
++
++Function IEB_AmuletRestoreAll()
++    { RV-117 (2): the amulet came off (or a load found it off): the never-enrolled we took out go back at their own rank.
++      Enrolled actors stay with MaintainProposalGate. Walks backwards (removals shift the list). }
++    Int i = StorageUtil.FormListCount(None, "IEB_PMFRemovedList") - 1
++    While i >= 0
++        Actor a = StorageUtil.FormListGet(None, "IEB_PMFRemovedList", i) as Actor
++        If a == None
++            StorageUtil.FormListRemoveAt(None, "IEB_PMFRemovedList", i)
++        ElseIf !IsEnrolled(a)
++            IEB_AmuletGate(a, False)
++        EndIf
++        i -= 1
++    EndWhile
++EndFunction
 diff --git a/src/relationships/src/scripts/SNRom_Decorators.psc b/src/relationships/src/scripts/SNRom_Decorators.psc
 index a5e9ef3..0365732 100644
 --- a/src/relationships/src/scripts/SNRom_Decorators.psc
@@ -160,6 +226,66 @@ index a5e9ef3..0365732 100644
          Return "false"
      EndIf
      ; FOLLOWERS ONLY, ALWAYS: this enrolls, and the policy is that only
+
+=== SNRom_PlayerAlias.psc vs upstream 2.0.1
+--- upstream/relationships-2.0.1/src/scripts/SNRom_PlayerAlias.psc	2026-10-11 10:46:26.696929300 -0400
++++ src/relationships/src/scripts/SNRom_PlayerAlias.psc	2026-10-11 10:47:14.980451100 -0400
+@@ -28,6 +28,7 @@
+       the part that got skipped. Real time cannot distinguish sessions; this
+       event can. }
+     Rebind(True)
++    IEB_AmuletWatch()                          ; Patch rv117: re-arm the amulet watch (or restore if it is off)
+ EndEvent
+ 
+ Function Rebind(Bool abForce = False)
+@@ -38,3 +39,47 @@
+     EndIf
+     bridge.Bootstrap(abForce)
+ EndFunction
++
++; ============================================================================ Patch rv117 (REVIEW_LOG RV-117, 2026-10-11)
++; The vanilla Amulet-of-Mara proposal needs the player to WEAR the amulet. While it is worn, SNRom_Bridge.IEB_AmuletSweep
++; gates every loaded marriageable actor (on equip, on location change, then every 5 s); taking it off restores the
++; never-enrolled. A load re-arms the watch, or restores if the amulet is off.
++
++Event OnObjectEquipped(Form akBaseObject, ObjectReference akReference)
++    If akBaseObject == Game.GetFormFromFile(0x000C891B, "Skyrim.esm")
++        RegisterForSingleUpdate(0.5)
++    EndIf
++EndEvent
++
++Event OnObjectUnequipped(Form akBaseObject, ObjectReference akReference)
++    If akBaseObject == Game.GetFormFromFile(0x000C891B, "Skyrim.esm")
++        UnregisterForUpdate()
++        SNRom_Bridge bridge = GetOwningQuest() as SNRom_Bridge
++        If bridge != None
++            bridge.IEB_AmuletRestoreAll()
++        EndIf
++    EndIf
++EndEvent
++
++Event OnLocationChange(Location akOldLoc, Location akNewLoc)
++    IEB_AmuletWatch()
++EndEvent
++
++Event OnUpdate()
++    IEB_AmuletWatch()
++EndEvent
++
++Function IEB_AmuletWatch()
++    SNRom_Bridge bridge = GetOwningQuest() as SNRom_Bridge
++    If bridge == None
++        Return
++    EndIf
++    If !SNRom_Bridge.IEB_WearingAmulet()
++        If StorageUtil.FormListCount(None, "IEB_PMFRemovedList") > 0
++            bridge.IEB_AmuletRestoreAll()
++        EndIf
++        Return
++    EndIf
++    bridge.IEB_AmuletSweep()
++    RegisterForSingleUpdate(5.0)
++EndFunction
 
 === harness
 diff --git a/src/harness/Source/Scripts/IEB_TestCtl.psc b/src/harness/Source/Scripts/IEB_TestCtl.psc
@@ -200,7 +326,8 @@ index f9d5b10..96f4329 100644
      Debug.Trace("[IEB-TEST] " + asMsg)
  EndFunction
 
-=== pex sha1 (bin/rel_patched, bin/harness)
-b1623acc51722f86494509a0431c8afdbbb4b038 *bin/rel_patched/SNRom_Bridge.pex
-407d8fccca67bb7189e8ec705ba7d8d916690cb3 *bin/rel_patched/SNRom_Decorators.pex
+=== pex sha1
+fec15816ecc8fbbb000b039ffab2ac9ec81ff634 *bin/rel_patched/SNRom_Bridge.pex
+063e918d0905f0ab7b16a922af14ebc4814bd2b3 *bin/rel_patched/SNRom_Decorators.pex
+59b07d221020e290a3fecb4ef453992fb6c304fa *bin/rel_patched/SNRom_PlayerAlias.pex
 4d3812e3d87f94dea94e03f32d0d2f96f08f55bc *bin/harness/IEB_TestCtl.pex

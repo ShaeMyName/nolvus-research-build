@@ -4792,11 +4792,7 @@ Function MaintainProposalGate(Actor akActor)
     If akActor.IsChild()
         Return                                  ; Patch rv98c: never opened for a child, nothing written
     EndIf
-    Bool shouldBlock = PointsOf(akActor) < SPOUSE_MIN()
-    ; Patch RV-98 (a): M3 also closes the gate (exclusivity >= CONSUMING_MIN with other partners)
-    If !shouldBlock && StorageUtil.GetIntValue(akActor, "SNRom_Exclusivity", 50) >= CONSUMING_MIN() && SNRom_Decorators.OtherPartners(akActor) > 0
-        shouldBlock = True
-    EndIf
+    Bool shouldBlock = IEB_ShouldBlockProposal(akActor)   ; Patch RV-98 (a) + RV-117: one rule for keyword and amulet
     IEB_AmuletGate(akActor, shouldBlock)       ; Patch RV-98 (a): the vanilla amulet proposal path
     Bool isBlocked   = akActor.HasKeyword(kw)
     If shouldBlock == isBlocked
@@ -9080,21 +9076,31 @@ Function IEB_AmuletGate(Actor akActor, Bool abBlock)
     { RV-98 (a), the amulet path: Skyrim.esm's RelationshipMarriage proposal INFOs require PotentialMarriageFaction
       (0x00019809), which MARAS adds at registration (NPCRelationshipManager.cpp:962-964) and which never sends MARAS an
       "engaged" event. Below the gate the NPC leaves that faction (remembered in IEB_PMFRemoved); when the gate opens the
-      membership comes back. Only a membership we removed is ever restored. }
+      membership comes back. Only a membership we removed is ever restored.
+      RV-117: the original rank is kept in IEB_PMFRank and restored with SetFactionRank (the proposal INFOs read it);
+      every actor taken out is listed in IEB_PMFRemovedList so taking the amulet off can put the never-enrolled back.
+      A child is never touched. }
     Faction pmf = Game.GetFormFromFile(0x00019809, "Skyrim.esm") as Faction
-    If pmf == None || akActor == None
+    If pmf == None || akActor == None || akActor.IsChild()
         Return
     EndIf
     If abBlock
         If akActor.IsInFaction(pmf)
+            StorageUtil.SetIntValue(akActor, "IEB_PMFRank", akActor.GetFactionRank(pmf))
             akActor.RemoveFromFaction(pmf)
             StorageUtil.SetIntValue(akActor, "IEB_PMFRemoved", 1)
+            StorageUtil.FormListAdd(None, "IEB_PMFRemovedList", akActor, False)
             Diag(LOG_INFO(), "Amulet gate closed for " + akActor.GetDisplayName() + " (left PotentialMarriageFaction).")
         EndIf
     ElseIf StorageUtil.GetIntValue(akActor, "IEB_PMFRemoved", 0) == 1
+        Int rk = StorageUtil.GetIntValue(akActor, "IEB_PMFRank", 0)
         akActor.AddToFaction(pmf)
+        akActor.SetFactionRank(pmf, rk)
         StorageUtil.UnsetIntValue(akActor, "IEB_PMFRemoved")
-        Diag(LOG_INFO(), "Amulet gate OPEN for " + akActor.GetDisplayName() + " (PotentialMarriageFaction restored).")
+        StorageUtil.UnsetIntValue(akActor, "IEB_PMFRank")
+        StorageUtil.FormListRemove(None, "IEB_PMFRemovedList", akActor, True)
+        Diag(LOG_INFO(), "Amulet gate OPEN for " + akActor.GetDisplayName() + " (PotentialMarriageFaction restored at rank " + \
+            rk + ").")
     EndIf
 EndFunction
 
@@ -9124,4 +9130,63 @@ Bool Function IEB_NeverEnroll(Actor akActor) Global
         Return True
     EndIf
     Return False
+EndFunction
+
+; ============================================================================ Patch rv117 (amulet gate coverage, 2026-10-11)
+
+Bool Function IEB_ShouldBlockProposal(Actor akActor)
+    { The one marriage-gate rule, for the keyword and the amulet alike: never-enrolled (0 points) is closed; enrolled is
+      closed below SPOUSE_MIN, or by M3 (exclusivity >= CONSUMING_MIN with other partners). }
+    If !IsEnrolled(akActor)
+        Return True
+    EndIf
+    If PointsOf(akActor) < SPOUSE_MIN()
+        Return True
+    EndIf
+    Return StorageUtil.GetIntValue(akActor, "SNRom_Exclusivity", 50) >= CONSUMING_MIN() && SNRom_Decorators.OtherPartners(akActor) > 0
+EndFunction
+
+Bool Function IEB_WearingAmulet() Global
+    { The vanilla proposal condition: the player wears the Amulet of Mara (Skyrim.esm 0xC891B, GetEquipped). }
+    Form am = Game.GetFormFromFile(0x000C891B, "Skyrim.esm")
+    Return am != None && Game.GetPlayer().IsEquipped(am)
+EndFunction
+
+Function IEB_AmuletSweep()
+    { RV-117 (2): every LOADED actor in PotentialMarriageFaction (or one we took out) gets IEB_ShouldBlockProposal.
+      Called by SNRom_PlayerAlias while the amulet is worn. Children and the dead are skipped with nothing written. }
+    If !_ready
+        Return
+    EndIf
+    Faction pmf = Game.GetFormFromFile(0x00019809, "Skyrim.esm") as Faction
+    If pmf == None
+        Return
+    EndIf
+    Actor pl = Game.GetPlayer()
+    Actor[] near = MiscUtil.ScanCellNPCs(pl, 4096.0)   ; loaded cell(s) around the player, dead excluded
+    Int i = 0
+    While i < near.Length
+        Actor a = near[i]
+        If a != None && a != pl && !a.IsChild() && !a.IsDead()
+            If a.IsInFaction(pmf) || StorageUtil.GetIntValue(a, "IEB_PMFRemoved", 0) == 1
+                IEB_AmuletGate(a, IEB_ShouldBlockProposal(a))
+            EndIf
+        EndIf
+        i += 1
+    EndWhile
+EndFunction
+
+Function IEB_AmuletRestoreAll()
+    { RV-117 (2): the amulet came off (or a load found it off): the never-enrolled we took out go back at their own rank.
+      Enrolled actors stay with MaintainProposalGate. Walks backwards (removals shift the list). }
+    Int i = StorageUtil.FormListCount(None, "IEB_PMFRemovedList") - 1
+    While i >= 0
+        Actor a = StorageUtil.FormListGet(None, "IEB_PMFRemovedList", i) as Actor
+        If a == None
+            StorageUtil.FormListRemoveAt(None, "IEB_PMFRemovedList", i)
+        ElseIf !IsEnrolled(a)
+            IEB_AmuletGate(a, False)
+        EndIf
+        i -= 1
+    EndWhile
 EndFunction

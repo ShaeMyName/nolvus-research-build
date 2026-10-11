@@ -17,7 +17,8 @@ cd /c/nolvus-research/build/src/errandbridge/Source/Scripts
 list=("$@"); [ ${#list[@]} -eq 0 ] && list=(IEB_RankSync IEB_IELib IEB_NFFLib IEB_SALib IEB_CFData IEB_CFLib IEB_EssLib IEB_Notice IEB_Main IEB_PlayerAlias)
 for f in "${list[@]}"; do
   python C:/nolvus-research/build/tools/champ_guard.py --max-mb 4096 --timeout 300 --min-avail 3 -- "$CAP" "${FLAGS[@]}" -o 'C:\nolvus-research\build\bin\eb' -i "$EB;$ST;$REL;$SA;$S\po3;$RELV;$MAR;$IE;$IMP" $f.psc 2>&1 | grep -vE "^Importing|^Imported|W7000|W1004"
-  echo "== $f exit ${PIPESTATUS[0]}"
+  rc=${PIPESTATUS[0]}; echo "== $f exit $rc"
+  [ $rc -ne 0 ] && { echo "COMPILE FAIL: $f (build rejected; the old pex would stay in place)"; exit 1; }
 done
 # REVIEW_LOG RV-72 (a): post-build gate, fails on any array-vs-None compare in our pex (all our output folders)
 B=/c/nolvus-research/build/bin

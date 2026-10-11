@@ -11,7 +11,7 @@ The paused-chat slip (AI eligibility fails open while paused, SNRom_Bridge.psc M
 AI acceptance: not automated here; GATE-2/GATE-3 drive the same OnMarasStatusChanged path the slip ends in."""
 import re, time
 from block import test, checkpoint
-from tests_misc import F1, ctl_line, inc, s32, rank, iv, tail, su_set, parse_kv, fid_any_rx, _set_pts
+from tests_misc import F1, FRALIA, con, ctl_line, inc, s32, rank, iv, tail, su_set, parse_kv, fid_any_rx, _set_pts
 from tests_u3 import T0M, cast, maras_probe, maras_promote, status_is
 
 CONSUMING_MIN = 88      # SNRom_Bridge.psc CONSUMING_MIN() (Return 88)
@@ -77,6 +77,45 @@ def gate1(r):
     r.check(bool(hi) and iv(hi, "pmfRm") == 0, "above: IEB_PMFRemoved unset (%s)" % (hi and hi.get("pmfRm")))
     txt = t.read()
     r.check("Amulet gate closed for" in txt and "Amulet gate OPEN for" in txt, "snrom.log: one closed + one OPEN line")
+
+
+AMULET = 0x000C891B     # Skyrim.esm Amulet of Mara (the proposal INFOs' GetEquipped, run on the player)
+
+
+@test("GATE-1b", "GATE", save="T0-M", reload=True)
+def gate1b(r):
+    """RV-117: a NEVER-enrolled marriageable adult (Fralia, given PotentialMarriageFaction at rank 1 by console - an
+    adult only, T0-M reloads after) is taken out of the faction while the player WEARS the amulet (SNRom_PlayerAlias
+    watch -> IEB_AmuletSweep), and put back AT RANK 1 (not AddToFaction's 0) when it comes off."""
+    g0 = gate(r, FRALIA)
+    if not g0:
+        return inc(r, "Fralia: no GATE line")
+    if iv(g0, "child") != 0:
+        return inc(r, "Fralia: child=1, refused")
+    if iv(rank(r, FRALIA) or {}, "tier") >= 0:
+        return inc(r, "Fralia is enrolled in T0-M; this test needs a never-enrolled actor")
+    con(r, "%08X.moveto player" % FRALIA)
+    con(r, "%08X.addfac 00019809 1" % FRALIA)
+    time.sleep(3)
+    g1 = gate(r, FRALIA)
+    if not g1 or iv(g1, "pmf") != 1:
+        return inc(r, "setup: Fralia not in PotentialMarriageFaction at rank 1 (pmf=%s)" % (g1 and g1.get("pmf")))
+    checkpoint(r)
+    t = tail("snrom")
+    con(r, "player.additem %08X 1" % AMULET)
+    con(r, "player.equipitem %08X" % AMULET)
+    time.sleep(8)
+    on = gate(r, FRALIA)
+    r.check(bool(on) and iv(on, "pmf") == -2 and iv(on, "pmfRm") == 1,
+            "amulet worn: never-enrolled Fralia out of PotentialMarriageFaction (pmf=%s pmfRm=%s)"
+            % (on and on.get("pmf"), on and on.get("pmfRm")))
+    con(r, "player.unequipitem %08X" % AMULET)
+    time.sleep(5)
+    off = gate(r, FRALIA)
+    r.check(bool(off) and iv(off, "pmf") == 1, "amulet off: back in the faction AT RANK 1 (pmf=%s)" % (off and off.get("pmf")))
+    r.check(bool(off) and iv(off, "pmfRm") == 0, "amulet off: IEB_PMFRemoved cleared (%s)" % (off and off.get("pmfRm")))
+    txt = t.read()
+    r.check("restored at rank 1" in txt, "snrom.log: 'restored at rank 1'")
 
 
 def _backstop(r, why, setup):

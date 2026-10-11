@@ -7,8 +7,10 @@ IMP="$S\stubs;$S\vanilla_fixes;$S\skse;$S\papyrusutil;$S\po3;$S\skyrimnet;$S\van
 DEP='C:\nolvus-research\repos\SkyrimNet-Relationships\src\scripts;C:\nolvus-research\repos\maras\Scripts\Source;C:\nolvus-research\build\stubs'
 SA='C:\Nolvus\Instances\Nolvus Awakening\MODS\mods\SeverActions\Source\Scripts'
 build() { # $1 src dir (posix)  $2 src dir (win)  $3 out (win)
-  for f in SNRom_Decorators SNRom_Bridge; do
-    (cd "$1" && python C:/nolvus-research/build/tools/champ_guard.py --max-mb 4096 --timeout 300 --min-avail 3 -- "$CAP" "${FLAGS[@]}" -o "$3" -i "$2;$DEP;$IMP;$SA" $f.psc 2>&1 | grep -vE "^Importing|^Imported|W7000" ) ; echo "== $f -> $3"
+  for f in SNRom_Decorators SNRom_Bridge SNRom_PlayerAlias; do   # PlayerAlias: patch rv117 (2026-10-11)
+    (cd "$1" && python C:/nolvus-research/build/tools/champ_guard.py --max-mb 4096 --timeout 300 --min-avail 3 -- "$CAP" "${FLAGS[@]}" -o "$3" -i "$2;$DEP;$IMP;$SA" $f.psc 2>&1 | grep -vE "^Importing|^Imported|W7000"; exit ${PIPESTATUS[0]} ); rc=$?; echo "== $f -> $3 exit $rc"
+    # 2026-10-11: a failed compile leaves the OLD pex in place; stop instead of gating/installing a stale build
+    [ $rc -ne 0 ] && { echo "COMPILE FAIL: $f (build rejected)"; exit 1; }
   done
 }
 build /c/nolvus-research/build/src/relationships/src/scripts 'C:\nolvus-research\build\src\relationships\src\scripts' 'C:\nolvus-research\build\bin\rel_patched'

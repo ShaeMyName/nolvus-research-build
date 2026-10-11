@@ -10,7 +10,8 @@ mkdir -p "$(cygpath -u "$OUT")"
 cd /c/nolvus-research/build/src/scenecontrols_shell
 for f in IEB_SceneMain IEB_BeastFormHook IEB_SceneActions; do
   python C:/nolvus-research/build/tools/champ_guard.py --max-mb 4096 --timeout 300 --min-avail 3 -- "$CAP" "${FLAGS[@]}" -o "$OUT" -i "$SRC;$ST;$IMP" $f.psc 2>&1 | grep -vE "^Importing|^Imported|W7000|W1004"
-  echo "== $f exit ${PIPESTATUS[0]}"
+  rc=${PIPESTATUS[0]}; echo "== $f exit $rc"
+  [ $rc -ne 0 ] && { echo "COMPILE FAIL: $f (build rejected; the old pex would stay in place)"; exit 1; }
 done
 # REVIEW_LOG RV-72 (a): post-build gate, fails on any array-vs-None compare in our pex (all our output folders)
 B=/c/nolvus-research/build/bin
