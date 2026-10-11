@@ -7,8 +7,8 @@ Not automated here (and why):
 - E-6: overlay + interrupt hotkey mid-line -> S (Shae) or a later harness 'purge' variant.
 - E-9: N/A by design (Piper narrator kept). E-10: N/A (time plan §3.4).
 - RE-1, RE-4, RE-6: stance variety needs a judgement of reply text -> JUDGE stub (counts only) + INCONCLUSIVE.
-- RE-2: silenceChancePercent 50 vs 80 needs a config change with the game closed -> U3. NOTE: the test config has
-  silenceChancePercent 50, the spec §11.5 setting is 75 (config drift, reported to the reviewer).
+- RE-2: silenceChancePercent 50 vs 80 needs a config change with the game closed -> U3. The design value is 50
+  (Shae 2026-10-07, DECISIONS:132; spec §11.5 corrected 2026-10-11).
 - RE-5: soak (R7)."""
 import re, time
 import game
