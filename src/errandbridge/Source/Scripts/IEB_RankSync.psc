@@ -106,6 +106,7 @@ Function Apply(Actor akActor) Global
 
     String ms = MarasStatus(akActor)
     If ms == "jilted" || ms == "divorced"
+        Log("RANKSYNC actor=" + who + " why=skip:maras")   ; RS-3 / RS-10(d) proof line
         Return                                  ; no write at all
     EndIf
 

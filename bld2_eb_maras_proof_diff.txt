@@ -1,0 +1,14 @@
+# BLD-2 consumer proof (d): MARAS_EVT log in IEB_Main.OnMarasStatusChanged; RANKSYNC why=skip:maras in IEB_RankSync.Apply. A = installed pex, B = this build.
+functions: A 45, B 45
+call sites: A 534, B 537
+  onmarasstatuschanged               getdisplayname                                 0 -> 1
+  onmarasstatuschanged               log                                            0 -> 2
+DIFFERENT
+functions: A 13, B 13
+call sites: A 59, B 60
+  apply                              ieb_ranksync.log                               5 -> 6
+DIFFERENT
+ok   IEB_Main: 13 properties, identical to the shell
+ok   IEB_PlayerAlias: 0 properties, identical to the shell
+FREEZE CHECK: PASS
+Other bridge pex: call sites IDENTICAL (byte diffs are compile headers).

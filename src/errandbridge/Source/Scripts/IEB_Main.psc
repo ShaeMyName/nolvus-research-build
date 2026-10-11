@@ -79,7 +79,13 @@ EndEvent
 
 Event OnMarasStatusChanged(String asEventName, String asStatus, Float afStatusEnum, Form akSender)
     {Rank-sync hook 2 (spec §11.14.1). Cheap and stateless, so it runs here rather than in the tick.}
-    IEB_RankSync.OnMarasStatus(akSender as Actor)
+    Actor m = akSender as Actor                      ; consumer proof (d): the event must be seen to arrive
+    If m != None
+        Log(1, "MARAS_EVT actor=" + m.GetDisplayName() + " status=" + asStatus)
+    Else
+        Log(1, "MARAS_EVT actor=none status=" + asStatus)
+    EndIf
+    IEB_RankSync.OnMarasStatus(m)
 EndEvent
 
 ; ============================================================================ worker
