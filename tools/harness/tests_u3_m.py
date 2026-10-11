@@ -23,7 +23,7 @@ from tests_u3 import (T0M, SANDBOX_EDID, cast, status_is, maras_probe, maras_deb
                       maras_tail, probe_raw, pkg_hex, pkg_edid, errand_arm, screenshot)
 
 ENT4 = {"save": "T0-ENT4",   # made in S-A after Shae appoints the steward (time plan :289); blocks_def's U3E save
-        "steward": None}     # the NFF follower appointed as SA steward and told to wait (NFF Wait)
+        "steward": 0x00091918}  # Uthgerd: appointed SA steward + told to wait in Shae's S-A sitting (sitting_SA_sheet.md item 1)
 ENT4_MIN_DAYS, ENT4_MAX_DAYS, ENT4_WALL_MAX_S = 4.0, 5.0, 95 * 60
 MA45_HOURS, MA45_WALL_MAX_S = 24.0, 25 * 60
 
