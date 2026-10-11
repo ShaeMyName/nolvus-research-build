@@ -1235,9 +1235,32 @@ Function HeldProbe(Int aiFormId)
         Log("HELDPROBE none")
         Return
     EndIf
-    Log("HELDPROBE " + a.GetDisplayName() + " slot=" + IEB_IELib.SlotOf(a) + " type=" + IEB_IELib.DecisionTaskType(a) \
+    ; REVIEW_LOG RV-70 (a): the raw parts of DecisionTaskType, to tell which one reads blank
+    Int slot = IEB_IELib.SlotOf(a)
+    String raw = " ieType=" + StorageUtil.GetStringValue(a, "Intel_TaskType", "")
+    IntelEngine_Core core = IEB_IELib.IEQuest() as IntelEngine_Core
+    If core != None && slot >= 0 && core.SlotStates != None && slot < core.SlotStates.Length
+        raw += " slotState=" + core.SlotStates[slot] + " slotType=" + core.SlotTaskTypes[slot]
+    EndIf
+    Log("HELDPROBE " + a.GetDisplayName() + " slot=" + slot + " type=" + IEB_IELib.DecisionTaskType(a) + raw \
         + " held=" + StorageUtil.GetIntValue(a, "IEB_Held", 0) + " mode=" + StorageUtil.GetIntValue(a, "IEB_Mode", 0) \
         + " wfp=" + a.GetActorValue("WaitingForPlayer") + " tm=" + a.IsPlayerTeammate())
+EndFunction
+
+Function SlotsProbe()
+    {REVIEW_LOG RV-70 (c): every IntelEngine slot right now (is T0 clean?).}
+    IntelEngine_Core core = IEB_IELib.IEQuest() as IntelEngine_Core
+    If core == None || core.SlotStates == None
+        Log("SLOTSPROBE none")
+        Return
+    EndIf
+    String out = ""
+    Int i = 0
+    While i < core.SlotStates.Length
+        out += " [" + i + " state=" + core.SlotStates[i] + " type=" + core.SlotTaskTypes[i] + "]"
+        i += 1
+    EndWhile
+    Log("SLOTSPROBE" + out)
 EndFunction
 
 Function MenuProbe()

@@ -1,6 +1,6 @@
 """Post-U1 IntelEngine hunks (post_u1_build_plan §1 timer fix F1/F2, §2 slot race) on build/src/intelengine.
 Usage: apply_patch_ie_s1s2.py <group>. Every anchor must match exactly once (CRLF kept). Same edit() as apply_patch_b.py.
-Groups: f1 | f2 | core-slot | callers | core-expiry | rv68 | rv68b"""
+Groups: f1 | f2 | core-slot | callers | core-expiry | rv68 | rv68b | rv70"""
 import sys
 
 D = "C:/nolvus-research/build/src/intelengine/Source/Scripts/"
@@ -605,6 +605,76 @@ elif G == "rv68b":   # RV-68-close (a): a refusal cannot re-apply a SkyrimNet fo
     Int doorCell = StorageUtil.GetIntValue(npc, "Intel_UnlockedHomeCellId")
     If doorCell != 0
         DebugMsg("DOOR_LEFT_UNLOCKED " + npc.GetDisplayName() + " cell=" + doorCell)
+"""),
+])
+elif G == "rv70":   # REVIEW_LOG RV-70 (c): say which condition makes the poll fast (once per change, no spam)
+    edit("IntelEngine_StoryEngine.psc", [
+("""Bool Function IEB_NeedsFastTick()
+    {Patch F2: True while any IntelEngine task slot is active or Battle has anything to poll.}
+    If Core == None
+        return false
+    EndIf
+    Int[] states = Core.SlotStates
+    If states != None
+        Int i = 0
+        While i < states.Length
+            If states[i] != 0
+                return true
+            EndIf
+            i += 1
+        EndWhile
+    EndIf
+    IntelEngine_Battle b = Core.Battle
+    If b != None
+        If b.ManifestActive || b.DeferredCleanupActive || b.PendingPollActive
+            return true
+        EndIf
+    EndIf
+    return IntelEngine.IsBattleActive()
+EndFunction
+""",
+"""String IEB_LastFastWhy = ""
+
+Bool Function IEB_NeedsFastTick()
+    {Patch F2: True while any IntelEngine task slot is active or Battle has anything to poll.
+     REVIEW_LOG RV-70 (c): the reason is logged once each time it changes (IEB_FASTTICK), "idle" when it ends.}
+    String why = IEB_FastWhy()
+    If why != IEB_LastFastWhy
+        IEB_LastFastWhy = why
+        Core.DebugMsg("IEB_FASTTICK " + why)
+    EndIf
+    return why != "idle"
+EndFunction
+
+String Function IEB_FastWhy()
+    If Core == None
+        return "idle"
+    EndIf
+    Int[] states = Core.SlotStates
+    If states != None
+        Int i = 0
+        While i < states.Length
+            If states[i] != 0
+                String t = ""
+                If Core.SlotTaskTypes != None && i < Core.SlotTaskTypes.Length
+                    t = Core.SlotTaskTypes[i]
+                EndIf
+                return "slot=" + i + " state=" + states[i] + " type=" + t
+            EndIf
+            i += 1
+        EndWhile
+    EndIf
+    IntelEngine_Battle b = Core.Battle
+    If b != None
+        If b.ManifestActive || b.DeferredCleanupActive || b.PendingPollActive
+            return "battle manifest=" + b.ManifestActive + " cleanup=" + b.DeferredCleanupActive + " pending=" + b.PendingPollActive
+        EndIf
+    EndIf
+    If IntelEngine.IsBattleActive()
+        return "battle native"
+    EndIf
+    return "idle"
+EndFunction
 """),
 ])
 else:

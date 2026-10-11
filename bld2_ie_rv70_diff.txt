@@ -1,0 +1,10 @@
+# BLD-2 RV-70 (c) fast-tick reason log. Tool tools/ie_callsites.py. A = e92b762 StoryEngine.pex, B = this build. Expect: IEB_NeedsFastTick reads IEB_FastWhy (new) and logs IEB_FASTTICK on change; one new script variable IEB_LastFastWhy (not a property); Core/Battle/Travel/NPCTasks identical.
+functions: A 102, B 103
+  FUNC only in B: <auto>.ieb_fastwhy((), 'string')
+  VARIABLES only in B: ('ieb_lastfastwhy', 'string')
+call sites: A 2002, B 2004
+  ieb_fastwhy                        intelengine.isbattleactive                     0 -> 1
+  ieb_needsfasttick                  debugmsg                                       0 -> 1
+  ieb_needsfasttick                  ieb_fastwhy                                    0 -> 1
+  ieb_needsfasttick                  intelengine.isbattleactive                     1 -> 0
+DIFFERENT

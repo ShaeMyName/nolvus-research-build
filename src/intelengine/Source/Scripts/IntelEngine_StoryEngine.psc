@@ -253,17 +253,33 @@ Function StartScheduler()
     EndIf
 EndFunction
 
+String IEB_LastFastWhy = ""
+
 Bool Function IEB_NeedsFastTick()
-    {Patch F2: True while any IntelEngine task slot is active or Battle has anything to poll.}
+    {Patch F2: True while any IntelEngine task slot is active or Battle has anything to poll.
+     REVIEW_LOG RV-70 (c): the reason is logged once each time it changes (IEB_FASTTICK), "idle" when it ends.}
+    String why = IEB_FastWhy()
+    If why != IEB_LastFastWhy
+        IEB_LastFastWhy = why
+        Core.DebugMsg("IEB_FASTTICK " + why)
+    EndIf
+    return why != "idle"
+EndFunction
+
+String Function IEB_FastWhy()
     If Core == None
-        return false
+        return "idle"
     EndIf
     Int[] states = Core.SlotStates
     If states != None
         Int i = 0
         While i < states.Length
             If states[i] != 0
-                return true
+                String t = ""
+                If Core.SlotTaskTypes != None && i < Core.SlotTaskTypes.Length
+                    t = Core.SlotTaskTypes[i]
+                EndIf
+                return "slot=" + i + " state=" + states[i] + " type=" + t
             EndIf
             i += 1
         EndWhile
@@ -271,10 +287,13 @@ Bool Function IEB_NeedsFastTick()
     IntelEngine_Battle b = Core.Battle
     If b != None
         If b.ManifestActive || b.DeferredCleanupActive || b.PendingPollActive
-            return true
+            return "battle manifest=" + b.ManifestActive + " cleanup=" + b.DeferredCleanupActive + " pending=" + b.PendingPollActive
         EndIf
     EndIf
-    return IntelEngine.IsBattleActive()
+    If IntelEngine.IsBattleActive()
+        return "battle native"
+    EndIf
+    return "idle"
 EndFunction
 
 Function StopScheduler()

@@ -74,6 +74,7 @@ class Run:
         "ConfigProbe": "(?i:CONFIGPROBE) ",
         "MenuProbe": "(?i:MENUPROBE) ",
         "HeldProbe": "HELDPROBE ",
+        "SlotsProbe": "SLOTSPROBE",
         "AutoSaveNow": "AUTOSAVE requested",
         "NFFGuardOn": "NFFGuardOn",
         "NFFStaleFac": "NFFStaleFac",
