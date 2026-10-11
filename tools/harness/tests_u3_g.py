@@ -290,7 +290,7 @@ def x10(r):
 
 # ============================================================================ RE-2 (R-2): silenceChancePercent 50 -> 80 -> 50
 
-RE2_WRITE_APPROVED = False      # FOR_SHAE (RV-91-corr): SkyrimNet.yaml writes beyond gamemaster.enabled need Shae
+RE2_WRITE_APPROVED = True       # Shae 2026-10-11 (REVIEW_LOG RV-109-upd (1)): TEST-config write for RE-2 only
 RE2_BASE, RE2_HIGH = 50, 80
 _SIL_RX = re.compile(rb"(\ndialogue:\r?\n(?:  [^\r\n]*\r?\n)*?  speakerSelector:\r?\n(?:    [^\r\n]*\r?\n)*?"
                      rb"    silenceChancePercent: )(\d+)(\r?\n)")

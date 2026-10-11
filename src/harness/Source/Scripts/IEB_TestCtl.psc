@@ -2192,6 +2192,32 @@ String Function Def(String s, String d)
     Return s
 EndFunction
 
+; --- RV-98 gate tests (tests_u3_gate.py, 2026-10-11). Numbers and flags only.
+
+Function GateProbe(Int aiFormId)
+    {RV-98: the marriage gate's state for one actor: MARAS status enum (-1 unregistered), Relationships points, the
+     TTM_IgnoreProposal keyword on the ref, PotentialMarriageFaction (Skyrim.esm 0x19809; -2 = not a member), the
+     IEB_PMFRemoved marker, SNRom_Exclusivity (50 = unset default), OtherPartners, child flag.
+     Logs GATE <actor> st= pts= kw= pmf= pmfRm= excl= other= child=.}
+    Actor a = A(aiFormId)
+    If a == None
+        Return
+    EndIf
+    Keyword kw = Keyword.GetKeyword("TTM_IgnoreProposal")
+    Int hasKw = -1
+    If kw != None
+        hasKw = a.HasKeyword(kw) as Int
+    EndIf
+    Int pmf = MarasFR(a, 0x19809, "Skyrim.esm")
+    If pmf > -3 && !a.IsInFaction(Game.GetFormFromFile(0x19809, "Skyrim.esm") as Faction)
+        pmf = -2
+    EndIf
+    Log("GATE " + Watcher().Hex(a) + " st=" + MARAS.GetNpcStatusEnum(a) + " pts=" + SNRom_Bridge.PointsOf(a) + " kw=" + hasKw \
+        + " pmf=" + pmf + " pmfRm=" + StorageUtil.GetIntValue(a, "IEB_PMFRemoved", 0) \
+        + " excl=" + StorageUtil.GetIntValue(a, "SNRom_Exclusivity", 50) + " other=" + SNRom_Decorators.OtherPartners(a) \
+        + " child=" + (a.IsChild() as Int))
+EndFunction
+
 Function Log(String asMsg)
     Debug.Trace("[IEB-TEST] " + asMsg)
 EndFunction

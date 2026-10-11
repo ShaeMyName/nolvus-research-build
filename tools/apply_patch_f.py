@@ -895,6 +895,128 @@ elif G == "headstart-spark":   # REVIEW_LOG RV-77 (1): BeginSpark enrols without
 """),
     ])
 
+elif G == "rv98":   # REVIEW_LOG RV-98 / RV-109 (Shae 2026-10-11, "A both ways"): prevent + backstop + the amulet gate
+    # MARAS 0.11.0 has no path back to "candidate" (PromoteNPCToStatus lacks the case, RegisterCandidate refuses a
+    # registered NPC), so the old revert always leaked. (a) prevent: the proposal keyword also closes for the M3 case,
+    # and the vanilla Amulet-of-Mara proposal is closed by taking the NPC out of PotentialMarriageFaction below the
+    # threshold (restored when the gate opens). (b') backstop: re-register exactly as MARAS's own death cleanup does
+    # (UnregisterNPC -> ResetMarriageQuests -> RegisterCandidate), after a wait and a re-check against MARAS's parallel
+    # engaged handler. The threshold stays SPOUSE_MIN(), the ONE function (2500).
+    edit(B, [
+("""    Bool shouldBlock = PointsOf(akActor) < SPOUSE_MIN()
+    Bool isBlocked   = akActor.HasKeyword(kw)
+    If shouldBlock == isBlocked
+        Return                                  ; already correct - the common case
+    EndIf""",
+"""    Bool shouldBlock = PointsOf(akActor) < SPOUSE_MIN()
+    ; Patch RV-98 (a): M3 also closes the gate (exclusivity >= CONSUMING_MIN with other partners)
+    If !shouldBlock && StorageUtil.GetIntValue(akActor, "SNRom_Exclusivity", 50) >= CONSUMING_MIN() && SNRom_Decorators.OtherPartners(akActor) > 0
+        shouldBlock = True
+    EndIf
+    IEB_AmuletGate(akActor, shouldBlock)       ; Patch RV-98 (a): the vanilla amulet proposal path
+    Bool isBlocked   = akActor.HasKeyword(kw)
+    If shouldBlock == isBlocked
+        Return                                  ; already correct - the common case
+    EndIf"""),
+("""        If StorageUtil.GetIntValue(who, "SNRom_Exclusivity", 50) >= CONSUMING_MIN() && SNRom_Decorators.OtherPartners(who) > 0
+            If MARAS.PromoteNPCToStatus(who, "candidate")""",
+"""        If StorageUtil.GetIntValue(who, "SNRom_Exclusivity", 50) >= CONSUMING_MIN() && SNRom_Decorators.OtherPartners(who) > 0
+            If IEB_BackToCandidate(who, "exclusivity")   ; Patch RV-98 (b'): MARAS has no candidate promotion"""),
+("""        If held < SPOUSE_MIN()
+            If MARAS.PromoteNPCToStatus(who, "candidate")""",
+"""        If held < SPOUSE_MIN()
+            If IEB_BackToCandidate(who, "points")         ; Patch RV-98 (b'): MARAS has no candidate promotion"""),
+])
+    append(B, """
+; ============================================================================ Patch RV-98 (Shae 2026-10-11)
+
+Bool Function IEB_BackToCandidate(Actor who, String asWhy)
+    { RV-98 (b') backstop. MARAS 0.11.0 cannot promote to "candidate" (PapyrusInterface.cpp:201-213) and refuses to
+      re-register a registered NPC (NPCRelationshipManager.cpp:192-198), so the only real route back is MARAS's own
+      death-cleanup order: UnregisterNPC -> ResetMarriageQuests -> RegisterCandidate (TTM_ServiceRelationships.psc:125-127).
+      MARAS's own engaged handler (MakeNpcEngaged: skip-wedding box, quest start) runs in parallel, so wait, then act only
+      if the NPC is STILL engaged; a player who chose to skip the wedding meanwhile keeps the marriage. }
+    If who == None || who.IsDead()
+        Return False
+    EndIf
+    Utility.Wait(3.0)
+    If !MARAS.IsNPCStatus(who, "engaged")
+        Diag(LOG_INFO(), "Engagement backstop (" + asWhy + ") skipped for " + who.GetDisplayName() + \\
+            ": no longer engaged after the wait." + MarasStateLine(who))
+        Return False
+    EndIf
+    MARAS.UnregisterNPC(who)
+    TTM_ServiceMarriageQuest.ResetMarriageQuests(who)
+    Bool reg = MARAS.RegisterCandidate(who)
+    Utility.Wait(1.0)
+    Bool ok = reg && MARAS.IsNPCStatus(who, "candidate")
+    If ok
+        Diag(LOG_INFO(), "Engagement backstop (" + asWhy + "): " + who.GetDisplayName() + \\
+            " re-registered as candidate (unregister, reset marriage quests, register)." + MarasStateLine(who))
+    Else
+        Diag(LOG_ERROR(), "Engagement backstop (" + asWhy + ") FAILED for " + who.GetDisplayName() + \\
+            " (register=" + reg + ")." + MarasStateLine(who))
+    EndIf
+    Return ok
+EndFunction
+
+Function IEB_AmuletGate(Actor akActor, Bool abBlock)
+    { RV-98 (a), the amulet path: Skyrim.esm's RelationshipMarriage proposal INFOs require PotentialMarriageFaction
+      (0x00019809), which MARAS adds at registration (NPCRelationshipManager.cpp:962-964) and which never sends MARAS an
+      "engaged" event. Below the gate the NPC leaves that faction (remembered in IEB_PMFRemoved); when the gate opens the
+      membership comes back. Only a membership we removed is ever restored. }
+    Faction pmf = Game.GetFormFromFile(0x00019809, "Skyrim.esm") as Faction
+    If pmf == None || akActor == None
+        Return
+    EndIf
+    If abBlock
+        If akActor.IsInFaction(pmf)
+            akActor.RemoveFromFaction(pmf)
+            StorageUtil.SetIntValue(akActor, "IEB_PMFRemoved", 1)
+            Diag(LOG_INFO(), "Amulet gate closed for " + akActor.GetDisplayName() + " (left PotentialMarriageFaction).")
+        EndIf
+    ElseIf StorageUtil.GetIntValue(akActor, "IEB_PMFRemoved", 0) == 1
+        akActor.AddToFaction(pmf)
+        StorageUtil.UnsetIntValue(akActor, "IEB_PMFRemoved")
+        Diag(LOG_INFO(), "Amulet gate OPEN for " + akActor.GetDisplayName() + " (PotentialMarriageFaction restored).")
+    EndIf
+EndFunction
+""")
+elif G == "rv98c":  # 2026-10-11 child-safety follow-up to RV-98 (spouse_min_per_npc.md §9): the proposal gate had no
+    # child check (an enrolled child at the threshold would have its keyword removed = gate opened), and the ENGAGED gate
+    # returns early for non-enrolled actors, so a child MARAS engaged (MARAS has no child check) would never be reverted.
+    # (1) the gate never opens for a child (no write at all); (2) a child MARAS reports as engaged/married is taken OUT of
+    # MARAS (unregister + reset the marriage quests, no re-register) with an ERROR line. Protective removal only.
+    edit(B, [
+("""    Bool shouldBlock = PointsOf(akActor) < SPOUSE_MIN()
+    ; Patch RV-98 (a): M3 also closes the gate""",
+"""    If akActor.IsChild()
+        Return                                  ; Patch rv98c: never opened for a child, nothing written
+    EndIf
+    Bool shouldBlock = PointsOf(akActor) < SPOUSE_MIN()
+    ; Patch RV-98 (a): M3 also closes the gate"""),
+("""    ; Patch M4' (IEB §11.12.3): auto-enroll on courtship (candidate / engaged / married)
+    String ieSt = SNRom_Decorators.Upper(SNRom_Decorators.Trim(asStatus))""",
+"""    ; Patch M4' (IEB §11.12.3): auto-enroll on courtship (candidate / engaged / married)
+    String ieSt = SNRom_Decorators.Upper(SNRom_Decorators.Trim(asStatus))
+    If who.IsChild() && (ieSt == "ENGAGED" || ieSt == "MARRIED")
+        IEB_ChildOutOfMaras(who, ieSt)          ; Patch rv98c
+        Return
+    EndIf"""),
+])
+    append(B, """
+; ============================================================================ Patch rv98c (child safety, 2026-10-11)
+
+Function IEB_ChildOutOfMaras(Actor who, String asStatus)
+    { MARAS has no child check, and nothing here may leave romance state on a child. Remove it from MARAS entirely
+      (UnregisterNPC + ResetMarriageQuests, MARAS's own cleanup order, TTM_ServiceRelationships.psc:125-126) and say so
+      at ERROR. No re-register, no Relationships enrollment, no points. }
+    MARAS.UnregisterNPC(who)
+    TTM_ServiceMarriageQuest.ResetMarriageQuests(who)
+    Diag(LOG_ERROR(), "MARAS reported a CHILD as " + asStatus + " (" + who.GetDisplayName() + \\
+        "); removed from MARAS (unregister + marriage quests reset). Nothing else was written.")
+EndFunction
+""")
 else:
     raise SystemExit("unknown group " + G)
 print("applied", G)

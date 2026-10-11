@@ -30,6 +30,11 @@ BZ_DOOR = 0x0001A6F9     # Breezehome exterior door (HousePurchase alias Whiteru
 BZ_LOC = 0x0001F86F      # WhiterunBreezehomeLocation (carries LocTypePlayerHouse 0xFC1A3)
 BZ_CELL = 0x000165A8     # WhiterunBreezehome (HousePurchase property WhiterunHouse)
 PLAYER_FACTION = 0x00000DB1
+JARL = 0x0001A677        # Whiterun Jarl ref (base 0x13BBD BalgruuftheGreater, Skyrim.esm ACHR)
+QG_FACTION = 0x000A2CA2  # Favor253QuestGiverFaction: the 0xA2C9E QuestGiver alias needs it (USSEP QUST alias CTDA)
+OUTSIDE = (0x0001B743, 0x0001B74F)   # Riverwood guard refs (Imperial01 / SonsOfSkyrim01): RiverwoodLocation 0x13163,
+                                     # not a LocTypeDwelling; one of the two sets is enabled per civil-war state
+RIVERWOOD_LOC = 0x00013163
 HP_PRICE = 25000         # HPWhiterun 0xF728B, winner Nolvus Awakening Economy Patch.esp
 MARAS_LOG = game.DOCS + "SKSE/MARAS.log"
 LOG = []
@@ -246,13 +251,37 @@ def build():
     if iv(w, "f25") == 1 and iv(w, "hcDis") == 0:
         step(4, "housecarl", "already done in %s" % SAVE_FROM)
     else:
-        con("setstage 000A2C9E 25")
-        for _ in range(10):
-            time.sleep(2)
+        # 2026-10-11 run 1 ABORTed here: 0xA2C9E is a Change Location story-manager quest (ENAM CLOC; alias Location
+        # filled From Event L2, USSEP override; SMQN 0xC0609: L2 == WhiterunLocation 0x18A56; parent SMBN 0xB2440: L2 has
+        # LocTypeHabitation, L1 lacks LocTypeDwelling), so a console setstage cannot start it (no event data), and its
+        # QuestGiver alias also needs the Jarl in Favor253QuestGiverFaction (normally added by the favour system).
+        # Recreate that: faction on the Jarl, the player out to Riverwood (not a Dwelling) and back into WhiterunLocation
+        # (the CLOC event that starts the quest), then the stage. INFERRED: a console moveto fires the CLOC event.
+        def stage25(tries):
+            con("setstage 000A2C9E 25")
+            for _ in range(tries):
+                time.sleep(2)
+                ww = world()
+                if iv(ww, "f25") == 1 and iv(ww, "hcDis") == 0:
+                    return ww
+            return ww
+        con("%08X.addfac %08X 0" % (JARL, QG_FACTION))
+        time.sleep(2)
+        out = None
+        for ref in OUTSIDE:
+            con("player.moveto %08X" % ref)
+            time.sleep(12)
             w = world()
-            if iv(w, "f25") == 1 and iv(w, "hcDis") == 0:
+            if is_fid(w.get("loc"), RIVERWOOD_LOC):
+                out = ref
                 break
-        need(iv(w, "f25") == 1, "0xA2C9E stage 25 not done after setstage")
+            say("  moveto %08X: loc=%s, not RiverwoodLocation" % (ref, w.get("loc")))
+        need(out is not None, "could not reach RiverwoodLocation for the location-change start (loc=%s)" % w.get("loc"))
+        con("player.moveto %08X" % BZ_DOOR)
+        time.sleep(15)
+        w = stage25(10)
+        need(iv(w, "f25") == 1, "0xA2C9E stage 25 not done after the Jarl faction + Riverwood -> Whiterun re-entry "
+                                "(loc=%s)" % w.get("loc"))
         need(iv(w, "hcDis") == 0, "housecarl 0xA2C94 still disabled")
         step(4, "housecarl", "f25=1 f200=%s hcDis=0" % w.get("f200"))
 
