@@ -88,5 +88,6 @@
  "MARAS Config/SKSE/Plugins/PackageOverrides.ini": "be377dc8e763e024",
  "IE NoWipe + Dispatch Guard/Scripts/IntelEngine_NPCTasks.pex": "610cf788a4910cfb",
  "IE NoWipe + Dispatch Guard/Scripts/IntelEngine_Travel.pex": "27f10bf354a4b649",
- "Lucienne - Private (TEST STUB)/SKSE/Plugins/SkyrimNet/external/shae.lucienne/prompts/submodules/character_bio/0956_luc_azura_priestess.prompt": "d07e5e27a5542666"
+ "Lucienne - Private (TEST STUB)/SKSE/Plugins/SkyrimNet/external/shae.lucienne/prompts/submodules/character_bio/0956_luc_azura_priestess.prompt": "d07e5e27a5542666",
+ "IE NoWipe + Dispatch Guard/Scripts/IntelEngine_Schedule.pex": "670744f9efa02605"
 }
