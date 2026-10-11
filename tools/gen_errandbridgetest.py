@@ -14,6 +14,9 @@ never in Lucienne's profile, so the freeze rule does not apply (records may chan
                                    DefaultSandboxCurrentLocation256 (Skyrim.esm 0x0956B8), a harmless sandbox where the
                                    actor stands, recognisable by FormID, instead of a new PACK at a test marker: the
                                    plugin writer has no proven PACK record.
+  QUST 0x840 IEB_TestPkgQuest      [ADDED 2026-10-11, REVIEW_LOG R36-upd (c)] start game; one optional, EMPTY reference
+                                   alias "PkgWatch" with NO package, carrying script IEB_PkgWatch (OnPackageStart/Change/End
+                                   -> [IEB-TEST] PKGEVT lines); filled by IEB_TestCtl.PkgWatch, cleared by PkgUnwatch.
 Writes build/out/ErrandBridgeTest.esp and checks the round trip."""
 import os, struct, sys
 sys.path.insert(0, os.path.dirname(__file__))
@@ -24,7 +27,7 @@ SELF = 0x01000000
 PLAYER_BASE = 0x00000007
 SANDBOX_PKG = 0x000956B8
 GLOBALS = [(0x800, "IEB_TestCFRefuse", "s", 0), (0x801, "IEB_TestWatch", "s", 1), (0x802, "IEB_TestSoakProbe", "s", 0)]
-TEST_Q, STORY_Q, SOAK_Q = 0x810, 0x820, 0x830
+TEST_Q, STORY_Q, SOAK_Q, PKG_Q = 0x810, 0x820, 0x830, 0x840
 TEST_SCRIPTS = ["IEB_Watcher", "IEB_TestCtl"]
 SOAK_SCRIPTS = ["IEB_SoakProbe"]
 ALIAS_FLAGS = 0x00010202     # Optional | Allow Reserved | Allow Cleared
@@ -68,9 +71,20 @@ def story_quest():
         sub("ALPC", SANDBOX_PKG), raw("VTCK", bytes(4)), sub("ALED", None)])
 
 
+def pkg_quest():
+    vmad = {"version": 5, "objFormat": 2, "scripts": [],
+            "quest": {"unk": 2, "fragments": [], "fileName": "",
+                      "aliases": [{"object": {"form": SELF | PKG_Q, "alias": 0, "unused": 0}, "version": 5, "objFormat": 2,
+                                   "scripts": [{"name": "IEB_PkgWatch", "status": 0, "props": []}]}]}}
+    return E.Record("QUST", formid=SELF | PKG_Q, subs=[
+        sub("EDID", "IEB_TestPkgQuest"), sub("VMAD", vmad), dnam(0), sub("NEXT", None), sub("ANAM", 1),
+        sub("ALST", 0), sub("ALID", "PkgWatch"), raw("FNAM", struct.pack("<I", ALIAS_FLAGS)),
+        raw("VTCK", bytes(4)), sub("ALED", None)])
+
+
 def build():
     groups = [E.Group(b"GLOB", 0, children=[glob(*g) for g in GLOBALS]),
-              E.Group(b"QUST", 0, children=[test_quest(), story_quest(), soak_quest()])]
+              E.Group(b"QUST", 0, children=[test_quest(), story_quest(), soak_quest(), pkg_quest()])]
     header = E.Record("TES4", flags=0x200, formid=0, subs=[
         sub("HEDR", {"version": struct.pack("<f", 1.71), "numRecords": 0, "nextObjectId": 0}),
         sub("CNAM", "shae"),
@@ -80,7 +94,7 @@ def build():
     p.localized = False
     h = header.subs[0].value
     h["numRecords"] = E.count_records_and_groups(p)
-    h["nextObjectId"] = SOAK_Q + 1
+    h["nextObjectId"] = PKG_Q + 1
     return p
 
 
@@ -95,6 +109,6 @@ if __name__ == "__main__":
     assert E.emit(q) == data, "re-emit differs"
     ids = [r.formid for g in q.groups for r in g.children]
     assert all(0x800 <= (i & 0xFFFFFF) <= 0xFFF for i in ids)
-    print("ErrandBridgeTest.esp: %d bytes, ESL %s, records %d, globals %d, quests 3 (test scripts %s; soak %s; story quest "
+    print("ErrandBridgeTest.esp: %d bytes, ESL %s, records %d, globals %d, quests 4 (pkg-watch alias IEB_PkgWatch; test scripts %s; soak %s; story quest "
           "type 8, alias TestActor + package 0x%06X)" % (len(data), bool(q.header.flags & 0x200), len(ids), len(GLOBALS),
                                                          ", ".join(TEST_SCRIPTS), ", ".join(SOAK_SCRIPTS), SANDBOX_PKG))

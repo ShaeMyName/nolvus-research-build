@@ -289,6 +289,26 @@ Function CountNearNPCs(Float afRadius, Int aiExcludeFormId)
     Log("NEARNPC n=" + n + " r=" + (afRadius as Int))
 EndFunction
 
+Function PkgWatch(Int aiFormId)
+    {B-22 (R36-upd (c)): put the actor in IEB_TestPkgQuest's package-free alias, whose IEB_PkgWatch script logs PKGEVT lines.}
+    Actor a = A(aiFormId)
+    Quest q = Game.GetFormFromFile(0x840, "ErrandBridgeTest.esp") as Quest
+    If a == None || q == None
+        Log("PKGWATCH none")
+        Return
+    EndIf
+    (q.GetAlias(0) as ReferenceAlias).ForceRefTo(a)
+    Log("PKGWATCH on " + Watcher().Hex(a) + " pkg=" + Watcher().Hex(a.GetCurrentPackage()))
+EndFunction
+
+Function PkgUnwatch()
+    Quest q = Game.GetFormFromFile(0x840, "ErrandBridgeTest.esp") as Quest
+    If q != None
+        (q.GetAlias(0) as ReferenceAlias).Clear()
+    EndIf
+    Log("PKGWATCH off")
+EndFunction
+
 Function PlayerPlace(Float afX, Float afY, Float afZ)
     {REVIEW_LOG RV-79-upd: put the player at a position in the current (exterior) worldspace, then log it.}
     Game.GetPlayer().SetPosition(afX, afY, afZ)

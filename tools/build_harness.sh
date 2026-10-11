@@ -16,7 +16,7 @@ IE='C:\nolvus-research\build\src\intelengine\Source\Scripts;C:\nolvus-research\s
 OUT='C:\nolvus-research\build\bin\harness'
 mkdir -p "$(cygpath -u "$OUT")"
 cd /c/nolvus-research/build/src/harness/Source/Scripts
-list=("$@"); [ ${#list[@]} -eq 0 ] && list=(IEB_Watcher IEB_TestCtl IEB_SoakProbe)
+list=("$@"); [ ${#list[@]} -eq 0 ] && list=(IEB_Watcher IEB_TestCtl IEB_SoakProbe IEB_PkgWatch)
 for f in "${list[@]}"; do
   "$CAP" "${FLAGS[@]}" -o "$OUT" -i "$H;$EB;$ST;$REL;$SA;$PO3;$RELV;$MAR;$IE;$IMP" $f.psc 2>&1 | grep -vE "^Importing|^Imported|W7000|W1004"
   echo "== $f exit ${PIPESTATUS[0]}"

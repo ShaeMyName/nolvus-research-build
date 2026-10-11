@@ -502,6 +502,44 @@ def run_burst(r, label, since=None):
         r.check(False, "%s burst: burst_b22.py exit %d %s" % (label, res.returncode, res.stderr.strip()[:200]))
 
 
+PKGEVT = re.compile(r"\[IEB-TEST\] PKGEVT (start|change|end) actor=(\S+) (?:pkg|old)=(\S+) rt=([\d.]+)")
+
+
+def pkg_judge(r, label, text, fid, waitbox):
+    """REVIEW_LOG R36-upd (c): judge the NFF wait box from package EVENTS (IEB_PkgWatch alias), not 0.1 s sampling.
+    Existence and order decide (FAIL): at least one package start for the actor in the window, and every wait-box start
+    is followed by its end. Durations are only upper bounds (event delivery lags): a wait-box interval <= 0.5 s passes;
+    longer is INCONCLUSIVE, never FAIL."""
+    ev = [(m.group(1), m.group(3), float(m.group(4))) for m in PKGEVT.finditer(text) if fid_norm(m.group(2)) == fid_norm(fid)]
+    r.log("  %s package events: %d (starts %d)" % (label, len(ev), sum(1 for e in ev if e[0] == "start")))
+    if not ev:
+        r.check(False, "%s: package events arrived for F1 (PkgWatch alias)" % label)
+        return
+    if not waitbox or waitbox in ("None", "0"):
+        r.log("  %s: wait-box package unknown (no BURST START waitbox=), order check only" % label)
+        return
+    wb = fid_norm(waitbox)
+    opened, worst, unclosed = None, 0.0, 0
+    for kind, pkg, rt in ev:
+        if fid_norm(pkg) != wb:
+            continue
+        if kind == "start":
+            if opened is not None:
+                unclosed += 1
+            opened = rt
+        elif kind in ("end", "change") and opened is not None:
+            worst = max(worst, rt - opened)
+            opened = None
+    if opened is not None:
+        unclosed += 1
+    r.check(unclosed == 0, "%s: every wait-box start has its end (%d open)" % (label, unclosed))
+    if worst > 0.5:
+        r.inconclusive += 1
+        r.log("INCONCLUSIVE %s: longest wait-box interval %.2f s by event times (an upper bound; > 0.5 s)" % (label, worst))
+    else:
+        r.check(True, "%s: wait-box intervals <= 0.5 s by event times (max %.2f s, upper bound)" % (label, worst))
+
+
 # ================================================================ B-1 ... B-20 (v1 §5.5)
 
 
@@ -1574,6 +1612,7 @@ def b22(r):
     ends in RELEASE_FOLLOW: a REJOIN_WAIT park is a by-design wait-box interval (§7.2) that this check does not cover."""
     try:
         nm = base(r, F1)[0]
+        r.ctl("PkgWatch", [F1])                       # R36-upd (c): package events alongside the burst
         wb = fresh("watch")
         since1 = {"pap": fresh(), "sn": fresh("skyrimnet")}
         r.ctl("Burst", [F1, 30.0])
@@ -1586,7 +1625,9 @@ def b22(r):
             return
         if not need(r, wb.wait(r"BURST END", 45), "first burst did not end"):
             return
+        wbox = re.search(r"BURST START .*? waitbox=(\S+)", wb.read() if hasattr(wb, "read") else "")
         run_burst(r, "take", since1)
+        pkg_judge(r, "take", since1["pap"].read(), F1, wbox.group(1) if wbox else None)
         # U1 run 16: after the 30 s take burst F1 was beyond N (1,920 u), so the release parked her (REJOIN_WAIT) and the
         # release burst went unjudged. Bring the player within N first, as B-3 does, so the release is RELEASE_FOLLOW.
         r.ctl("MoveRel", [PLAYER, F1, 600.0, 0.0, 0.0])
@@ -1608,7 +1649,9 @@ def b22(r):
             r.log("INCONCLUSIVE B-22 release burst: release went to REJOIN_WAIT (by-design park), not judged")
         else:
             run_burst(r, "release", since2)
+            pkg_judge(r, "release", since2["pap"].read(), F1, wbox.group(1) if wbox else None)
     finally:
+        r.ctl("PkgUnwatch", [])
         tidy(r, F1)
 
 

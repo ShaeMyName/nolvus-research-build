@@ -86,6 +86,8 @@ class Run:
         "BodySwap": "BODYSWAP ",
         "Whisper": "WHISPERSET ",
         "SUStrLen": "SUSTRLEN ",
+        "PkgWatch": "PKGWATCH ",
+        "PkgUnwatch": "PKGWATCH off",
         "OwnNearestFurniture": "OWNFURN ",
         "CountNearNPCs": "NEARNPC ",
         "SetHour": "CRASHCTX ",
