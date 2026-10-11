@@ -18,6 +18,11 @@ Scriptname IEB_EssLib Hidden
    any form in "any follower" rows); intList "w_any" (1 = any follower), "w_mode" (0 = stay out: no apply, no
    re-assert; 1 = active removal: suspend bridge-set flags), "w_lo", "w_hi" (open while the quest runs and
    w_lo <= stage < w_hi; w_hi < 0 = open from w_lo for as long as the quest runs). All lists N long.
+   [CHANGED 2026-10-11, REVIEW_LOG RV-101] optional lists, each either absent or N long (a mismatch pauses the feature):
+   intList "w_done" (1 = stage-done semantics: open once IsStageDone(w_lo) and until IsStageDone(w_hi), so skipped or
+   out-of-order stages never close a row early), intList "w_after" (1 = the row stays open after its quest stops; needs
+   w_done = 1), formList "w_fac" (a Faction, or the row's own quest form as "no condition": the row then covers an actor
+   only while the actor is in that faction). Errs toward staying open (unprotected longer), never toward closing early.
    Missing or malformed table: the feature pauses (WARN once per load). A valid table with rows = 0 means no windows.}
 
 ; ============================================================================ entry points (IEB_Main)
@@ -601,6 +606,8 @@ Bool Function LoadWindows() Global
                JsonUtil.IntListCount(f, "w_any") != rows || JsonUtil.IntListCount(f, "w_mode") != rows || \
                JsonUtil.IntListCount(f, "w_lo") != rows || JsonUtil.IntListCount(f, "w_hi") != rows
             bad = "lists"
+        ElseIf !OptListOk(f, "w_done", rows, False) || !OptListOk(f, "w_after", rows, False) || !OptListOk(f, "w_fac", rows, True)
+            bad = "optlists"
         EndIf
     EndIf
     StorageUtil.IntListClear(None, "IEB_EssWOpen")
@@ -619,10 +626,16 @@ Bool Function LoadWindows() Global
     While i < rows
         Int open = -1
         Quest q = JsonUtil.FormListGet(f, "w_quest", i) as Quest
-        If q != None && q.IsRunning()
+        Int hi = JsonUtil.IntListGet(f, "w_hi", i)
+        Int lo = JsonUtil.IntListGet(f, "w_lo", i)
+        If q != None && OptInt(f, "w_done", i) == 1
+            ; RV-101: stage-done semantics; w_after keeps it open once the quest has stopped
+            If (q.IsRunning() || OptInt(f, "w_after", i) == 1) && q.IsStageDone(lo) && (hi < 0 || !q.IsStageDone(hi))
+                open = JsonUtil.IntListGet(f, "w_mode", i)
+            EndIf
+        ElseIf q != None && q.IsRunning()
             Int st = q.GetStage()
-            Int hi = JsonUtil.IntListGet(f, "w_hi", i)
-            If st >= JsonUtil.IntListGet(f, "w_lo", i) && (hi < 0 || st < hi)
+            If st >= lo && (hi < 0 || st < hi)
                 open = JsonUtil.IntListGet(f, "w_mode", i)
             EndIf
         EndIf
@@ -630,6 +643,33 @@ Bool Function LoadWindows() Global
         i += 1
     EndWhile
     Return True
+EndFunction
+
+Bool Function OptListOk(String f, String asKey, Int aiRows, Bool abForm) Global
+    {RV-101 optional list: absent (count 0) or exactly aiRows long.}
+    Int c
+    If abForm
+        c = JsonUtil.FormListCount(f, asKey)
+    Else
+        c = JsonUtil.IntListCount(f, asKey)
+    EndIf
+    Return c == 0 || c == aiRows
+EndFunction
+
+Int Function OptInt(String f, String asKey, Int i) Global
+    If JsonUtil.IntListCount(f, asKey) > i
+        Return JsonUtil.IntListGet(f, asKey, i)
+    EndIf
+    Return 0
+EndFunction
+
+Bool Function FacOk(String f, Int i, Actor a) Global
+    {RV-101 w_fac: no list, or a non-Faction entry (the row's quest form as placeholder) = no condition.}
+    If JsonUtil.FormListCount(f, "w_fac") <= i
+        Return True
+    EndIf
+    Faction fac = JsonUtil.FormListGet(f, "w_fac", i) as Faction
+    Return fac == None || a.IsInFaction(fac)
 EndFunction
 
 Int Function WindowHit(Actor a, Int aiMode) Global
@@ -644,9 +684,9 @@ Int Function WindowHit(Actor a, Int aiMode) Global
     Int i = 0
     While i < n
         Int open = StorageUtil.IntListGet(None, "IEB_EssWOpen", i)
-        If open >= 0 && (aiMode < 0 || open == aiMode)
+        If open >= 0 && (aiMode < 0 || open == aiMode) && FacOk(f, i, a)
             If JsonUtil.IntListGet(f, "w_any", i) == 1
-                Return i
+                Return i                     ; any-follower row: w_base is a placeholder (a quest form) and never compared
             EndIf
             Form wb = JsonUtil.FormListGet(f, "w_base", i)
             If wb != None && (wb == b || wb == lb)

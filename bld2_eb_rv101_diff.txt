@@ -1,0 +1,20 @@
+# BLD-2 RV-101: IEB_EssLib window table, optional lists w_done (IsStageDone semantics), w_after (open after quest stop), w_fac (faction condition); OptListOk/OptInt/FacOk helpers. A = HEAD, B = this build. IEB_Main/others untouched.
+functions: A 37, B 40
+  FUNC only in B: <auto>.facok(('string', 'int', 'actor'), 'bool')
+  FUNC only in B: <auto>.optint(('string', 'string', 'int'), 'int')
+  FUNC only in B: <auto>.optlistok(('string', 'string', 'int', 'bool'), 'bool')
+call sites: A 334, B 351
+  facok                              isinfaction                                    0 -> 1
+  facok                              jsonutil.formlistcount                         0 -> 1
+  facok                              jsonutil.formlistget                           0 -> 1
+  loadwindows                        ieb_esslib.optint                              0 -> 2
+  loadwindows                        ieb_esslib.optlistok                           0 -> 3
+  loadwindows                        isrunning                                      1 -> 2
+  loadwindows                        isstagedone                                    0 -> 2
+  loadwindows                        jsonutil.intlistget                            3 -> 4
+  optint                             jsonutil.intlistcount                          0 -> 1
+  optint                             jsonutil.intlistget                            0 -> 1
+  optlistok                          jsonutil.formlistcount                         0 -> 1
+  optlistok                          jsonutil.intlistcount                          0 -> 1
+  windowhit                          ieb_esslib.facok                               0 -> 1
+DIFFERENT
