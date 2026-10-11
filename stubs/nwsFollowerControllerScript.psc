@@ -22,3 +22,9 @@ nwsFollowerVariableScript Property varScript Auto                ; :209 (REVIEW_
 
 Function ToggleEssential(Actor myActor, Int doDefault)     ; :1991 (essential followers, design §1.1)
 EndFunction
+
+Function RecruitFollower(Actor myActor)     ; :349 (harness NFFRecruit, tests_ess.py)
+EndFunction
+
+Function ImportAction(Actor myActor, Int myOpt, Int myOpt2)     ; :662 (harness NFFImportND, tests_ess.py)
+EndFunction

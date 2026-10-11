@@ -92,3 +92,25 @@ block("U3G", "T0", ["tests_u3", "tests_u3_g"], ["X-9", "X-10", "RE-2"],
       fixed={"X-9": 30, "X-10": 1, "RE-2": 1}, harness=True, voices=False, gamemaster=True)
 block("U3E", "T0-ENT4", ["tests_u3", "tests_u3_m"], ["ENT-4"],
       fixed={"ENT-4": 70}, harness=True, voices=False, gamemaster=False)
+
+# Block E: essential followers (investigation/round10/essential_followers_tests.md; tests_ess.py, written 2026-10-11).
+# The order is grouped by window table (ess_windows.json), and a table install needs the game and MO2 closed, so block E is
+# run group by group by `python tests_ess.py run` (one `block.py E --only <group ids>` process per group, the table
+# installed in between, original state restored at the end); `tests_ess.py plan` prints the groups. Every test also checks
+# the installed table (INCONCLUSIVE on a mismatch), so a plain `block.py E` cannot give a false PASS. GROUPS (table):
+#   EMPTY rows0 (everything else, kills last) | SYNTH0 (E-RA) | SYNTH1 (E-WIN-SYNTH) | SYNTH1A (E-WIN-SYNTHa) | NONE (E-TBL) | BAD (E-TBLb)
+# E-CF needs the spoiler-free CF save and the private cast: it is also its own block E_CF (CF_SAVE placeholder). GM off: no
+# GameMaster test; harness on for the Timeline Mismatch auto-clear on every T0 reload.
+block("E", "T0", ["tests_ess"], [
+    "E-NFF", "E-NFF2", "E-IMP", "E-IMP-ND", "E-IMP-F", "E-SA1", "E-SA2", "E-SAOPT1", "E-SAOPT2",
+    "E-CASUAL-ENROLLED", "E-CASUAL-PLAIN", "E-CHILD", "E-RDO", "E-SHR", "E-DIS1", "E-DIS2", "E-OPT",
+    "E-IE1", "E-IE2", "E-IE3", "E-SPAR", "E-REQ", "E-CF", "E-WIN", "E-K1", "E-K2", "E-K3",      # EMPTY
+    "E-RA",                                                                                      # SYNTH0
+    "E-WIN-SYNTH",                                                                               # SYNTH1
+    "E-WIN-SYNTHa",                                                                              # SYNTH1A
+    "E-TBL",                                                                                     # NONE
+    "E-TBLb",                                                                                    # BAD
+], est={"E": 110}, fixed={"E-IMP": 3, "E-IMP-F": 5, "E-SA2": 4, "E-SAOPT1": 5, "E-DIS1": 4, "E-DIS2": 5, "E-OPT": 5,
+                          "E-CASUAL-ENROLLED": 6, "E-K3": 3, "E-TBL": 6, "E-TBLb": 6, "E-RDO": 1, "E-WIN": 1, "E-CF": 1},
+      harness=True, voices=False, gamemaster=False)
+block("E_CF", "T0-CF", ["tests_ess"], ["E-CF"], fixed={"E-CF": 45}, harness=True, voices=False, gamemaster=False)

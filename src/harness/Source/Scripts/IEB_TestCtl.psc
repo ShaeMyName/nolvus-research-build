@@ -534,6 +534,225 @@ Function U3StewardProbe(Int aiFormId)
         + " tm=" + (a.IsPlayerTeammate() as Int) + " seat=" + Watcher().SeatOf(a))
 EndFunction
 
+; ============================================================================ essential followers (tests_ess.py, E-*)
+; Mechanics only: flags, faction ranks, StorageUtil ints, counts. Functions only, no properties (frozen-shell rule).
+
+Function EssProbeX(Int aiFormId)
+    {E-* reads EssProbe lacks: base id, unique, child, nwsFF_EssFac membership + rank, NFF seat/import/spar, SA roster,
+     SA WasEssential / EssentialOff / alias slot, IEB_EssList membership, and every IEB_Ess* key (-1 = absent).}
+    Actor a = A(aiFormId)
+    If a == None
+        Log("ESSX none")
+        Return
+    EndIf
+    ActorBase b = a.GetActorBase()
+    Faction ef = IEB_NFFLib.EssFac()
+    Int fac = 0
+    Int rk = -1
+    If ef != None
+        fac = a.IsInFaction(ef) as Int
+        rk = a.GetFactionRank(ef)
+    EndIf
+    Bool uniq = b.IsUnique() && b == a.GetLeveledActorBase()
+    String k = ""
+    String[] keys = new String[14]
+    keys[0] = "IEB_Ess"
+    keys[1] = "IEB_EssBy"
+    keys[2] = "IEB_EssAuth"
+    keys[3] = "IEB_EssKeep"
+    keys[4] = "IEB_EssOptOut"
+    keys[5] = "IEB_EssSusp"
+    keys[6] = "IEB_EssSAwrote"
+    keys[7] = "IEB_EssFail"
+    keys[8] = "IEB_EssLost"
+    keys[9] = "IEB_EssIEHeld"
+    keys[10] = "IEB_EssReq"
+    keys[11] = "IEB_EssRetry"
+    keys[12] = "Intel_WasEssential"
+    keys[13] = "IEB_EssPass"
+    Int i = 0
+    While i < keys.Length
+        If StorageUtil.HasIntValue(a, keys[i])
+            k += " " + keys[i] + "=" + StorageUtil.GetIntValue(a, keys[i])
+        Else
+            k += " " + keys[i] + "=-1"
+        EndIf
+        i += 1
+    EndWhile
+    Log("ESSX " + Watcher().Hex(a) + " base=" + PO3_SKSEFunctions.IntToString(b.GetFormID(), True) + " uniq=" + (uniq as Int) \
+        + " child=" + (a.IsChild() as Int) + " baseEss=" + (b.IsEssential() as Int) + " baseProt=" + (b.IsProtected() as Int) \
+        + " fac=" + fac + " rank=" + rk + " facNone=" + ((ef == None) as Int) + " seat=" + (IEB_NFFLib.Seated(a) as Int) \
+        + " impfac=" + (IEB_NFFLib.IsImport(a) as Int) + " impset=" + (IEB_NFFLib.ImportSetDone(a) as Int) \
+        + " spar=" + (IEB_NFFLib.Sparring(a) as Int) + " saRoster=" + (IEB_SALib.IsSAFollower(a) as Int) \
+        + " saWasEss=" + (IEB_SALib.GetWasEssential(a) as Int) + " saOff=" + (IEB_SALib.EssentialOff(a) as Int) \
+        + " slot=" + (IEB_SALib.InSlot(a) as Int) + " listed=" + ((StorageUtil.FormListFind(None, "IEB_EssList", a) >= 0) as Int) \
+        + " dead=" + (a.IsDead() as Int) + " bleed=" + (a.IsBleedingOut() as Int) + k)
+EndFunction
+
+Function EssList()
+    {E-*: the global tracked list: count, fail list, request list, and the tracked ids (first 24).}
+    Int n = StorageUtil.FormListCount(None, "IEB_EssList")
+    String s = ""
+    Int i = 0
+    While i < n && i < 24
+        s += " " + Watcher().Hex(StorageUtil.FormListGet(None, "IEB_EssList", i))
+        i += 1
+    EndWhile
+    Log("ESSLIST n=" + n + " fail=" + StorageUtil.FormListCount(None, "IEB_EssFailList") \
+        + " req=" + StorageUtil.FormListCount(None, "IEB_EssReqList") + " ids=" + s)
+EndFunction
+
+Function EssSet(Int aiFormId, Int aiOn)
+    {E-*: write the actor base's essential flag directly (stands in for the console's SetEssential; also builds the IE-hold
+     and authored-flag setups).}
+    Actor a = A(aiFormId)
+    If a == None
+        Log("ESSSET none")
+        Return
+    EndIf
+    ActorBase b = a.GetActorBase()
+    b.SetEssential(aiOn == 1)
+    Log("ESSSET " + Watcher().Hex(a) + " on=" + aiOn + " now=" + (b.IsEssential() as Int))
+EndFunction
+
+Function EssFacSet(Int aiFormId, Int aiOn)
+    {E-IMP-F: remove (0) or add (1, rank 0) nwsFF_EssFac, standing in for the import defaults stripping it (ExScript :623).}
+    Actor a = A(aiFormId)
+    Faction ef = IEB_NFFLib.EssFac()
+    If a == None || ef == None
+        Log("ESSFAC none")
+        Return
+    EndIf
+    If aiOn == 1
+        a.AddToFaction(ef)
+        a.SetFactionRank(ef, 0)
+    Else
+        a.RemoveFromFaction(ef)
+    EndIf
+    Log("ESSFAC " + Watcher().Hex(a) + " on=" + aiOn + " in=" + (a.IsInFaction(ef) as Int))
+EndFunction
+
+Function NFFRecruit(Int aiFormId)
+    {NFF's own recruit (RecruitFollower, nwsFollowerControllerScript.psc:349; the dialogue's path: doAction 2 + a 0.2 s
+     update). Waits 4 s for the seat, logs it.}
+    Actor a = A(aiFormId)
+    nwsFollowerControllerScript c = IEB_NFFLib.Ctl()
+    If a == None || c == None
+        Log("NFFRecruit: no actor or no NFF controller")
+        Return
+    EndIf
+    c.RecruitFollower(a)
+    Utility.Wait(4.0)
+    Log("NFFRecruit " + Watcher().Hex(a) + " seated=" + (IEB_NFFLib.Seated(a) as Int))
+EndFunction
+
+Function NFFImportND(Int aiFormId)
+    {E-IMP-ND: NFF import WITHOUT defaults: ImportAction(a, 0, 2), so SetImportLight never runs (psc:841-843) and
+     nwsFF_ImportSetFac never appears. NFFImport is the with-defaults form (opt 1).}
+    Actor a = A(aiFormId)
+    nwsFollowerControllerScript c = IEB_NFFLib.Ctl()
+    If a == None || c == None
+        Log("NFFImportND: no actor or no NFF controller")
+        Return
+    EndIf
+    c.ImportAction(a, 0, 2)
+    Log("NFFImportND " + Watcher().Hex(a) + " seated=" + (IEB_NFFLib.Seated(a) as Int) + " impfac=" + (IEB_NFFLib.IsImport(a) as Int))
+EndFunction
+
+Function NFFEssToggle(Int aiFormId)
+    {E-OPT: NFF's MCM essential toggle for one follower (nwsFollowerControllerScript.psc:1991, doDefault 0 = a plain toggle).}
+    Actor a = A(aiFormId)
+    nwsFollowerControllerScript c = IEB_NFFLib.Ctl()
+    If a == None || c == None
+        Log("NFFEssToggle: no actor or no NFF controller")
+        Return
+    EndIf
+    c.ToggleEssential(a, 0)
+    Log("NFFEssToggle " + Watcher().Hex(a) + " fac=" + (IEB_NFFLib.InEssFac(a) as Int) + " baseEss=" + (a.GetActorBase().IsEssential() as Int))
+EndFunction
+
+Function NFFSparSet(Int aiFormId, Int aiOn)
+    {E-SPAR: put the actor in (1) or out of (0) NFF's spar faction, the flag IEB_NFFLib.Sparring reads. Stands in for a
+     real spar (INFERRED equivalent for the bridge).}
+    Actor a = A(aiFormId)
+    nwsFollowerControllerScript c = IEB_NFFLib.Ctl()
+    If a == None || c == None || c.nwsFF_SparFac == None
+        Log("NFFSparSet: no actor, controller or spar faction")
+        Return
+    EndIf
+    If aiOn == 1
+        a.AddToFaction(c.nwsFF_SparFac)
+        a.SetFactionRank(c.nwsFF_SparFac, 0)
+    Else
+        a.RemoveFromFaction(c.nwsFF_SparFac)
+    EndIf
+    Log("NFFSparSet " + Watcher().Hex(a) + " on=" + aiOn + " spar=" + (IEB_NFFLib.Sparring(a) as Int))
+EndFunction
+
+Function SAEssUI(Int aiFormId, Int aiOn)
+    {E-SAOPT1: SA's UI essential toggle, as SeverActions_FollowerManager.psc:1936-1951 does it. OFF: EssentialOff true,
+     WasEssential false, slot cleared, base flag cleared. ON: EssentialOff false + slot (WasEssential left alone).}
+    Actor a = A(aiFormId)
+    SeverActions_FollowerManager fm = IEB_SALib.FM()
+    If a == None || fm == None || !IEB_SALib.Present()
+        Log("SAEssUI: no actor or no SA")
+        Return
+    EndIf
+    If aiOn == 1
+        SeverActionsNativeExt.Native_SetEssentialOff(a, False)
+        fm.MakeActorEssential(a)
+    Else
+        SeverActionsNativeExt.Native_SetEssentialOff(a, True)
+        SeverActionsNativeExt.Native_SetWasEssential(a, False)
+        fm.ClearActorEssential(a)
+        If SeverActionsNative.Native_IsEssential(a)
+            SeverActionsNative.Native_ClearEssential(a)
+        EndIf
+    EndIf
+    Log("SAEssUI " + Watcher().Hex(a) + " on=" + aiOn + " saOff=" + (IEB_SALib.EssentialOff(a) as Int) \
+        + " wasEss=" + (IEB_SALib.GetWasEssential(a) as Int) + " baseEss=" + (a.GetActorBase().IsEssential() as Int))
+EndFunction
+
+Function SynthQuest(Int aiOp, Int aiStage)
+    {E-RA / E-WIN-SYNTH: drive the synthetic story quest (ErrandBridgeTest.esp 0x820, start-game, no stages of its own).
+     op 0 = Stop, 1 = Start, 2 = SetCurrentStageID(aiStage) (no fragments; INFERRED to take effect on a quest with no
+     stage records), 3 = read only. Logs running + GetStage.}
+    Quest q = Game.GetFormFromFile(0x820, "ErrandBridgeTest.esp") as Quest
+    If q == None
+        Log("SYNTHQ none")
+        Return
+    EndIf
+    If aiOp == 0
+        q.Stop()
+    ElseIf aiOp == 1
+        q.Start()
+    ElseIf aiOp == 2
+        q.SetCurrentStageID(aiStage)
+    EndIf
+    Utility.Wait(1.0)
+    Log("SYNTHQ op=" + aiOp + " running=" + (q.IsRunning() as Int) + " stage=" + q.GetCurrentStageID())
+EndFunction
+
+Function EssKill(Int aiFormId, Int aiMode)
+    {E-K1/K2: mode 0 = DamageActorValue Health 99999 (no attacker), 1 = Kill(None), 2 = Kill(player). Logs dead,
+     bleedout, health after 1 s. Mechanics only.}
+    Actor a = A(aiFormId)
+    If a == None
+        Log("ESSKILL none")
+        Return
+    EndIf
+    If aiMode == 0
+        a.DamageActorValue("Health", 99999.0)
+    ElseIf aiMode == 1
+        a.Kill(None)
+    Else
+        a.Kill(Game.GetPlayer())
+    EndIf
+    Utility.Wait(1.0)
+    Log("ESSKILL " + Watcher().Hex(a) + " mode=" + aiMode + " dead=" + (a.IsDead() as Int) + " bleed=" + (a.IsBleedingOut() as Int) \
+        + " hp=" + (a.GetActorValue("Health") as Int))
+EndFunction
+
 Function PlayerPlace(Float afX, Float afY, Float afZ)
     {REVIEW_LOG RV-79-upd: put the player at a position in the current (exterior) worldspace, then log it.}
     Game.GetPlayer().SetPosition(afX, afY, afZ)
