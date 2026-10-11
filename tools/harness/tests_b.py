@@ -329,7 +329,8 @@ def tidy(r, *fids):
                 con(r, "%s.moveto player" % hexid(fid))
                 time.sleep(2)
                 pf = probe(r, fid) or {}            # RV-123 (3) read-back: most B tests do not reload
-                need(r, num(pf.get("wfp")) == 0.0 and (num(pf.get("dPlayer")) or 1e9) <= 600,
+                dp = num(pf.get("dPlayer"))         # 0 is a real distance (moveto player): never `or` it away
+                need(r, num(pf.get("wfp")) == 0.0 and dp is not None and dp <= 600,
                      "teardown: %s following next to the player (wfp=%s dPlayer=%s)"
                      % (hexid(fid), pf.get("wfp"), pf.get("dPlayer")))
         except Exception as e:      # teardown must not hide the test verdict
