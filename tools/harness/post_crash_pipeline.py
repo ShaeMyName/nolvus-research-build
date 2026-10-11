@@ -5,6 +5,7 @@ followed by a T0 smoke (load, expected lines, 0 array errors); stops at the firs
   S2  head start (Relationships patch pex) + hs_live.py
   S3  bridge: notices + MARAS logs + essential (inert: no ess_windows.json) (RV-95 (iii)); smoke asserts the paused WARN
       once, 0 ESS_ lines, EssProbe unchanged for the cast, a paused SA recruit sets only IEB_EssReq
+  S3bp the private essential window table (3b', the real activation); smoke per RV-101-table-close
   S3c NT-4 IntelEngine patch (NPCTasks, Schedule); smoke: 0 array errors
   S4  SEC test layer (new test-only mod folder; discovered at launch); smoke: the layer registered, a live render of the
       name gate is non-empty for Fralia and empty for F1 (lengths only)
@@ -178,6 +179,38 @@ def s3():
     return smoke("S3", chk)
 
 
+def s3bp():
+    """3b' (REVIEW_LOG RV-101-table-close): the real essential activation, the private window table. Smoke: no paused
+    WARN, ESS_TABLE rows logged, ESS_ decisions only for current followers, every NFF/SA follower on T0 ends essential
+    (base flag, NFF essential faction or SA slot), spot-check of NFF's faction state via EssProbeX."""
+    if not install(["SKSE/Plugins/ErrandBridge/ess_windows.json"]):
+        return False
+    FOLLOWERS = [0x000E1BA9, 0x00091918]          # F1 Jenassa, F2 Uthgerd: the T0 NFF followers
+
+    def chk(ctl, t):
+        out = []
+        time.sleep(60)                            # a few sweeps (every 5 ticks)
+        text = t.read()
+        out.append((not re.search(r"WARN ESS_TABLE", text), "no paused WARN (the table loaded)"))
+        rows = re.search(r"\[IEB\] ESS_TABLE rows=(\d+)", text)
+        out.append((bool(rows) and int(rows.group(1)) > 0, "ESS_TABLE rows logged (%s)" % (rows.group(1) if rows else "none")))
+        from tests_misc import who
+        names = {who(ctl, f)[1] for f in FOLLOWERS}
+        acted = set(re.findall(r"\[IEB\] ESS_(?:APPLY|ADOPT|CONFIRM) actor=(.+?)(?: route=| by=| passes=|$)", text))
+        stray = sorted(a.strip() for a in acted if a.strip() not in names)
+        out.append((not stray, "ESS_ decisions only for current followers (%d others)" % len(stray)))
+        for f in FOLLOWERS:
+            m = probe_lines(ctl, "EssProbeX", [f], r"\[IEB-TEST\] ESSX [^\n]*")
+            v = m.group(0) if m else ""
+            ess = re.search(r"baseEss=1\b", v) or re.search(r" fac=(?:1|TRUE)\b", v, re.I) or re.search(r" slot=1\b", v)
+            out.append((bool(ess), "%08X ends essential (base, NFF faction or SA slot)" % f))
+            if f == FOLLOWERS[0]:
+                out.append((bool(re.search(r" fac=\S+", v)), "spot-check: NFF essential-faction state read for F1 (%s)" %
+                            (re.search(r" fac=(\S+) rank=(\S+)", v).group(0).strip() if re.search(r" fac=(\S+) rank=(\S+)", v) else "none")))
+        return out
+    return smoke("S3bp", chk)
+
+
 def s3c():
     only = [f for f in changed("IE NoWipe + Dispatch Guard/Scripts") if f in ("IntelEngine_NPCTasks.pex", "IntelEngine_Schedule.pex", "IntelEngine_Core.pex")]
     only += ["SKSE/Plugins/ErrandBridge/quest_integrity.json", "SKSE/Plugins/PackageOverrides.ini"]   # CC-master rebuild
@@ -206,7 +239,7 @@ def s4():
     return smoke("S4", chk)
 
 
-STEPS = [("S0", s0), ("S1", s1), ("S2", s2), ("S3", s3), ("S3c", s3c), ("S4", s4)]
+STEPS = [("S0", s0), ("S1", s1), ("S2", s2), ("S3", s3), ("S3bp", s3bp), ("S3c", s3c), ("S4", s4)]
 
 
 def main():

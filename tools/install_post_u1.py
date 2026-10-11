@@ -17,7 +17,9 @@ LAYERS = [("Lucienne - Private (TEST STUB)", "layers/lucienne-test/"), ("SkyrimN
 FILES = [("Errand Bridge - Test Harness", "out/ErrandBridgeTest.esp", "ErrandBridgeTest.esp"),
          # 2026-10-11: quest_integrity rebuilt with the Creation Club masters (+6 story quests, +20 reserved NPCs)
          ("IE NoWipe + Dispatch Guard", "out/ErrandBridge/quest_integrity.json", "SKSE/Plugins/ErrandBridge/quest_integrity.json"),
-         ("MARAS Config", "out/PackageOverrides.ini", "SKSE/Plugins/PackageOverrides.ini")]
+         ("MARAS Config", "out/PackageOverrides.ini", "SKSE/Plugins/PackageOverrides.ini"),
+         # step 3b' (REVIEW_LOG RV-101-table-close): the PRIVATE essential window table, EXPLICIT --only install only
+         ("IE NoWipe + Dispatch Guard", "private_out/ErrandBridge/ess_windows.json", "SKSE/Plugins/ErrandBridge/ess_windows.json", True)]
 # new test-only mod folders this tool may create, added to the TEST profile's modlist (never Nolvus Awakening)
 NEW_TEST_MODS = {"SkyrimNet Test - SEC Bio"}
 PROFILE_MODLIST = "C:/Nolvus/Instances/Nolvus Awakening/MODS/profiles/SkyrimNet Test/modlist.txt"
@@ -50,8 +52,12 @@ def main():
             s, d, key = B + src + f, MODS + mod + "/Scripts/" + f, mod + "/Scripts/" + f
             if (not os.path.exists(d) or h(s) != h(d)) and (ONLY is None or f in ONLY):
                 todo.append((s, d, key))
-    for mod, src, name in FILES:
+    for entry in FILES:
+        mod, src, name = entry[:3]
+        explicit = len(entry) > 3 and entry[3]
         s, d, key = B + src, MODS + mod + "/" + name, mod + "/" + name
+        if explicit and (ONLY is None or name not in ONLY):
+            continue
         if (not os.path.exists(d) or h(s) != h(d)) and (ONLY is None or name in ONLY):
             todo.append((s, d, key))
     new_mods = []
