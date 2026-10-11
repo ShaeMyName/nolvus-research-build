@@ -3,7 +3,7 @@ Started 2026-10-11. House style and helpers: tests_u2.py (counts only; a nonce i
 Text is processed in Python only to compute booleans/counts; nothing of it is logged.
 
 Not automated here (and why):
-- E-1: needs subtitlesOnly OFF (config edit with the game closed) -> U3 restart group.
+- E-1: dropped by Shae (DECISIONS:423 D5; step8_retier.md:82): no test, no config swap.
 - E-6: overlay + interrupt hotkey mid-line -> S (Shae) or a later harness 'purge' variant.
 - E-9: N/A by design (Piper narrator kept). E-10: N/A (time plan §3.4).
 - RE-1, RE-4, RE-6: stance variety needs a judgement of reply text -> JUDGE stub (counts only) + INCONCLUSIVE.
