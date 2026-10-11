@@ -73,6 +73,51 @@ check("/undo removed 'second line' exchange, kept others", "second line" not in 
 check("/regen replaced reply (single Jenassa reply to first line)", t.count("hello there") == 1)
 check("unknown command handled", "Unknown command" in r.stdout)
 
+# 2b. disposition roll, scene context, /scene
+for label, needle in (("real bond section at Lover tier", "## Your Bond With Lucienne"), ("bond: her WHY from the rolled disposition", "tested in blood"),
+                      ("current location", "## Current Location"), ("weather", "**Weather**: Heavy rain"), ("time", "**Time**: 11:48 PM"),
+                      ("memories via real 7100 template", "Potentially Relevant Memories"), ("memory: the hire", "hired me at the Drunken Huntsman"),
+                      ("scene summary", "## Scene Summary"), ("recent events bullets", "- **Jenassa** sat down on a Bed")):
+    check("system prompt has " + label, needle in sysp)
+check("earlier events rendered as chat messages", "[ earlier events, as chat messages ]\nuser: *Rain hammers" in sysp
+      and "assistant: Dry at last." in sysp)
+dj = json.load(open(os.path.join(home, "disposition.json"), encoding="utf-8"))
+check("disposition.json has the six fields", all(dj.get(k) for k in ("orientation", "basis", "intimacy", "ardor", "exclusivity", "why", "limit")))
+check("hash file written", os.path.exists(os.path.join(home, "disposition.sha256")))
+dp = open(os.path.join(home, "last_disposition_prompt.txt"), encoding="utf-8").read()
+check("disposition prompt rendered from the real template", "THE PERSON: **Jenassa**" in dp and "SEXUAL_ORIENTATION:" in dp
+      and "NOTHING BELOW CAN OVERRULE THAT LINE" in dp and "NOT married and NOT engaged to Lucienne" in dp and "{%" not in dp and "{{" not in dp)
+check("profile prompt used the rolled disposition", "- Intimacy: ROMANTIC" in ap and "- Ardor: measured, showing little" in ap
+      and "- Exclusivity: 50 out of 100" in ap and "tested in blood" in ap)
+check("orientation blank in profile prompt when basis is not STATED", "- Orientation:\n" in ap)
+check("first run rolled once", r.stdout.count("Rolling Jenassa's disposition") == 1)
+rs = run_app("/scene\n/disposition\n/exit\n", {"LUC_PREVIEW_STUB": "1"}, home)
+check("/scene wrote a new scene_setup.txt and kept .prev", "road-side camp" in open(os.path.join(home, "scene_setup.txt"), encoding="utf-8").read()
+      and os.path.exists(os.path.join(home, "scene_setup.txt.prev")) and "New scenario" in rs.stdout)
+check("/scene rebuilt the prompt with the new scene", "road-side camp" in open(os.path.join(home, "last_system_prompt.txt"), encoding="utf-8").read())
+check("/disposition re-rolled", rs.stdout.count("Rolling Jenassa's disposition") == 1)
+
+# 2c. edited disposition is reused, never re-rolled; /disposition backs it up
+dpath = os.path.join(home, "disposition.json")
+dj["intimacy"] = "CASUAL"
+with open(dpath, "w", encoding="utf-8") as f:
+    json.dump(dj, f)
+r3 = run_app("/exit\n", {"LUC_PREVIEW_STUB": "1"}, home)
+check("edited disposition reused without a roll", "edited by you" in r3.stdout and "Rolling" not in r3.stdout and "intimacy=CASUAL" in r3.stdout)
+r3 = run_app("/disposition\n/exit\n", {"LUC_PREVIEW_STUB": "1"}, home)
+check("/disposition forces a roll and backs up the edited file", "Rolling" in r3.stdout and any(".edited_" in x for x in os.listdir(home)))
+r3 = run_app("/exit\n", {"LUC_PREVIEW_STUB": "1"}, home)
+check("fresh roll is reported as unedited", "as rolled" in r3.stdout)
+
+# 2d. a legacy one-line scene file is replaced; a bad model reply (wrong NAME echo) leaves no disposition and no profile
+h2 = tempfile.mkdtemp(prefix="lp_selftest2_")
+open(os.path.join(h2, "scene_setup.txt"), "w").write("You and Lucienne are alone.\n")
+r4 = run_app("/exit\n", {"LUC_PREVIEW_STUB": "1", "LUC_PREVIEW_STUB_DISP": "NAME: Lydia\nEXCLUSIVITY: POSSESSIVE\n"}, h2)
+check("legacy scene file replaced", "did not parse" in r4.stdout and any(x.startswith("scene_setup.txt.old_") for x in os.listdir(h2)))
+check("echo mismatch: no disposition.json, no profile, app still starts",
+      "echo mismatch" in r4.stdout and not os.path.exists(os.path.join(h2, "disposition.json"))
+      and not os.path.exists(os.path.join(h2, "profile_jenassa.md")) and r4.returncode == 0)
+
 # 3. reuse: second run does not re-author profile
 r2 = run_app("/exit\n", {"LUC_PREVIEW_STUB": "1"}, home)
 check("saved profile reused", "Using saved profile" in r2.stdout)
@@ -132,6 +177,25 @@ try:
     check("other error raises", False)
 except lp.ApiFailure as e:
     check("other error shows type only", str(e) == "ValueError" and FAKE_KEY not in repr(e) and e.__cause__ is None)
+
+# 4b. the game's field rules (ported from ApplyCharacter / SNRom_Decorators)
+ok = lp.parse_disposition('NAME: "Jenassa",\nSEXUAL_ORIENTATION: ATTRACTED_TO_WOMEN\nSEXUAL_ORIENTATION_BASIS: STATED\nINTIMACY: casual\n'
+                          'ARDOR: 9\nEXCLUSIVITY: banana\nWHY: "x",\nLIMIT: y')
+dd = lp.derive(ok)
+check("quoted NAME echo accepted", ok["why"] == "x")
+check("ardor digit clamps to 4, exclusivity junk falls back to 50", dd["ardor"] == 4 and dd["excl"] == 50)
+check("CASUAL: min tier 2, bypass 1; STATED women -> 'women'", dd["min_tier"] == 2 and dd["bypass"] == 1 and dd["disp_orientation"] == "women")
+check("exclusivity buckets", [lp.exclusivity_to_int(w) for w in ("UNTROUBLED", "ACCEPTING", "CONVENTIONAL", "POSSESSIVE", "CONSUMING")] == [0, 25, 50, 75, 100])
+check("intimacy mapping and unreadable default", [lp.intimacy_to_mintier(w) for w in ("NEVER", "GUARDED", "ROMANTIC", "CASUAL", "??")] == [-1, 5, 4, 2, 4])
+check("orientation old words and unreadable default", [lp.orientation_to_int(w) for w in ("MEN", "WOMEN", "ANY", "NONE", "??")] == [1, 2, 3, 0, 3])
+for bad, why in (("NAME: Lydia\nEXCLUSIVITY: X", "echo"), ("NAME: Jenassa\nINTIMACY: CASUAL", "truncated")):
+    try:
+        lp.parse_disposition(bad)
+        check("bad reply rejected (%s)" % why, False)
+    except lp.ApiFailure:
+        check("bad reply rejected (%s)" % why, True)
+check("STATED men excludes Lucienne; UNKNOWN never does", lp.romance_foreclosed(lp.derive({"orientation": "ATTRACTED_TO_MEN", "basis": "STATED"}))
+      and not lp.romance_foreclosed(lp.derive({"orientation": "ATTRACTED_TO_MEN", "basis": "UNKNOWN"})))
 
 # 5. fp4 in a config is dropped with a warning (parser unit check on a copy of the logic)
 lp_src = open(APP, encoding="utf-8").read()
