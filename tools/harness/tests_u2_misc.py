@@ -152,7 +152,7 @@ def _stub(tid, family, why):
 # X-9 / X-10 are real tests in tests_u3_g.py (U3G); no U2 stub, so the IDs are registered once.
 _stub("X-11", "X", "model moderation behaviour: judgement of refusals over the U2 logs -> reported from the block's SkyrimNet.log by the reviewer")
 _stub("MA-1", "MA", "needs a fiance in a breakup state: T0-M (U3)")
-_stub("AZ-11", "AZ", "Azura family: written with the U4 group (pass/fail only)")
+# AZ-11 is a real test in tests_azura.py (U4); no U2 stub, so the ID is registered once.
 _stub("T10-3", "T10", "dynamic-bio file before/after Delete History: needs the bio file route; S-C with T10-4/5/6")
 _stub("T10-7", "T10", "loading a pre-stack save twice in the test profile: needs Shae's choice of save (S-C)")
 _stub("T10-8", "T10", "two playthroughs incl. Lucienne's pre-stack save: S-C")

@@ -753,6 +753,103 @@ Function EssKill(Int aiFormId, Int aiMode)
         + " hp=" + (a.GetActorValue("Health") as Int))
 EndFunction
 
+; ============================================================================ U4 Azura family (tests_azura.py, spec §11.15)
+; Test-profile only. Mirror Lucienne.esl's own steps (build/src/lucienne/Source/Scripts/LUC_PlayerAliasScript.psc) through the
+; same global APIs, never its script types (no compile dependency on the Lucienne sources). Log ids, flags, counts and
+; lengths only: never a journal, digest or reply text.
+
+Function LucOpen()
+    {AZ-3/6/8/10/13: open a prayer as LUC_PlayerAliasScript.StartPrayer does (LUC_VEName, LUC_Praying = 1,
+     LUC_PrayerStart, EnableVirtualNPC, inner-voice effect), minus TriggerTextThought: no text box opens, the thought is
+     injected by the harness. Refused unless LUC_Active == 1 and LUC_PrayerEnabled >= 1, as StartPrayer is. The
+     alias's own update loop then polls Dusk every 2 s and ends the prayer (journal summary) once Dusk is disabled.}
+    Actor p = Game.GetPlayer()
+    GlobalVariable en = Game.GetFormFromFile(0x802, "Lucienne.esl") as GlobalVariable
+    If StorageUtil.GetIntValue(p, "LUC_Active", 0) != 1 || en == None || en.GetValue() < 1.0
+        Log("LUCOPEN refused active=" + StorageUtil.GetIntValue(p, "LUC_Active", 0) + " enabledGlobal=" + ((en != None) as Int))
+        Return
+    EndIf
+    StorageUtil.SetStringValue(p, "LUC_VEName", "Dusk")
+    StorageUtil.SetIntValue(p, "LUC_Praying", 1)
+    StorageUtil.SetFloatValue(p, "LUC_PrayerStart", Utility.GetCurrentGameTime())
+    Int rc = SkyrimNetApi.EnableVirtualNPC("Dusk")
+    String uuid = SkyrimNetApi.GetVirtualNPCUUID("Dusk")
+    If uuid != ""
+        StorageUtil.SetStringValue(p, "LUC_DuskUUID", uuid)
+        SkyrimNetApi.SetVoiceEffectByUUID(uuid, "player_thought_effect")
+    EndIf
+    Log("LUCOPEN rc=" + rc + " dusk=" + Def(uuid, "none"))
+EndFunction
+
+Function LucDusk(Int aiOn)
+    {AZ-5/6/7/8: Dusk on or off without touching LUC_Praying (renders; Dusk on/off). Off during an open prayer is the
+     production end path: the alias poll sees Dusk gone and ends the prayer itself (EndPrayer -> journal summary).}
+    Int rc = 0
+    If aiOn == 1
+        rc = SkyrimNetApi.EnableVirtualNPC("Dusk")
+    Else
+        rc = SkyrimNetApi.DisableVirtualNPC("Dusk")
+    EndIf
+    Log("LUCDUSK on=" + aiOn + " rc=" + rc + " dusk=" + Def(SkyrimNetApi.GetVirtualNPCUUID("Dusk"), "none"))
+EndFunction
+
+Function LucProbe()
+    {AZ family state, Papyrus-side (no cached template render): LUC_Active, LUC_Praying, Dusk's UUID (none = disabled),
+     prayer count, journal entries and the shortest entry's LENGTH, digest LENGTH, LUC_DigestEvery, LUC_JournalMax,
+     LUC_PrayerEnabled, shrine flag. Never a text.}
+    Actor p = Game.GetPlayer()
+    Int n = StorageUtil.StringListCount(p, "LUC_PrayerJournal")
+    Int jmin = -1
+    Int i = 0
+    While i < n
+        Int l = StringUtil.GetLength(StorageUtil.StringListGet(p, "LUC_PrayerJournal", i))
+        If jmin < 0 || l < jmin
+            jmin = l
+        EndIf
+        i += 1
+    EndWhile
+    GlobalVariable every = Game.GetFormFromFile(0x803, "Lucienne.esl") as GlobalVariable
+    GlobalVariable jmax = Game.GetFormFromFile(0x804, "Lucienne.esl") as GlobalVariable
+    GlobalVariable en = Game.GetFormFromFile(0x802, "Lucienne.esl") as GlobalVariable
+    Int everyV = -1
+    Int jmaxV = -1
+    Int enV = -1
+    If every != None
+        everyV = every.GetValueInt()
+    EndIf
+    If jmax != None
+        jmaxV = jmax.GetValueInt()
+    EndIf
+    If en != None
+        enV = en.GetValueInt()
+    EndIf
+    Log("LUCPROBE active=" + StorageUtil.GetIntValue(p, "LUC_Active", 0) + " praying=" + StorageUtil.GetIntValue(p, "LUC_Praying", 0) \
+        + " dusk=" + Def(SkyrimNetApi.GetVirtualNPCUUID("Dusk"), "none") + " count=" + StorageUtil.GetIntValue(p, "LUC_PrayerCount", 0) \
+        + " journal=" + n + " jmin=" + jmin + " digest=" + StringUtil.GetLength(StorageUtil.GetStringValue(p, "LUC_PrayerDigest", "")) \
+        + " every=" + everyV + " jmax=" + jmaxV + " enabled=" + enV + " shrine=" + StorageUtil.GetIntValue(p, "LUC_VisitedAzuraShrine", 0))
+EndFunction
+
+Function FormOfFile(String asPlugin, Int aiLocal)
+    {AZ-11: the runtime FormID of a plugin-local form (load-order independent), plus actor flags. Ids and flags only,
+     never a name (the caller's targets come from a private file).}
+    Form f = Game.GetFormFromFile(aiLocal, asPlugin)
+    If f == None
+        Log("FORMOF none local=" + PO3_SKSEFunctions.IntToString(aiLocal, True))
+        Return
+    EndIf
+    Actor a = f as Actor
+    Int isActor = 0
+    Int loaded = 0
+    Int dead = 0
+    If a != None
+        isActor = 1
+        loaded = a.Is3DLoaded() as Int
+        dead = a.IsDead() as Int
+    EndIf
+    Log("FORMOF local=" + PO3_SKSEFunctions.IntToString(aiLocal, True) + " id=" + Watcher().Hex(f) + " actor=" + isActor \
+        + " loaded=" + loaded + " dead=" + dead)
+EndFunction
+
 Function PlayerPlace(Float afX, Float afY, Float afZ)
     {REVIEW_LOG RV-79-upd: put the player at a position in the current (exterior) worldspace, then log it.}
     Game.GetPlayer().SetPosition(afX, afY, afZ)

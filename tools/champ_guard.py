@@ -8,7 +8,7 @@ import ctypes, os, subprocess, time
 from ctypes import wintypes
 
 LOG = "C:/nolvus-research/test_runs/champ_guard.log"     # REVIEW_LOG RV-102 (2): every call: argv, input sizes, peak
-MIN_AVAIL_GB = 6.0                                        # RV-102 (4): build checks wait for this much free RAM
+MIN_AVAIL_GB = 12.0                                       # RV-102 (4): build checks wait for this much free RAM   # 2026-10-11 09:52: Champollion's behaviour depends on free memory (IntelEngine_Battle.pex decompiles with the game closed, crashes 0xC0000005 at once with ~7 GB free; the 08:46 run grew to 45 GB): run checks only with the game closed in practice
 
 
 class MEMORYSTATUSEX(ctypes.Structure):

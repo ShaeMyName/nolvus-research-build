@@ -48,7 +48,7 @@ block("U2", "T0", ["tests_u2", "tests_u2_e", "tests_u2_wh", "tests_u2_len", "tes
     # notices (the per-decision audit runs after every test anyway)
     "NT-1", "NT-2", "NT-4",
     # equip-event audience, child addressed, storage
-    "X-6", "CS-2", "T10-1", "X-11", "MA-1", "AZ-11", "T10-3", "T10-7", "T10-8",
+    "X-6", "CS-2", "T10-1", "X-11", "MA-1", "T10-3", "T10-7", "T10-8",
     # intimacy profiles (mechanics only; feature switched on per test, T0 reload after each)
     "IP-7", "IP-1", "IP-2", "IP-3", "IP-4", "IP-6",
     # saves/reloads last before the block's end
@@ -114,3 +114,25 @@ block("E", "T0", ["tests_ess"], [
                           "E-CASUAL-ENROLLED": 6, "E-K3": 3, "E-TBL": 6, "E-TBLb": 6, "E-RDO": 1, "E-WIN": 1, "E-CF": 1},
       harness=True, voices=False, gamemaster=False)
 block("E_CF", "T0-CF", ["tests_ess"], ["E-CF"], fixed={"E-CF": 45}, harness=True, voices=False, gamemaster=False)
+
+# U4 "Azura" (time plan §3.7 and §5 :381; tests_azura.py, written 2026-10-11). SHAE AWAY FROM THE SCREEN AND THE SOUND for
+# the whole of U4 (AZ-10: her answers must never reach Shae; the overlay shows them even without voices). Save T0; every
+# test sets LUC_Active itself (console request, undone by each T0 reload). harness=True (D1 names U4), voices=False (no
+# voice server: AZ-13's voice half is INCONCLUSIVE by design). GameMaster OFF for U4 (DECISIONS:414); AZ-6 and the stubs
+# of AZ-4/AZ-9/AZ-12 are in block.GM_TESTS, so they run in U4G with GameMaster ON (DECISIONS:412(2), as U3G).
+# AZ-10's judge terms and AZ-11's targets: build/private_out/ (gitignored), made by build/tools/gen_az10_judge_terms.py.
+# AZ-11 runs here. U2's order still lists the tests_u2_misc stub ("written with the U4 group"); drop it from U2 once
+# the reviewer agrees (a U2 process never imports tests_azura, so the two registrations never meet in one run).
+U4_SEQUENCE = ["U4", "U4G"]
+block("U4", "T0", ["tests_azura"], [
+    "AZ-5", "AZ-7",                      # renders (Dusk on, no prayer), no reload
+    "AZ-3",                              # save/load reset
+    "AZ-13",                             # one prayer thought; voice half INCONCLUSIVE (no voices)
+    "AZ-8",                              # 3 prayers, journal + digest, rollback load
+    "AZ-10",                             # 10 spoiler probes, pass/fail per probe only
+    "AZ-11",                             # blacklisted-quest dialogue (travels far): last before the stubs
+    "AZ-1", "AZ-2",                      # stubs: Shae's S sittings
+], fixed={"AZ-5": 3, "AZ-7": 4, "AZ-3": 6, "AZ-13": 4, "AZ-8": 14, "AZ-10": 22, "AZ-11": 15, "AZ-1": 1, "AZ-2": 1},
+   harness=True, voices=False, gamemaster=False)
+block("U4G", "T0", ["tests_azura"], ["AZ-6", "AZ-4", "AZ-9", "AZ-12"],
+      fixed={"AZ-6": 6, "AZ-4": 1, "AZ-9": 1, "AZ-12": 1}, harness=True, voices=False, gamemaster=True)

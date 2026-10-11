@@ -172,7 +172,11 @@ class Run:
         "U3MarasLog": "(?i:U3MARASLOG) ",
         "U3GiftRank": "U3GIFT ",
         "U3ExecAction": "U3EXEC ",               # the 'requested' line comes before the box; rc only after it
-        "U3StewardProbe": "U3STEWARD "
+        "U3StewardProbe": "U3STEWARD ",
+        "LucOpen": "(?i:LUCOPEN) ",               # tests_azura.py (U4); 'LUCOPEN refused ...' is checked by the test
+        "LucDusk": "(?i:LUCDUSK) ",
+        "LucProbe": "(?i:LUCPROBE) ",
+        "FormOfFile": "(?i:FORMOF) "
     }
     CTL_UNSYNC = ["ExpectWFP", "TestCFRefuse"]
 
