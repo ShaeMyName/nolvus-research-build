@@ -618,12 +618,16 @@ Function ExecuteScheduledTask(Int slot)
     ElseIf taskType == "fetch_npc"
         Core.DebugMsg("Schedule execute: " + npc.GetDisplayName() + " ? fetch " + targetName)
         ClearScheduleSlot(slot)  ; Non-meeting tasks don't need persistent schedule tracking
+        StorageUtil.SetIntValue(npc, "IEB_SchedConfirmed", 1)   ; IEB NT-4: confirmed when scheduled
         NPCTasks.FetchNPC(npc, targetName)
+        StorageUtil.UnsetIntValue(npc, "IEB_SchedConfirmed")
 
     ElseIf taskType == "deliver_message"
         Core.DebugMsg("Schedule execute: " + npc.GetDisplayName() + " ? deliver message to " + targetName)
         ClearScheduleSlot(slot)  ; Non-meeting tasks don't need persistent schedule tracking
+        StorageUtil.SetIntValue(npc, "IEB_SchedConfirmed", 1)   ; IEB NT-4: confirmed when scheduled
         NPCTasks.DeliverMessage(npc, targetName, msgContent, meetLoc, meetTimeStr)
+        StorageUtil.UnsetIntValue(npc, "IEB_SchedConfirmed")
     EndIf
 EndFunction
 

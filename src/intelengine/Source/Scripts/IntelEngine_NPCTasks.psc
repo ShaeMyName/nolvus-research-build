@@ -362,7 +362,13 @@ Bool Function FetchNPC(Actor akAgent, String targetName, String failReason = "no
     EndIf
 
     ; MCM task confirmation prompt
-    Int confirmResult = Core.ShowTaskConfirmationForAction(akAgent, akAgent.GetDisplayName() + " wants to go fetch " + targetName + ".", "FetchPerson")
+    Int confirmResult = 0
+    If StorageUtil.GetIntValue(akAgent, "IEB_SchedConfirmed", 0) == 1   ; IEB NT-4: the player confirmed when scheduling
+        StorageUtil.UnsetIntValue(akAgent, "IEB_SchedConfirmed")
+        Core.DebugMsg("IEB_SCHED_CONFIRMED skip second box: fetch " + akAgent.GetDisplayName())
+    Else
+        confirmResult = Core.ShowTaskConfirmationForAction(akAgent, akAgent.GetDisplayName() + " wants to go fetch " + targetName + ".", "FetchPerson")
+    EndIf
     If confirmResult == 1
         Core.SendTaskNarration(akAgent, Game.GetPlayer().GetDisplayName() + " told " + akAgent.GetDisplayName() + " not to go fetch " + targetName + ".")
         Return false
@@ -550,7 +556,13 @@ Bool Function DeliverMessage(Actor akAgent, String targetName, String msgContent
     EndIf
 
     ; MCM task confirmation prompt
-    Int confirmResult = Core.ShowTaskConfirmationForAction(akAgent, akAgent.GetDisplayName() + " wants to deliver a message to " + targetName + ".", "DeliverMessage")
+    Int confirmResult = 0
+    If StorageUtil.GetIntValue(akAgent, "IEB_SchedConfirmed", 0) == 1   ; IEB NT-4: the player confirmed when scheduling
+        StorageUtil.UnsetIntValue(akAgent, "IEB_SchedConfirmed")
+        Core.DebugMsg("IEB_SCHED_CONFIRMED skip second box: deliver " + akAgent.GetDisplayName())
+    Else
+        confirmResult = Core.ShowTaskConfirmationForAction(akAgent, akAgent.GetDisplayName() + " wants to deliver a message to " + targetName + ".", "DeliverMessage")
+    EndIf
     If confirmResult == 1
         Core.SendTaskNarration(akAgent, Game.GetPlayer().GetDisplayName() + " told " + akAgent.GetDisplayName() + " not to deliver the message.")
         Return false

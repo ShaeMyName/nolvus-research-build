@@ -1,6 +1,6 @@
 """Post-U1 IntelEngine hunks (post_u1_build_plan §1 timer fix F1/F2, §2 slot race) on build/src/intelengine.
 Usage: apply_patch_ie_s1s2.py <group>. Every anchor must match exactly once (CRLF kept). Same edit() as apply_patch_b.py.
-Groups: f1 | f2 | core-slot | callers | core-expiry | rv68 | rv68b | rv70 | rv72 | rv72sched | rv72keys"""
+Groups: f1 | f2 | core-slot | callers | core-expiry | rv68 | rv68b | rv70 | rv72 | rv72sched | rv72keys | nt4"""
 import sys
 
 D = "C:/nolvus-research/build/src/intelengine/Source/Scripts/"
@@ -841,6 +841,46 @@ elif G == "rv72keys":   # RV-72 (c) follow-up, 2026-10-11 run 3: key blank at lo
                     sib = " tgt=" + StorageUtil.GetStringValue(a, "Intel_Target", "") + " islot=" + StorageUtil.GetIntValue(a, "Intel_Slot", -9) + " istate=" + StorageUtil.GetIntValue(a, "Intel_State", -9) + " copy=" + StorageUtil.GetStringValue(a, "IEB_TaskType", "")
                 EndIf
                 DebugMsg("IEB_LOADKEYS slot=" + i + " state=" + st[i] + " slotType=" + ty[i] + " actor=" + a + " key=" + key + " fac=" + fac + sib)
+"""),
+])
+elif G == "nt4":   # spec §17a NT-4 (approved): a follower's SCHEDULED fetch/delivery must not ask the confirmation box a
+    # second time when it fires (FetchNPC/DeliverMessage have no isScheduled flag; Schedule.psc:621/626 -> NPCTasks :365/:549).
+    # Schedule marks the actor right before the call; NPCTasks skips the box once for a marked actor and clears the mark;
+    # Schedule clears it again after the call in case the task returned before reaching the box (duplicate guard etc.).
+    edit("IntelEngine_Schedule.psc", [
+("""        NPCTasks.FetchNPC(npc, targetName)
+""",
+"""        StorageUtil.SetIntValue(npc, "IEB_SchedConfirmed", 1)   ; IEB NT-4: confirmed when scheduled
+        NPCTasks.FetchNPC(npc, targetName)
+        StorageUtil.UnsetIntValue(npc, "IEB_SchedConfirmed")
+"""),
+("""        NPCTasks.DeliverMessage(npc, targetName, msgContent, meetLoc, meetTimeStr)
+""",
+"""        StorageUtil.SetIntValue(npc, "IEB_SchedConfirmed", 1)   ; IEB NT-4: confirmed when scheduled
+        NPCTasks.DeliverMessage(npc, targetName, msgContent, meetLoc, meetTimeStr)
+        StorageUtil.UnsetIntValue(npc, "IEB_SchedConfirmed")
+"""),
+])
+    edit("IntelEngine_NPCTasks.psc", [
+("""    Int confirmResult = Core.ShowTaskConfirmationForAction(akAgent, akAgent.GetDisplayName() + " wants to go fetch " + targetName + ".", "FetchPerson")
+""",
+"""    Int confirmResult = 0
+    If StorageUtil.GetIntValue(akAgent, "IEB_SchedConfirmed", 0) == 1   ; IEB NT-4: the player confirmed when scheduling
+        StorageUtil.UnsetIntValue(akAgent, "IEB_SchedConfirmed")
+        Core.DebugMsg("IEB_SCHED_CONFIRMED skip second box: fetch " + akAgent.GetDisplayName())
+    Else
+        confirmResult = Core.ShowTaskConfirmationForAction(akAgent, akAgent.GetDisplayName() + " wants to go fetch " + targetName + ".", "FetchPerson")
+    EndIf
+"""),
+("""    Int confirmResult = Core.ShowTaskConfirmationForAction(akAgent, akAgent.GetDisplayName() + " wants to deliver a message to " + targetName + ".", "DeliverMessage")
+""",
+"""    Int confirmResult = 0
+    If StorageUtil.GetIntValue(akAgent, "IEB_SchedConfirmed", 0) == 1   ; IEB NT-4: the player confirmed when scheduling
+        StorageUtil.UnsetIntValue(akAgent, "IEB_SchedConfirmed")
+        Core.DebugMsg("IEB_SCHED_CONFIRMED skip second box: deliver " + akAgent.GetDisplayName())
+    Else
+        confirmResult = Core.ShowTaskConfirmationForAction(akAgent, akAgent.GetDisplayName() + " wants to deliver a message to " + targetName + ".", "DeliverMessage")
+    EndIf
 """),
 ])
 else:
