@@ -1,0 +1,129 @@
+BLD-2 call-site diff, installed Errand Bridge pex vs build/bin/eb (essential followers build, 2026-10-11). NOTE: IEB_Main onmarasstatuschanged (getdisplayname/log, MARAS_EVT) and IEB_RankSync apply (log 5->6, why=skip:maras) are the earlier uninstalled logging change, commit c6b0bf8, not this feature. IEB_EssLib.pex is NEW (no installed counterpart; listed at the end).
+
+===== IEB_Main
+functions: installed 45, built 46
+  FUNC only in built: <auto>.onsafollowercalled(('string', 'string', 'float', 'form'), 'none')
+call sites: installed 534, built 544
+  onmarasstatuschanged               getdisplayname                                 0 -> 1
+  onmarasstatuschanged               log                                            0 -> 2
+  onsafollowercalled                 ieb_esslib.request                             0 -> 1
+  onsafollowercalled                 registerforsingleupdate                        0 -> 1
+  setup                              ieb_esslib.onload                              0 -> 1
+  setup                              registerformodevent                            3 -> 4
+  tick                               getvalueint                                    0 -> 1
+  tick                               ieb_esslib.pending                             0 -> 1
+  tick                               ieb_esslib.sweep                               0 -> 1
+DIFFERENT
+===== IEB_NFFLib
+functions: installed 15, built 20
+  FUNC only in built: <auto>.essentialon(('actor',), 'bool')
+  FUNC only in built: <auto>.essfac((), 'faction')
+  FUNC only in built: <auto>.importsetdone(('actor',), 'bool')
+  FUNC only in built: <auto>.inessfac(('actor',), 'bool')
+  FUNC only in built: <auto>.isimport(('actor',), 'bool')
+call sites: installed 34, built 47
+  essentialon                        getactorbase                                   0 -> 1
+  essentialon                        ieb_nfflib.ctl                                 0 -> 1
+  essentialon                        ieb_nfflib.essfac                              0 -> 1
+  essentialon                        ieb_nfflib.inessfac                            0 -> 1
+  essentialon                        isessential                                    0 -> 1
+  essentialon                        toggleessential                                0 -> 1
+  essfac                             ieb_nfflib.ctl                                 0 -> 1
+  importsetdone                      ieb_nfflib.ctl                                 0 -> 1
+  importsetdone                      isinfaction                                    0 -> 1
+  inessfac                           ieb_nfflib.essfac                              0 -> 1
+  inessfac                           isinfaction                                    0 -> 1
+  isimport                           ieb_nfflib.ctl                                 0 -> 1
+  isimport                           isinfaction                                    0 -> 1
+DIFFERENT
+===== IEB_SALib
+functions: installed 17, built 25
+  FUNC only in built: <auto>.casualfollowers((), 'actor[]')
+  FUNC only in built: <auto>.essentialoff(('actor',), 'bool')
+  FUNC only in built: <auto>.getwasessential(('actor',), 'bool')
+  FUNC only in built: <auto>.inslot(('actor',), 'bool')
+  FUNC only in built: <auto>.roster((), 'actor[]')
+  FUNC only in built: <auto>.setwasessential(('actor',), 'none')
+  FUNC only in built: <auto>.slotoff(('actor',), 'none')
+  FUNC only in built: <auto>.sloton(('actor',), 'none')
+call sites: installed 69, built 90
+  casualfollowers                    ieb_salib.present                              0 -> 1
+  casualfollowers                    severactionsnativeext.native_getcasualfollowers   0 -> 1
+  essentialoff                       ieb_salib.present                              0 -> 1
+  essentialoff                       severactionsnativeext.native_getessentialoff   0 -> 1
+  getwasessential                    ieb_salib.present                              0 -> 1
+  getwasessential                    severactionsnativeext.native_getwasessential   0 -> 1
+  inslot                             ieb_salib.fm                                   0 -> 1
+  inslot                             ieb_salib.present                              0 -> 1
+  inslot                             isactoressentialbyslot                         0 -> 1
+  roster                             ieb_salib.present                              0 -> 1
+  roster                             severactionsnativeext.native_getactivefollowerroster   0 -> 1
+  setwasessential                    ieb_salib.present                              0 -> 1
+  setwasessential                    severactionsnativeext.native_setwasessential   0 -> 1
+  slotoff                            clearactoressential                            0 -> 1
+  slotoff                            ieb_salib.fm                                   0 -> 1
+  slotoff                            ieb_salib.present                              0 -> 1
+  slotoff                            severactionsnativeext.native_setessentialoff   0 -> 1
+  sloton                             ieb_salib.fm                                   0 -> 1
+  sloton                             ieb_salib.present                              0 -> 1
+  sloton                             makeactoressential                             0 -> 1
+  sloton                             severactionsnativeext.native_setessentialoff   0 -> 1
+DIFFERENT
+===== IEB_RankSync
+functions: installed 13, built 13
+call sites: installed 59, built 60
+  apply                              ieb_ranksync.log                               5 -> 6
+DIFFERENT
+===== IEB_CFData
+functions: installed 9, built 9
+call sites: installed 142, built 142
+IDENTICAL
+===== IEB_CFLib
+functions: installed 28, built 28
+call sites: installed 99, built 99
+IDENTICAL
+===== IEB_IELib
+functions: installed 18, built 18
+call sites: installed 60, built 60
+IDENTICAL
+===== IEB_PlayerAlias
+functions: installed 3, built 3
+call sites: installed 4, built 4
+IDENTICAL
+===== IEB_EssLib
+NEW script (Hidden global library, never attached). Callees per function:
+functions 37, call sites 334
+  addcand                game.getplayer x1
+  confirmstep            getdisplayname x3, ieb_esslib.fail x2, ieb_esslib.flagon x1, ieb_esslib.ieholds x1, ieb_esslib.log x3, ieb_esslib.reapply x1, ieb_esslib.sastamp x1, ieb_esslib.transientskip x1, ieb_nfflib.sparring x1, storageutil.getfloatvalue x1, storageutil.getintvalue x4, storageutil.hasintvalue x1, storageutil.setfloatvalue x1, storageutil.setintvalue x5, storageutil.unsetfloatvalue x1, storageutil.unsetintvalue x1, utility.getcurrentrealtime x1
+  consider               getactorbase x1, getdisplayname x4, getleveledactorbase x1, ieb_esslib.fail x1, ieb_esslib.ieholds x1, ieb_esslib.importgate x1, ieb_esslib.log x4, ieb_esslib.sastamp x1, ieb_esslib.skip x8, ieb_esslib.track x4, ieb_esslib.transientskip x1, ieb_nfflib.essentialon x1, ieb_nfflib.inessfac x1, ieb_nfflib.isimport x1, ieb_nfflib.seated x1, ieb_salib.issafollower x1, ieb_salib.sloton x1, ischild x1, isdead x1, isdisabled x1, isessential x3, isprotected x1, isunique x1, setessential x2, storageutil.formlistadd x1, storageutil.getintvalue x4, storageutil.hasintvalue x2, storageutil.setintvalue x3
+  exemptquest            jsonutil.stringlistcount x1, jsonutil.stringlistget x1, po3_sksefunctions.getformmodname x1
+  fail                   getdisplayname x1, ieb_esslib.log x1, ieb_esslib.untrack x1, storageutil.formlistadd x1, storageutil.setintvalue x1
+  failpass               ieb_esslib.inarr x1, storageutil.formlistcount x1, storageutil.formlistget x1, storageutil.formlistremoveat x1, storageutil.unsetfloatvalue x1, storageutil.unsetintvalue x2
+  flagon                 getactorbase x2, ieb_nfflib.inessfac x1, ieb_salib.inslot x1, isessential x2
+  gotostate              onbeginstate x1, onendstate x1
+  hasopenobjective       isobjectivecompleted x1, isobjectivedisplayed x1, po3_sksefunctions.getallquestobjectives x1
+  ieholds                storageutil.hasfloatvalue x1, storageutil.hasintvalue x1
+  importgate             ieb_nfflib.importsetdone x1, storageutil.getfloatvalue x1, storageutil.getintvalue x1, storageutil.setfloatvalue x1, storageutil.setintvalue x1, utility.getcurrentrealtime x1, utility.isinmenumode x1
+  iscasualonly           ieb_cflib.recruited x1, ieb_cflib.registryindex x1, ieb_nfflib.seated x1, ieb_salib.issafollower x1
+  loadwindows            getstage x1, ieb_esslib.log x2, ieb_esslib.winfile x1, isrunning x1, jsonutil.formlistcount x2, jsonutil.formlistget x1, jsonutil.getintvalue x1, jsonutil.intlistcount x4, jsonutil.intlistget x3, jsonutil.isgood x1, jsonutil.jsonexists x1, storageutil.getintvalue x2, storageutil.intlistadd x1, storageutil.intlistclear x1, storageutil.setintvalue x2
+  log                    debug.trace x1, debug.traceuser x1, storageutil.getintvalue x1
+  maintain               getactorbase x1, getdisplayname x1, ieb_esslib.confirmstep x1, ieb_esslib.ieholds x1, ieb_esslib.log x4, ieb_esslib.optout x2, ieb_esslib.reassert x2, ieb_esslib.sastamp x3, ieb_esslib.untrack x1, ieb_nfflib.inessfac x2, ieb_salib.essentialoff x1, ieb_salib.getwasessential x1, ieb_salib.issafollower x1, isessential x2, storageutil.formlistremove x1, storageutil.getintvalue x9, storageutil.setintvalue x3, storageutil.unsetintvalue x4, storageutil.unsetstringvalue x1
+  maintainall            ieb_esslib.maintain x1, isdead x1, storageutil.formlistcount x1, storageutil.formlistget x1, storageutil.formlistremoveat x1
+  onload                 storageutil.unsetintvalue x2
+  optout                 getdisplayname x1, ieb_esslib.log x1, storageutil.setintvalue x1, storageutil.unsetintvalue x2
+  pending                storageutil.getintvalue x1
+  reapply                getactorbase x1, ieb_nfflib.essentialon x1, ieb_nfflib.inessfac x1, ieb_salib.sloton x1, setessential x1
+  reassert               getactorbase x1, getdisplayname x2, ieb_esslib.ieholds x1, ieb_esslib.log x2, ieb_esslib.storyaliasheld x1, ieb_esslib.windowhit x1, ieb_nfflib.sparring x1, isdisabled x1, setessential x1, storageutil.getintvalue x1, storageutil.hasintvalue x1, storageutil.setintvalue x2, storageutil.unsetintvalue x1
+  request                storageutil.formlistadd x1, storageutil.setintvalue x2
+  requestpass            ieb_esslib.inarr x1, storageutil.formlistcount x1, storageutil.formlistget x1, storageutil.formlistremoveat x1, storageutil.getintvalue x1, storageutil.setintvalue x2, storageutil.unsetintvalue x1
+  resume                 getactorbase x1, getdisplayname x1, ieb_esslib.log x1, ieb_esslib.optout x1, ieb_nfflib.inessfac x1, ieb_salib.sloton x1, setessential x1, storageutil.setintvalue x1, storageutil.unsetintvalue x1
+  sastamp                getdisplayname x1, ieb_esslib.log x1, ieb_salib.setwasessential x1, storageutil.setintvalue x1
+  skip                   getdisplayname x1, ieb_esslib.log x1, storageutil.getstringvalue x1, storageutil.setstringvalue x1
+  storyaliasheld         getcurrentscene x1, getnthreferencealias x1, getnumreferencealiases x1, getowningquest x1, ieb_esslib.exemptquest x1, ieb_esslib.hasopenobjective x1, isrunning x1, isstarting x1, jsonutil.formlisthas x1
+  suspend                getactorbase x1, getdisplayname x1, ieb_esslib.log x1, ieb_salib.slotoff x1, setessential x1, storageutil.setintvalue x1, storageutil.unsetintvalue x1
+  sweep                  getfactionrank x1, ieb_cflib.recruited x1, ieb_cflib.registryindex x1, ieb_esslib.addcand x4, ieb_esslib.consider x1, ieb_esslib.failpass x1, ieb_esslib.iscasualonly x1, ieb_esslib.loadwindows x1, ieb_esslib.maintainall x1, ieb_esslib.requestpass x1, ieb_esslib.windowpass x1, ieb_nfflib.seatedactors x1, ieb_ranksync.bondfaction x1, ieb_salib.casualfollowers x1, ieb_salib.roster x1, po3_sksefunctions.getplayerfollowers x1, storageutil.getintvalue x1, storageutil.setintvalue x1, storageutil.unsetintvalue x1
+  track                  storageutil.formlistadd x1, storageutil.setfloatvalue x1, storageutil.setintvalue x5, storageutil.unsetintvalue x2, storageutil.unsetstringvalue x1, utility.getcurrentrealtime x1
+  transientskip          ieb_esslib.storyaliasheld x1, ieb_esslib.windowhit x1, ieb_nfflib.sparring x1, storageutil.hasintvalue x1
+  untrack                storageutil.formlistremove x1, storageutil.unsetfloatvalue x1, storageutil.unsetintvalue x9
+  windowhit              getactorbase x1, getleveledactorbase x1, ieb_esslib.winfile x1, jsonutil.formlistget x1, jsonutil.intlistget x1, storageutil.intlistcount x1, storageutil.intlistget x1
+  windowpass             ieb_esslib.resume x1, ieb_esslib.suspend x1, ieb_esslib.windowhit x1, isdead x1, storageutil.formlistcount x1, storageutil.formlistget x1, storageutil.getintvalue x4, storageutil.unsetintvalue x1

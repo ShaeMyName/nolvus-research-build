@@ -166,3 +166,61 @@ Function SetCatchup(Bool abOn) Global
         SeverActionsNativeExt.Native_SetCellCatchupEnabled(abOn)
     EndIf
 EndFunction
+
+; ---- Essential followers (essential_followers_design.md §1.4, §7.1, §8.1). Natives: SeverActionsNativeExt.psc:519,
+; :524, :1266-1270; alias pool: SeverActions_FollowerManager.psc:2740-2797.
+
+Actor[] Function Roster() Global
+    Actor[] empty
+    If !Present()
+        Return empty
+    EndIf
+    Return SeverActionsNativeExt.Native_GetActiveFollowerRoster()
+EndFunction
+
+Actor[] Function CasualFollowers() Global
+    Actor[] empty
+    If !Present()
+        Return empty
+    EndIf
+    Return SeverActionsNativeExt.Native_GetCasualFollowers()
+EndFunction
+
+Bool Function GetWasEssential(Actor a) Global
+    Return Present() && SeverActionsNativeExt.Native_GetWasEssential(a)
+EndFunction
+
+Function SetWasEssential(Actor a) Global
+    {Only ever True from the bridge (§8.1: once, at confirm, stamped by the caller).}
+    If Present()
+        SeverActionsNativeExt.Native_SetWasEssential(a, True)
+    EndIf
+EndFunction
+
+Bool Function EssentialOff(Actor a) Global
+    Return !Present() || SeverActionsNativeExt.Native_GetEssentialOff(a)
+EndFunction
+
+Function SlotOn(Actor a) Global
+    {SA's own "ON" (FM:1934-1939): reference-level alias slot. Shared/non-unique bases only (§1.7).}
+    SeverActions_FollowerManager fm = FM()
+    If Present() && fm != None
+        SeverActionsNativeExt.Native_SetEssentialOff(a, False)
+        fm.MakeActorEssential(a)
+    EndIf
+EndFunction
+
+Function SlotOff(Actor a) Global
+    {Window suspend of a slot the bridge filled: EssentialOff back on too, or SA's load ReassignEssentialSlots would
+     refill it inside the window (FM:2798-2831).}
+    SeverActions_FollowerManager fm = FM()
+    If Present() && fm != None
+        SeverActionsNativeExt.Native_SetEssentialOff(a, True)
+        fm.ClearActorEssential(a)
+    EndIf
+EndFunction
+
+Bool Function InSlot(Actor a) Global
+    SeverActions_FollowerManager fm = FM()
+    Return Present() && fm != None && fm.IsActorEssentialBySlot(a)
+EndFunction

@@ -46,6 +46,8 @@ Function Setup()
     RegisterForModEvent("IntelEngine_TaskStarted", "OnIETaskStarted")
     RegisterForModEvent("IntelEngine_TaskEnded", "OnIETaskEnded")
     RegisterForModEvent("maras_status_changed", "OnMarasStatusChanged")
+    RegisterForModEvent("SeverActions_FollowerCalledByPlayer", "OnSAFollowerCalled")   ; essential followers §1.0
+    IEB_EssLib.OnLoad()
     Log(2, "SETUP agents=" + _agents.Length + " enabled=" + IEB_Enabled.GetValueInt())
     If IEB_NFFLib.NFFPresent()                       ; REVIEW_LOG RV-66: once per load (Setup runs on init and on each load)
         Int src = IEB_NFFLib.DismissedFacSource()
@@ -88,6 +90,15 @@ Event OnMarasStatusChanged(String asEventName, String asStatus, Float afStatusEn
     IEB_RankSync.OnMarasStatus(m)
 EndEvent
 
+Event OnSAFollowerCalled(String asEventName, String asVerb, Float afArg, Form akSender)
+    {Essential followers (design §1.0 step 1): SA fires "recruit" before it changes any state, so this only requests an
+     early sweep (IEB_EssLib.Request); the tick does the work. Other verbs (dismiss, wait, follow) are ignored.}
+    If asVerb == "recruit" && (akSender as Actor) != None
+        IEB_EssLib.Request(akSender as Actor)
+        RegisterForSingleUpdate(1.0)
+    EndIf
+EndEvent
+
 ; ============================================================================ worker
 
 Event OnUpdate()
@@ -116,13 +127,16 @@ Function Tick()
     If !EnableTransitions()
         Return
     EndIf
+    Bool essNow = False
     If _reconcileAt == -1
         Reconcile()
         _reconcileAt = _tick + 15        ; second reconcile at about +15 s
         _reconcileSecond = True
+        essNow = True
     ElseIf _reconcileSecond && _tick >= _reconcileAt
         Reconcile()
         _reconcileSecond = False
+        essNow = True
     EndIf
     Discover()
     ReleaseScan()
@@ -130,6 +144,11 @@ Function Tick()
     If _tick % 5 == 0
         OrphanSweep()
         IEB_RankSync.SweepStep(4)
+    EndIf
+    ; essential followers (design §1.0 step 2): slot 2 of 5, never RankSync's; also at each load reconcile and
+    ; right after an SA recruit request
+    If essNow || _tick % 5 == 2 || IEB_EssLib.Pending()
+        IEB_EssLib.Sweep(IEB_LogLevel.GetValueInt())
     EndIf
 EndFunction
 

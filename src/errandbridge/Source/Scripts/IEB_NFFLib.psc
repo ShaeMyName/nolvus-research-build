@@ -150,3 +150,42 @@ Bool Function IsAnimal(Actor a) Global
     EndIf
     Return (v.ActorTypeAnimal != None && a.HasKeyword(v.ActorTypeAnimal)) || (v.ActorTypeDwarven != None && a.HasKeyword(v.ActorTypeDwarven))
 EndFunction
+
+; ---- Essential followers (essential_followers_design.md §1.1, §7.3, §7.4). Factions on controller.varScript
+; (nwsFollowerVariableScript.psc:148, :157, :158); the toggle is nwsFollowerControllerScript.psc:1991 ->
+; nwsFollowerControllerExScript.psc:461-485.
+
+Faction Function EssFac() Global
+    nwsFollowerControllerScript c = Ctl()
+    If c == None || c.varScript == None
+        Return None
+    EndIf
+    Return c.varScript.nwsFF_EssFac
+EndFunction
+
+Bool Function InEssFac(Actor a) Global
+    Faction f = EssFac()
+    Return a != None && f != None && a.IsInFaction(f)
+EndFunction
+
+Bool Function EssentialOn(Actor a) Global
+    {NFF's own toggle, ON direction only. It is a toggle (ExScript :552-563 turns it OFF for a member), so it is called
+     only when the actor is NOT in nwsFF_EssFac and the base is NOT essential. Returns False when nothing was called.}
+    nwsFollowerControllerScript c = Ctl()
+    If a == None || c == None || EssFac() == None || InEssFac(a) || a.GetActorBase().IsEssential()
+        Return False
+    EndIf
+    c.ToggleEssential(a, 0)
+    Return True
+EndFunction
+
+Bool Function IsImport(Actor a) Global
+    nwsFollowerControllerScript c = Ctl()
+    Return a != None && c != None && c.varScript != None && c.varScript.nwsFF_ImportFac != None && a.IsInFaction(c.varScript.nwsFF_ImportFac)
+EndFunction
+
+Bool Function ImportSetDone(Actor a) Global
+    {nwsFF_ImportSetFac: added at the start of SetImportLight (ExScript :584).}
+    nwsFollowerControllerScript c = Ctl()
+    Return a != None && c != None && c.varScript != None && c.varScript.nwsFF_ImportSetFac != None && a.IsInFaction(c.varScript.nwsFF_ImportSetFac)
+EndFunction

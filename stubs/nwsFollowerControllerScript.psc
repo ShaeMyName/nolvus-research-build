@@ -19,3 +19,6 @@ Function ImportFollower(Actor myActor)     ; :655 (harness B-6d, REVIEW_LOG RV-6
 EndFunction
 
 nwsFollowerVariableScript Property varScript Auto                ; :209 (REVIEW_LOG R32: DismissedFac, animal keywords)
+
+Function ToggleEssential(Actor myActor, Int doDefault)     ; :1991 (essential followers, design §1.1)
+EndFunction
