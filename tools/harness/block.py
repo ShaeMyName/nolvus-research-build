@@ -331,10 +331,16 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             summary.append("| harness mode off after the block | %s | | |" % ("verified" if ok else "FAILED"))
     summary.append("| watcher transients | %s | | re-read cleared within 1 s |"
                    % (", ".join("%s=%d" % kv for kv in sorted(TRANSIENTS.items())) or "none"))
+    narch = game.archive_logs("end")
+    lf = game.log_findings()      # REVIEW_LOG RV-76 (3)/(5): any count above 0 is a finding
+    summary.append("| IE key/array findings (%d session(s)) | %s | | blank-key LOADKEYS=%d TASKTYPE_RESTORED=%d array errors=%d |"
+                   % (lf.get("sessions", 0), "FINDING" if any(lf.get(k) for k in ("blank_key_loadkeys",
+                      "tasktype_restored", "array_errors")) else "none", lf.get("blank_key_loadkeys", 0),
+                      lf.get("tasktype_restored", 0), lf.get("array_errors", 0)))
     p = OUT + "%s_%s.md" % (name, stamp)
     open(p, "w", encoding="utf-8").write("\n".join(summary) + "\n")
     ctl.log("summary %s" % p)
-    ctl.log("raw logs archived: %d file(s) in %s" % (game.archive_logs("end"), game.ARCHIVE[0]))
+    ctl.log("raw logs archived: %d file(s) in %s" % (narch, game.ARCHIVE[0]))
     print("BLOCK DONE %s %d/%d not ALL PASS; %.0f min" % (name, sum(1 for _, v in results if v != "ALL PASS"),
                                                          len(results), (time.time() - started) / 60), flush=True)
     ctl.save()

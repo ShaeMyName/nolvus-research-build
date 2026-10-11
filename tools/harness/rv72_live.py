@@ -180,7 +180,14 @@ def main():
                     say("  " + l)
                 jen_restored = any("TASKTYPE_RESTORED" in l and "Jenassa" in l for l in keys)
                 s = probe(ctl, "SlotsProbe", [], "SLOTSPROBE", "td after load")
-                verdict("td_load_no_restore", not jen_restored, "%d LOADKEYS/RESTORED lines" % len(keys))
+                # REVIEW_LOG RV-76 (2): only counts if the slot was still active in the save (a LOADKEYS line for her);
+                # zero lines = the teardown finished before the save = vacuous
+                jen_keys = [l for l in keys if "IEB_LOADKEYS" in l and "000E1BA9" in l.upper()]
+                if not jen_keys:
+                    verdict("td_load_no_restore", None, "no IEB_LOADKEYS for her: teardown finished before the save")
+                else:
+                    verdict("td_load_no_restore", not jen_restored and all("fac=FALSE" in l.upper() for l in jen_keys),
+                            "; ".join(jen_keys))
                 verdict("td_load_slots_clean", bool(s) and not re.search(r"state=[1-9]", s), s[-160:])
                 errs["session td"] = errors(text + pap.read())
         game.archive_logs("end")
@@ -189,10 +196,15 @@ def main():
         verdict("run", False, str(e))
     finally:
         game.close(None, timeout=60, force=True)
-    total = sum(errs.values())
     for k, v in errs.items():
-        say("array errors %s: %d" % (k, v))
-    verdict("array_errors_zero", total == 0 if errs else None, "total %d" % total)
+        say("array errors %s (overlapping tails, indicative): %d" % (k, v))
+    # REVIEW_LOG RV-76 (5): the total comes from the archived session logs (no double count across tails)
+    lf = game.log_findings()
+    say("log findings: %s" % lf)
+    verdict("array_errors_zero", lf.get("array_errors") == 0 if lf.get("sessions") else None,
+            "total %s" % lf.get("array_errors"))
+    verdict("no_blank_key_on_load", lf.get("blank_key_loadkeys") == 0 if lf.get("sessions") else None,
+            "blank-key LOADKEYS %s, TASKTYPE_RESTORED %s" % (lf.get("blank_key_loadkeys"), lf.get("tasktype_restored")))
     if os.path.exists(game.POOLGATE_FLAG):
         say("POOLGATE TRIPPED: " + open(game.POOLGATE_FLAG).read().strip())
     try:

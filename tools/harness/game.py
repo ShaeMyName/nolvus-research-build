@@ -274,6 +274,28 @@ def archive_logs(tag):
     return n
 
 
+def log_findings():
+    """REVIEW_LOG RV-76 (3)/(5): over every game session archived in this run (one Papyrus.0.log per session, the
+    largest copy of each, keyed by its first line), count blank-key IEB_LOADKEYS, TASKTYPE_RESTORED and array
+    errors whose stack names our scripts or IntelEngine. Any count above 0 is a finding. Returns a dict."""
+    if not ARCHIVE[0]:
+        return {}
+    best = {}
+    for p in glob.glob(ARCHIVE[0] + "*Papyrus.0.log"):
+        with open(p, encoding="utf-8", errors="replace") as f:
+            head = f.readline()
+        if head not in best or os.path.getsize(p) > os.path.getsize(best[head]):
+            best[head] = p
+    c = {"sessions": len(best), "blank_key_loadkeys": 0, "tasktype_restored": 0, "array_errors": 0}
+    err = re.compile(r"Error: (?:Cannot cast from None|[^\r\n]*non-array|[^\r\n]*None array)[^\r\n]*((?:\r?\n[^\r\n]*){0,4})")
+    for p in best.values():
+        text = open(p, encoding="utf-8", errors="replace").read()
+        c["blank_key_loadkeys"] += len(re.findall(r"IEB_LOADKEYS [^\r\n]* key= fac=", text))
+        c["tasktype_restored"] += text.count("TASKTYPE_RESTORED")
+        c["array_errors"] += sum(1 for m in err.finditer(text) if re.search(r"IntelEngine_|IEB_", m.group(0)))
+    return c
+
+
 SAMPLER = os.path.join(os.path.dirname(__file__), "mem_sampler.py")
 
 
