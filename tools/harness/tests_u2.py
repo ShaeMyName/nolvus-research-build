@@ -48,6 +48,21 @@ def los(r, a_uuid, b_uuid):
     return None if v is None else truthy(v.strip())
 
 
+def radius(r):
+    """The live normal awareness radius (TestCtl.ConfigProbe). The test config uses 1600, SkyrimNet 25.1's default
+    (Shae 2026-10-07, DECISIONS:136), not the spec text's 800. Falls back to 1600 if the probe line is missing."""
+    m = ctl_line(r, "ConfigProbe", [], r"\[IEB-TEST\] CONFIGPROBE max=(\S+) normal=(\S+)")
+    try:
+        return float(m.group(2)) if m else 1600.0
+    except ValueError:
+        return 1600.0
+
+
+def far(r):
+    """A distance just outside the live awareness radius (radius + 400 u)."""
+    return radius(r) + 400.0
+
+
 def place(r, fid, dx, dy, dz):
     return ctl_line(r, "PlaceRel", [fid, PLAYER, float(dx), float(dy), float(dz)], r"\[IEB-TEST\] PLACE")
 
@@ -206,13 +221,14 @@ def w1(r):
 
 @test("W-2", "W", reload=True)
 def w2(r):
-    """Repeat with C at 1200 u in view: C not included (normalMaxDistance 800); A at 300 u as the control."""
-    h = _w_scene(r, "W-2", a_off=(300, 0, 0), c_off=(1200, 0, 0))
+    """Repeat with C just outside the live awareness radius (radius + 400 u; 1600 in the test config, DECISIONS:136),
+    in view: C not included; A at 300 u as the control."""
+    h = _w_scene(r, "W-2", a_off=(300, 0, 0), c_off=(far(r), 0, 0))
     if h is None:
         return
     if not h.get("A"):
         return inc(r, "control A (300 u) did not get the line")
-    r.check(h.get("C") == 0, "C (1200 u, in view) does not have the line (%s)" % h.get("C"))
+    r.check(h.get("C") == 0, "C (beyond the radius, in view) does not have the line (%s)" % h.get("C"))
 
 
 @test("W-3", "W", reload=True)
@@ -231,7 +247,7 @@ def w3(r):
 @test("WE-1", "WE", reload=True)
 def we1(r):
     """The ieb_witness schema registered at load; one exposure in the market: one WITNESS line (rc >= 0), and the event
-    is in the history of an NPC 300 u in view, not of one at 1200 u."""
+    is in the history of an NPC 300 u in view, not of one beyond the live awareness radius."""
     sn = game.Tail(game.LOGS["skyrimnet"])
     sn.pos = 0
     r.check(re.search(r"Successfully registered schema for event type 'ieb_witness'", sn.read()) is not None,
@@ -243,7 +259,7 @@ def we1(r):
     item = None
     try:
         place(r, A_NPC, 300, 0, 0)
-        place(r, C_NPC, 1200, 0, 0)
+        place(r, C_NPC, far(r), 0, 0)
         time.sleep(2)
         if not los(r, au, pu) or not los(r, cu, pu):
             return inc(r, "bystanders placed without line of sight")
@@ -256,7 +272,7 @@ def we1(r):
         time.sleep(3)
         a1, c1 = hist_hits(r, au, etype="ieb_witness"), hist_hits(r, cu, etype="ieb_witness")
         r.check(a0 is not None and a1 == a0 + 1, "A (300 u, in view): ieb_witness +1 (%s -> %s)" % (a0, a1))
-        r.check(c0 is not None and c1 == c0, "C (1200 u): no new ieb_witness (%s -> %s)" % (c0, c1))
+        r.check(c0 is not None and c1 == c0, "C (beyond the radius): no new ieb_witness (%s -> %s)" % (c0, c1))
     finally:
         dress(r, item)
         bring_back(r, A_NPC)
@@ -265,7 +281,7 @@ def we1(r):
 
 @test("WE-4", "WE", reload=True)
 def we4(r):
-    """Exposure with the bystanders behind a wall (no LOS, ~500 u) and at 1200 u: neither gets the event; F1 beside
+    """Exposure with the bystanders behind a wall (no LOS, ~500 u) and beyond the live radius: neither gets the event; F1 beside
     the player is the positive control."""
     market(r)
     fu, bu, cu, pu = uuids(r, F1, B_NPC, C_NPC, PLAYER)
@@ -274,7 +290,7 @@ def we4(r):
     item = None
     try:
         place(r, B_NPC, 300, 0, -400)
-        place(r, C_NPC, 1200, 0, 0)
+        place(r, C_NPC, far(r), 0, 0)
         time.sleep(2)
         if los(r, bu, pu) is not False:
             return inc(r, "B's no-line-of-sight placement still has line of sight")
@@ -291,7 +307,7 @@ def we4(r):
         if counts1[0] is None or counts0[0] is None or counts1[0] != counts0[0] + 1:
             return inc(r, "control F1 did not get the event")
         r.check(counts1[1] == counts0[1], "B (no line of sight): no event")
-        r.check(counts1[2] == counts0[2], "C (1200 u): no event")
+        r.check(counts1[2] == counts0[2], "C (beyond the radius): no event")
     finally:
         dress(r, item)
         bring_back(r, B_NPC)

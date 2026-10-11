@@ -15,7 +15,7 @@ import game
 import sn_harness as SH
 from block import test, checkpoint
 from tests_misc import PLAYER, F1, F2, con, ctl_line, inc, who
-from tests_u2 import (A_NPC, B_NPC, C_NPC, nonce, hist_hits, los, place, bring_back, market, uuids, harness_ready,
+from tests_u2 import (A_NPC, B_NPC, C_NPC, nonce, radius, far, hist_hits, los, place, bring_back, market, uuids, harness_ready,
                       force_line, _w_scene)
 
 
@@ -65,15 +65,16 @@ def e2(r):
 
 @test("E-4", "E", reload=True)
 def e4(r):
-    """Hug text from F1 with B at 300 u in view, C at ~500 u without LOS, D at 1000 u: only B gets it.
+    """Hug text from F1 with B at 300 u in view, C at ~500 u without LOS, D beyond the live radius (spec R3 said 1000 u
+    with an 800 radius; the test config's radius is 1600, DECISIONS:136): only B gets it.
     (Same machinery as W-1/W-2; A_NPC plays B, B_NPC plays C, C_NPC plays D.) 0 LLM calls."""
-    h = _w_scene(r, "E-4", a_off=(300, 0, 0), b_off=(300, 0, -400), c_off=(1000, 0, 0))
+    h = _w_scene(r, "E-4", a_off=(300, 0, 0), b_off=(300, 0, -400), c_off=(far(r), 0, 0))
     if h is None:
         return
     if not h.get("A"):
         return inc(r, "control (300 u, in view) did not get the line")
     r.check(h.get("B") == 0, "no line of sight: not included (%s)" % h.get("B"))
-    r.check(h.get("C") == 0, "1000 u: not included (%s)" % h.get("C"))
+    r.check(h.get("C") == 0, "beyond the radius: not included (%s)" % h.get("C"))
 
 
 @test("E-5", "E", reload=True)
@@ -183,7 +184,7 @@ def e8(r):
 @test("RE-3", "RE", reload=True)
 def re3(r):
     """Only one bystander in range (F1 with the player in an empty interior, Breezehome; INFERRED nobody else there at T0,
-    self-checked by QScan within 800 u): five unsolicited
+    self-checked by QScan within the live radius): five unsolicited
     player lines (no target) -> how many does F1 answer? Records the count; FAIL only if she answers all 5 with the
     spec's 75% silence. 5 LLM calls at most."""
     if not harness_ready(r):
@@ -195,9 +196,9 @@ def re3(r):
     fu, = uuids(r, F1)
     if not fu:
         return inc(r, "F1 not loaded")
-    m = ctl_line(r, "QScan", [800.0], r"\[IEB-TEST\] QSCAN END n=(\d+)", 60)
+    m = ctl_line(r, "QScan", [radius(r)], r"\[IEB-TEST\] QSCAN END n=(\d+)", 60)
     if not m or int(m.group(1)) > 1:
-        return inc(r, "more than one NPC within 800 u (QScan n=%s)" % (m.group(1) if m else "?"))
+        return inc(r, "more than one NPC within the radius (QScan n=%s)" % (m.group(1) if m else "?"))
     checkpoint(r)
     d0 = hist_hits(r, fu, etype="dialogue") or 0
     try:

@@ -85,6 +85,8 @@ class Run:
         "EquipFromList": "EQUIPLIST |EquipFromList:",
         "BodySwap": "BODYSWAP ",
         "Whisper": "WHISPERSET ",
+        "OwnNearestFurniture": "OWNFURN ",
+        "CountNearNPCs": "NEARNPC ",
         "SetHour": "CRASHCTX ",
         "AutoSaveNow": "AUTOSAVE requested",
         "NFFGuardOn": "NFFGuardOn",

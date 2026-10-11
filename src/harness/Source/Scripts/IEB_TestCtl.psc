@@ -245,6 +245,50 @@ Function BodySwap()
     Log("BODYSWAP " + Watcher().Hex(b) + " worn=" + p.IsEquipped(b))
 EndFunction
 
+Function OwnNearestFurniture(Float afRadius)
+    {U2 WH-2/WH-3/PV-1/PV-3: stand-in for renting a room (spec §11.9 rule ii): the nearest furniture ref within afRadius of the
+     player becomes owned by the player (SetActorOwner on the player's base). FURN form type 40 as in SitNearest.
+     Logs OWNFURN <ref> d=<dist> pos=x,y,z (or OWNFURN none). Undone by the test's reload of the save.}
+    Actor pl = Game.GetPlayer()
+    ObjectReference[] refs = PO3_SKSEFunctions.FindAllReferencesOfFormType(pl, 40, afRadius)
+    ObjectReference best = None
+    Float bestD = 1000000.0
+    Int i = 0
+    While i < refs.Length
+        If refs[i] != None && !refs[i].IsDisabled() && pl.GetDistance(refs[i]) < bestD
+            best = refs[i]
+            bestD = pl.GetDistance(refs[i])
+        EndIf
+        i += 1
+    EndWhile
+    If best == None
+        Log("OWNFURN none")
+        Return
+    EndIf
+    best.SetActorOwner(pl.GetActorBase())
+    Log("OWNFURN " + Watcher().Hex(best) + " d=" + (bestD as Int) + " pos=" + (best.GetPositionX() as Int) + "," + (best.GetPositionY() as Int) + "," + (best.GetPositionZ() as Int))
+EndFunction
+
+Function CountNearNPCs(Float afRadius, Int aiExcludeFormId)
+    {U2 WH/PV self-checks: the count IEB_SceneMain.CountOthers makes (live, enabled ActorTypeNPC within afRadius, not the player,
+     not a scene partner), also excluding aiExcludeFormId (0 = none). Logs NEARNPC n=<count> r=<radius>.}
+    Actor pl = Game.GetPlayer()
+    ObjectReference[] refs = PO3_SKSEFunctions.FindAllReferencesOfFormType(pl, 43, afRadius)
+    Keyword kw = Game.GetFormFromFile(0x00013794, "Skyrim.esm") as Keyword
+    Int n = 0
+    Int i = 0
+    While i < refs.Length
+        Actor a = refs[i] as Actor
+        If a != None && a != pl && !a.IsDead() && !a.IsDisabled() && a.HasKeyword(kw)
+            If StorageUtil.GetIntValue(a, "IEB_IsScenePartner", 0) != 1 && a.GetFormID() != aiExcludeFormId
+                n += 1
+            EndIf
+        EndIf
+        i += 1
+    EndWhile
+    Log("NEARNPC n=" + n + " r=" + (afRadius as Int))
+EndFunction
+
 Function PlayerPlace(Float afX, Float afY, Float afZ)
     {REVIEW_LOG RV-79-upd: put the player at a position in the current (exterior) worldspace, then log it.}
     Game.GetPlayer().SetPosition(afX, afY, afZ)
