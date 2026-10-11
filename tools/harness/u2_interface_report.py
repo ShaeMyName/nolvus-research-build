@@ -288,9 +288,12 @@ INVENTORY = [
       bad=[R(r"^FAIL WE-1 A \(300 u, in view\)", "WE-1")]),
     I("TP-05", "template", "event type 'dialogue' on the child's history rises by 2 per injected line (e.type == 'dialogue')", "G",
       ["tests_u2_misc.py:87-92 cs2"], ["CS-2"],
-      "type id 'dialogue' is in the DLL event list and used by skyrimnet.base prompts; the '+2 per exchange' count is INFERRED (unmarked)",
+      "type id 'dialogue' is in the DLL event list and used by skyrimnet.base prompts. The '+2 dialogue events per line' threshold is INFERRED (marked so in tests_u2_misc.py, RV-160 (3)); " +
+      "basis: none found. It first appears in the creation commit 7822906 with no cited run or file, and no earlier run recorded dialogue-event counts per injected line; it reads as a design assumption " +
+      "(one event for the player's line, one for the child's reply). The DLL's SQL (strings dump :36391, :36415 vs :36392, :36397) stores a typed player line as 'dialogue_player_text' and an NPC line as 'dialogue', " +
+      "so +1 per reply is as likely as +2",
       ok=[R(r"^PASS CS-2 \w+: the child replied", "CS-2")], bad=[R(r"^FAIL CS-2 \w+: the child replied", "CS-2")],
-      note="a FAIL line shows the before -> after counts; adjust the +2 threshold from them"),
+      note="a FAIL line shows the before -> after counts; adjust the +2 threshold from them (d -> d+1 means the INFERRED threshold is wrong, not the child)"),
     I("TP-06", "template", "the equip / unequip event is type 'equip', EPHEMERAL (Events.yaml persistent false, shortLivedEnabled true): never in get_recent_events", "L",
       ["tests_u2_misc.py short_equip / unequip_watch / x6"], ["X-6"],
       "VERIFIED live (RV-160): SkyrimNet.log 'Registered schema for event type 'equip'' (EventSchemaRegistry.cpp:35), 'Equip event: <name> equipped|unequipped <item>' (EquipEventHandler.cpp:65, info) and "

@@ -142,7 +142,8 @@ def x6(r):
 @test("CS-2", "CS", reload=True)
 def cs2(r):
     """Address a child directly, also while the player is exposed: the child gives a normal AI reply (children keep AI).
-    Mechanics only: the child's dialogue-event count rises after each injected line. 2 LLM calls."""
+    Mechanics only: the child's dialogue-event count rises after each injected line (by >= 2: INFERRED, see the comment at the check).
+    2 LLM calls."""
     if not market(r):
         return
     if not harness_ready(r):
@@ -169,7 +170,15 @@ def cs2(r):
             SH.await_idle(90)
             time.sleep(3)
             d1 = hist_hits(r, cu, etype="dialogue") or 0
-            r.check(d1 >= d0 + 2, "%s: the child replied (dialogue events %d -> %d)" % (label, d0, d1))
+            # THRESHOLD +2 IS INFERRED (RV-160 (3)): Basis: none found. The '+2' first appears in the test's creation commit
+            # (7822906, 'U2 part 7') with no cited run, log or file, and no earlier run recorded dialogue-event counts per
+            # injected line (grepped test_runs, investigation/ and the harness for it). It reads as a design assumption: one
+            # event for the player's line plus one for the child's reply. The DLL's own SQL cuts against it:
+            # DatabaseManager_EventQueries.cpp (strings dump tools/skyrimnet_b25_1_dll_strings.txt:36391, :36415) stores a typed
+            # player line as event_type 'dialogue_player_text' and a spoken NPC line as 'dialogue' (:36392, :36397), so the
+            # child's 'dialogue' count may rise by only 1 (or by more, one per spoken segment) per exchange. A FAIL with
+            # 'dialogue events d -> d+1' therefore means the guess, not the child, is wrong.
+            r.check(d1 >= d0 + 2, "%s: the child replied (dialogue events %d -> %d; threshold +2 INFERRED)" % (label, d0, d1))
     except SH.HarnessError as e:
         inc(r, "harness call failed: %s" % e)
     finally:
