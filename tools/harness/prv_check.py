@@ -95,6 +95,9 @@ def main():
             time.sleep(5)
             res.append(("Uthgerd next to the player", check(ctl, F2, "TKN_CLONE_UTHGERD", "B", True)))
             res.append(("priestess far away", check(ctl, PRIESTESS, "TKN_PRIVATE_AZURA_PRIESTESS", "C", False)))
+            pu = "formid_to_uuid(%d)" % PRIESTESS
+            say("priestess live: isChild=%s race=%s" % (render(ctl, "{{ decnpc(%s).isChild }}" % pu).strip(),
+                                                        render(ctl, "{{ decnpc(%s).race }}" % pu).strip()))
         game.archive_logs("end")
     except Exception as e:
         say("ERROR %s" % e)
