@@ -317,6 +317,17 @@ def start_sampler():
             return
     except Exception:
         pass
+    # REVIEW_LOG RV-102 follow-up (1): a sampler started by hand has no pid file entry: look for any running one first
+    try:
+        out = subprocess.run(["powershell", "-NoProfile", "-Command",
+                              "(Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object CommandLine -like "
+                              "'*mem_sampler*').ProcessId"], capture_output=True, creationflags=NOWIN, text=True,
+                             timeout=30).stdout.split()
+        if out:
+            open(pidf, "w").write(out[0])
+            return
+    except Exception:
+        pass
     p = subprocess.Popen(["python", "-u", SAMPLER], creationflags=0x00000008 | 0x00000200,     # DETACHED, NEW_GROUP
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     open(pidf, "w").write(str(p.pid))

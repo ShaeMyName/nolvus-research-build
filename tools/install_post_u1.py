@@ -98,6 +98,16 @@ def main():
     bad = [k for k, v in man.items() if os.path.exists(MODS + k) and h(MODS + k) != v]
     print("INSTALLED %d file(s); backup %s; manifest entries not matching the installed file: %s"
           % (len(todo), BACKUP, bad or "none"))
+    # REVIEW_LOG RV-102 follow-up (2): the array gate over every INSTALLED pex, Champollion under its cap; a decompile
+    # failure FAILs and names the pex (Champollion choked on one of our own Caprica outputs on 2026-10-10)
+    dirs = [MODS + m + "/Scripts" for m, _ in SETS if os.path.isdir(MODS + m + "/Scripts")]
+    g = subprocess.run([sys.executable, B + "tools/array_none_gate.py"] + dirs, capture_output=True, text=True)
+    tail = (g.stdout + g.stderr).strip().splitlines()[-6:]
+    for l in tail:
+        print("  gate| " + l)
+    if g.returncode != 0:
+        sys.exit("INSTALLED-PEX GATE FAILED (see above): a decompile failure or an array-vs-None compare in what is installed")
+    print("INSTALLED-PEX GATE PASS")
 
 
 if __name__ == "__main__":

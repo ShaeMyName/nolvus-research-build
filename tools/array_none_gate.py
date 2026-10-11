@@ -20,7 +20,7 @@ def asm(pex):
     d = tempfile.mkdtemp()
     _rc, _why = champ_guard.run([CH, "-a", d, "-p", d, pex], max_mb=CHAMP_MAX_MB, timeout=CHAMP_TIMEOUT)   # 2026-10-11 bugcheck guard
     if _why != "ok":
-        raise RuntimeError("Champollion %s on %s (capped at %d MB, %d s)" % (_why, pex, CHAMP_MAX_MB, CHAMP_TIMEOUT))
+        raise DecompileError("%s [Champollion %s under the %d MB / %d s cap]" % (pex, _why, CHAMP_MAX_MB, CHAMP_TIMEOUT))
     p = os.path.join(d, os.path.splitext(os.path.basename(pex))[0] + ".pas")
     # REVIEW_LOG RV-74 (2): an empty or garbled decompile must fail, never pass silently
     lines = open(p, encoding="utf-8", errors="replace").read().splitlines() if os.path.exists(p) else []
@@ -92,8 +92,8 @@ def main(argv):
     for p in pexes:
         try:
             h = hits(p)
-        except DecompileError:
-            print("FAIL %s: no decompiled .function (empty or garbled Champollion output)" % os.path.basename(p))
+        except DecompileError as e:
+            print("FAIL %s: no decompiled .function (empty or garbled Champollion output) [%s]" % (os.path.basename(p), e))
             fail += 1
             continue
         if not h:
