@@ -3,7 +3,7 @@
  2. Load IEB_R29_c3 (mid-errand save): HeldProbe right after the load and after IE's arrival; then the first RV-70 test,
     a dismissal in the waiting phase after a load (NFFDismiss) -> expect NFF_DISMISSED and a RELEASE line.
  3. Fresh T0, no load in between: errand to Dragonsreach, HeldProbe after arrival (load bug vs general (a)).
-Usage: rv70_probe.py   (the game must be closed)"""
+Usage: rv70_probe.py [steps, e.g. 2 or 1,3]   (the game must be closed)"""
 import os, re, sys, time
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -58,23 +58,26 @@ def wait_arrival(t, timeout=600):
     return bool(m)
 
 
-def main():
+def main(only=None):
     game.set_archive("RV70_probe_%s" % time.strftime("%Y%m%d-%H%M%S"))
+    steps = sys.argv[1].split(",") if len(sys.argv) > 1 else ["1", "2", "3"]
     # 1. T0 clean?
-    ctl, pap, ok = fresh("T0")
+    ctl, pap, ok = fresh("T0") if "1" in steps else (None, None, False)
     if ok:
         probe(ctl, "SlotsProbe", [], "SLOTSPROBE", "T0 slots after load")
         for l in fast_lines(pap.read()):
             say("T0 " + l)
     # 2. mid-errand save: state after load, after arrival; dismissal in the waiting phase
-    ctl, pap, ok = fresh("IEB_R29_c3")
+    ctl, pap, ok = fresh("IEB_R29_c3") if "2" in steps else (None, None, False)
     if ok:
         probe(ctl, "HeldProbe", [F1], "HELDPROBE", "c3 right after load")
-        for l in fast_lines(pap.read()):
+        text = pap.read()
+        for l in fast_lines(text):
             say("c3 " + l)
         t = game.Tail(game.LOGS["papyrus"])
         block.ie_test_settings(ctl)
-        if wait_arrival(t):
+        # 23:03 run: she had already arrived during the settle (22:49), so waiting for a new arrival line timed out
+        if "Jenassa arrived at" in text + pap.read() or wait_arrival(t):
             time.sleep(5)
             probe(ctl, "HeldProbe", [F1], "HELDPROBE", "c3 after arrival")
             t2 = game.Tail(game.LOGS["papyrus"])
@@ -85,7 +88,7 @@ def main():
             say("  then: %s" % (r.group(0) if r else "no RELEASE/DEFER/CMD_FOLLOW line in 90 s"))
             probe(ctl, "HeldProbe", [F1], "HELDPROBE", "c3 after dismissal")
     # 3. same errand without a load in between
-    ctl, pap, ok = fresh("T0")
+    ctl, pap, ok = fresh("T0") if "3" in steps else (None, None, False)
     if ok:
         block.ie_test_settings(ctl)
         t = game.Tail(game.LOGS["papyrus"])
