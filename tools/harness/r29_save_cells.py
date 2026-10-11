@@ -126,9 +126,12 @@ def cell(ctl, cid, how, errand):
         time.sleep(5)
     menus(ctl, cid)
     sn = game.Tail(game.LOGS["skyrimnet"])
-    if how == "F5":
+    if how in ("F5", "autosave"):
         t0 = time.time()
-        keys.quicksave(say)
+        if how == "F5":
+            keys.quicksave(say)
+        else:
+            ctl.ctl("AutoSaveNow", [], sync=False)
         res, path = False, None
         for _ in range(45):
             time.sleep(2)
@@ -140,7 +143,7 @@ def cell(ctl, cid, how, errand):
                     res = True
                     break
         name = os.path.splitext(os.path.basename(path))[0] if path else None
-        say("%s F5: %s (%s)" % (cid, "OK" if res else "FAILED", name))
+        say("%s %s: %s (%s)" % (cid, how, "OK" if res else "FAILED", name))
     else:
         res = game.save(ctl, name, route=("papyrus" if how == "papyrus" else "console"))
         say("%s %s save: %s" % (cid, how, "OK" if res else "FAILED"))
@@ -174,7 +177,7 @@ def main(mode):
     harness = mode == "on"
     plan = ([("c7", "console", False), ("c7p", "papyrus", False)] if not harness else
             [("c8", "console", False), ("c9", "papyrus", False), ("c2", "console", True), ("c3", "papyrus", True),
-             ("c4", "F5", True), ("c5", "F5", False)])
+             ("c4", "F5", True), ("c5", "F5", False), ("c6", "autosave", False)])
     if len(sys.argv) > 2 and sys.argv[2] != "-":     # rerun a subset: r29_save_cells.py on c4,c5 [IEB_R29_c9,...]
         plan = [p for p in plan if p[0] in sys.argv[2].split(",")]
     good = sys.argv[3].split(",") if len(sys.argv) > 3 else []

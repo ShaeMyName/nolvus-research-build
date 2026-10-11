@@ -1220,6 +1220,13 @@ Function ConfigProbe()
     Log("CONFIGPROBE max=" + m + " normal=" + n + " whisper=" + w + " skyrimnet=" + x)
 EndFunction
 
+Function AutoSaveNow()
+    {REVIEW_LOG RV-67-upd2: the autosave route (real play makes many: cell change, sleep, wait, travel). Logs first,
+     the request last (as SaveNamed); completion is judged by the host on the file, never on this line.}
+    Log("AUTOSAVE requested")
+    Game.RequestAutoSave()
+EndFunction
+
 Function MenuProbe()
     {REVIEW_LOG RV-67: which menus are open right before a test save (the Timeline Mismatch box was suspected in R29 c7).
      A paused menu may stop Papyrus entirely: the host then logs "no MENUPROBE line", which is itself the signal.}
