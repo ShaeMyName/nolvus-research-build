@@ -351,7 +351,18 @@ def tm2(r):
     ]
     for label, first, door_ext, door_int, cell in runs:
         r.log("TM-2 %s" % label)
-        moveto(r, first if first else HOME_REF, 10)      # F1 (following, WFP 0) catches up meanwhile
+        if first in DOOR_REFS:
+            # A door ref is never a moveto target (inside the wall). To stand AT the exterior door: go inside to its
+            # shopkeeper (Belethor 0x0001A672, a non-door ref in the interior), then use the interior door, which
+            # drops the player on the exterior door's own teleport marker.
+            moveto(r, 0x0001A672, 8)
+            back = ctl_wait(r, "DoorUse", [door_int], r"(?i)\[IEB-TEST\] DoorUse %s dest=[^\n]*" % fid_rx(door_int), 10)
+            if not back:
+                inconclusive(r, "%s: could not walk out of the interior door to stand at the exterior door" % label)
+                continue
+            time.sleep(10)                              # F1 (following, WFP 0) catches up meanwhile
+        else:
+            moveto(r, first if first else HOME_REF, 10)  # F1 (following, WFP 0) catches up meanwhile
         snapshot(r, F1)
         if setup_skip(r):       # setup-only: each run's own setup, no StartTask
             continue
