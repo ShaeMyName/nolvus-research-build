@@ -530,7 +530,34 @@ def d2(r):
 @test("Q-1", "Q")
 def q1(r):
     """IEB_QuestReserved true for an NPC aliased in a running story quest; false for one aliased only by Dialogue*/WI*.
-    Chosen by the QScan wrapper instead of sqv (no text read). Also: t1 agrees with its own inputs for every NPC."""
+    Chosen by the QScan wrapper instead of sqv (no text read). Also: t1 agrees with its own inputs for every NPC.
+    Core case re-based (REVIEW_LOG R51): the synthetic IEB_TestStoryQuest (ErrandBridgeTest.esp 0x820, type 8; in the
+    TEST build's story_quests only, quest_integrity_builder --test-story-quest) filled onto Fralia by QPFill -> reserved;
+    cleared by QPClear -> not reserved. Never relies on where real story-aliased NPCs happen to be loaded."""
+    def fralia(scan):
+        return next((d for d in scan if d["fid"] == fid_norm(FRALIA)), None)
+
+    con(r, "player.moveto %08X" % CARLOTTA)     # market: Fralia's stall is within the 3000-unit scan by day
+    time.sleep(8)
+    before = fralia(qscan(r))
+    if not before:
+        inc(r, "Fralia 0x%s not in QScan range" % hx(FRALIA))
+    elif iv(before, "story") > 0 or iv(before, "t1") != 0:
+        inc(r, "Fralia already story-aliased or reserved before QPFill (story=%s t1=%s)" % (before.get("story"), before.get("t1")))
+    else:
+        try:
+            r.ctl("QPFill", [FRALIA])
+            time.sleep(2)
+            filled = fralia(qscan(r))
+            r.check(bool(filled) and iv(filled, "story") >= 1 and iv(filled, "t1") == 1,
+                    "test story quest alias -> IEB_QuestReserved(tier 1) true for Fralia (story=%s t1=%s)"
+                    % (filled and filled.get("story"), filled and filled.get("t1")))
+        finally:
+            r.ctl("QPClear", [])
+            time.sleep(2)
+        cleared = fralia(qscan(r))
+        r.check(bool(cleared) and iv(cleared, "story") == 0 and iv(cleared, "t1") == 0,
+                "after QPClear -> not reserved (story=%s t1=%s)" % (cleared and cleared.get("story"), cleared and cleared.get("t1")))
     scan = qscan(r)
     if not scan:
         return inc(r, "QScan returned nothing")

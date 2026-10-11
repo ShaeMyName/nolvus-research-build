@@ -10,6 +10,10 @@ Usage: quest_integrity_builder.py [--probe] [--extra-quest EDID ...]
   --probe        test builds only: write_probe = 1, so the patched StoryEngine has PapyrusUtil write the probe forms
                  itself (test Q-9). Lucienne's build never sets it.
   --extra-quest  step 6 adds the synthetic test quest.
+  --test-story-quest  test builds only (REVIEW_LOG R51 Q re-base): add the synthetic IEB_TestStoryQuest
+                 (ErrandBridgeTest.esp 0x820, type 8) to story_quests, because the guard decides 'story quest' from this
+                 static list (StoryEngine FormListHas story_quests || IEB_HasOpenObjective), not the runtime quest type.
+                 Lucienne's build never sets it.
 """
 import json, os, re, struct, sys, zlib
 
@@ -86,6 +90,7 @@ def header(buf):
 def main():
     extra = sys.argv[sys.argv.index("--extra-quest") + 1:] if "--extra-quest" in sys.argv else []
     probe = "--probe" in sys.argv
+    test_q = "--test-story-quest" in sys.argv
     light = set()
     order = [l.strip() for l in open(ACTIVE + "_loadorder.txt", encoding="utf-8") if l.strip()]
     exempt_l = {e.lower() for e in EXEMPT}
@@ -174,9 +179,11 @@ def main():
             "reserved_npcs": sorted(form_string(case.get(k[0], k[0]), k[1] & (0xFFF if k[0] in light else 0xFFFFFF)) for k in reserved),
         },
         "stringList": {"exempt_plugins": EXEMPT},
-        "int": {"story_quests_count": len(story), "reserved_npcs_count": len(reserved),
+        "int": {"story_quests_count": len(story) + (1 if test_q else 0), "reserved_npcs_count": len(reserved),
                 "exempt_plugins_count": len(EXEMPT), "write_probe": 1 if probe else 0},
     }
+    if test_q:                                   # synthetic test quest (ESL-flagged test plugin or not: 0x820 fits 12 bits)
+        out["formList"]["story_quests"] = sorted(out["formList"]["story_quests"] + [form_string("ErrandBridgeTest.esp", 0x820)])
     # Q-9 probe forms: one per kind of origin, so every spelling case is covered
     picks = []
     for lst, keys in (("story_quests", story), ("reserved_npcs", reserved)):

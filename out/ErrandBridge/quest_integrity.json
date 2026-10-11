@@ -524,6 +524,7 @@
    "0x81f|Alternate Perspective -- New Beginnings.esp",
    "0x81f|DBM_Moonpath_Patch.esp",
    "0x820|Alternate Perspective -- New Beginnings.esp",
+   "0x820|ErrandBridgeTest.esp",
    "0x820|Listen.esp",
    "0x828|Alternate Perspective -- New Beginnings.esp",
    "0x828|Listen.esp",
@@ -2292,7 +2293,7 @@
   ]
  },
  "int": {
-  "story_quests_count": 693,
+  "story_quests_count": 694,
   "reserved_npcs_count": 1566,
   "exempt_plugins_count": 7,
   "write_probe": 1
