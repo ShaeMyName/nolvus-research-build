@@ -67,7 +67,9 @@ T0M = {
     "engaged": 0x0001A6D6,  # Athis: engaged (st=1 r=3, LoveInterest of 0x74793)          # MARAS engaged NPC (MA-2a)
     "lydia": 0x000A2C94,    # enabled DIRECTLY (RV-116 (7): the housecarl quest is not started in T0-M)            # housecarl
     "follower_spouse": 0x00091918,  # Uthgerd is married AND following (tm=1); K-M3 re-checks NFF state  # a spouse who is also an NFF follower (K-M3); None if T0-M has none
-    "rdo_friend": None,       # a friend whose RDO recruit/gift lines are in her menu (DA-9 parts 3-4)
+    "rdo_friend": 0x0001A684,  # Fralia (VERIFIED ref, tests_misc.FRALIA): adult, not a T0-M spouse/fiance, NOT in the
+                               # CC-updated quest_integrity reserved_npcs (checked 2026-10-11); DA-9 sets her rank to 1
+                               # (RDO friend) and reads it back (REVIEW_LOG RV-129)
 }
 EN4_CANDIDATES = (YSOLDA, CARLOTTA)   # EN-4's fresh fiancé: first loaded adult with no MARAS status, not enrolled
 EN4_SAVE = "IEB_EN4_pre"              # throwaway save in the test profile (IEB_* convention)

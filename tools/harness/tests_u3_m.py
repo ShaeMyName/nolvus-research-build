@@ -611,6 +611,15 @@ def da9(r):
     fu, _, _ = who(r, fr)
     if not fu:
         return inc(r, "rdo_friend not loaded")
+    # RV-129: make her an RDO friend (rank >= 1), read back before relying on it (RV-123 (3)). INFERRED that rank 1 is
+    # what RDO's recruit/gift lines need for a non-follower; the checks below are negative, so a missing line is vacuous
+    k0 = rank(r, fr) or {}
+    if iv(k0, "r", -9) < 1:
+        con(r, "%08X.setrelationshiprank player 1" % fr)
+        time.sleep(2)
+        k0 = rank(r, fr) or {}
+        if iv(k0, "r", -9) < 1:
+            return inc(r, "rdo_friend rank not raised to 1 (read-back r=%s)" % k0.get("r"))
     tm0 = (maras_probe(r, fr) or {}).get("tm")
     t = tail("skyrimnet")
     _say(r, fu, "Come with me.")
