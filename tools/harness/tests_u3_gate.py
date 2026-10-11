@@ -118,6 +118,20 @@ def gate1b(r):
     r.check("restored at rank 1" in txt, "snrom.log: 'restored at rank 1'")
 
 
+def others(r):
+    """REVIEW_LOG RV-121 (1): every other T0-M spouse / fiance's MARAS status enum and the player's PlayerMarriedFaction
+    (0xC6472) rank (TestCtl.MarasWorld plPmf), so an undo can be shown to leave them alone."""
+    out = {}
+    for key in ("spouse1", "spouse2", "engaged", "follower_spouse"):
+        fid = T0M.get(key)
+        if fid is not None:
+            mp = maras_probe(r, fid)
+            out[key] = mp.get("st") if mp else None
+    m = ctl_line(r, "MarasWorld", [], r"(?i)\[IEB-TEST\] T0M_WORLD ([^\r\n]*)", 15)
+    out["player_married_faction"] = parse_kv(m.group(1)).get("plPmf") if m else None
+    return out
+
+
 def veng(r, fid):
     """IEB_TestCtl.VengProbe -> dict(rmStage, rmRun, li, wedRun, asked, maras) or None."""
     m = ctl_line(r, "VengProbe", [s32(fid)], r"(?i)\[IEB-TEST\] VENGPROBE (%s) (.*)" % fid_any_rx(fid), 15)
@@ -144,6 +158,8 @@ def gate4(r):
     if iv(v0, "rmStage") >= 20:
         return inc(r, "RelationshipMarriage already at stage %s in T0-M" % v0.get("rmStage"))
     m0 = v0.get("maras")
+    o0 = others(r)
+    r.log("  others before: %s" % o0)
     checkpoint(r)
     for n in (1, 2):
         t = tail("snrom")
@@ -161,6 +177,10 @@ def gate4(r):
                 "round %d: no LoveInterest (li=%s)" % (n, v and v.get("li")))
         r.check(bool(v) and iv(v, "asked") == -2, "round %d: out of MarriageAskedFaction (asked=%s)" % (n, v and v.get("asked")))
         r.check(bool(v) and v.get("maras") == m0, "round %d: MARAS status untouched (%s -> %s)" % (n, m0, v and v.get("maras")))
+        time.sleep(3)                           # MARAS's own quest-stop listener (CheckNextFiance) runs after the undo
+        o = others(r)
+        r.check(o == o0, "round %d: other spouses/fiances and the player's PlayerMarriedFaction unchanged (%s -> %s)"
+                % (n, o0, o))
 
 
 def _backstop(r, why, setup):

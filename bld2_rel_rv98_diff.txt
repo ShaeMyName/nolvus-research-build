@@ -1,9 +1,9 @@
-BLD-2 S2r v2 (REVIEW_LOG RV-117): Relationships private patch, installed head-start build (de868da) -> working tree (groups rv98, rv98c, neverenroll, rv117); SNRom_PlayerAlias.psc NEW to the patch set (upstream 2.0.1 = repos 08619f3, diffed against it); harness IEB_TestCtl GateProbe. Generated 2026-10-11 10:49:27.
- src/relationships/src/scripts/SNRom_Bridge.psc     | 168 ++++++++++++++++++++-
+BLD-2 S2r v3 (REVIEW_LOG RV-119/RV-121): Relationships private patch, installed head-start build (de868da) -> working tree (groups rv98, rv98c, neverenroll, rv117, c2); SNRom_PlayerAlias.psc NEW to the patch set (diffed against upstream 2.0.1); harness IEB_TestCtl (GateProbe, VanillaEngage, VengProbe). Generated 2026-10-11 11:07:43.
+ src/relationships/src/scripts/SNRom_Bridge.psc     | 235 ++++++++++++++++++++-
  src/relationships/src/scripts/SNRom_Decorators.psc |   2 +-
- 2 files changed, 166 insertions(+), 4 deletions(-)
+ 2 files changed, 233 insertions(+), 4 deletions(-)
 diff --git a/src/relationships/src/scripts/SNRom_Bridge.psc b/src/relationships/src/scripts/SNRom_Bridge.psc
-index a24a1e1..bc51a10 100644
+index a24a1e1..c436722 100644
 --- a/src/relationships/src/scripts/SNRom_Bridge.psc
 +++ b/src/relationships/src/scripts/SNRom_Bridge.psc
 @@ -671,6 +671,9 @@ Bool Function IsPerson(Actor akActor)
@@ -58,7 +58,7 @@ index a24a1e1..bc51a10 100644
                  Diag(LOG_INFO(), "Engagement reversed for " + who.GetDisplayName() + \
                      " - they hold " + held + " pts and Spouse begins at " + SPOUSE_MIN() + \
                      ". A formal proposal is not earned yet, so they are back to candidate. " + \
-@@ -9028,3 +9039,154 @@ Int Function IEB_HeadStartBonus(Actor a, Int aiAward)
+@@ -9028,3 +9039,221 @@ Int Function IEB_HeadStartBonus(Actor a, Int aiAward)
      Diag(LOG_INFO(), "IEB_HEADSTART bonus " + a.GetDisplayName() + " award=" + aiAward + " extra=" + extra)
      Return extra
  EndFunction
@@ -213,6 +213,73 @@ index a24a1e1..bc51a10 100644
 +        i -= 1
 +    EndWhile
 +EndFunction
++
++; ============================================================================ Patch c2 (vanilla-path engagements, 2026-10-11)
++
++Function IEB_RegisterMarriageWatch()
++    { Called on every load by SNRom_PlayerAlias. Registering twice is harmless (PO3 keeps one entry per form). }
++    Quest rm = Game.GetFormFromFile(0x00074793, "Skyrim.esm") as Quest
++    If rm != None
++        PO3_Events_Form.RegisterForQuestStage(Self, rm)
++    EndIf
++EndFunction
++
++Event OnQuestStageChange(Quest akQuest, Int aiNewStage)
++    If aiNewStage == 20 && akQuest == Game.GetFormFromFile(0x00074793, "Skyrim.esm") as Quest
++        IEB_VanillaEngagement(akQuest)
++    EndIf
++EndEvent
++
++Function IEB_VanillaEngagement(Quest rm)
++    ReferenceAlias al = rm.GetAliasByName("LoveInterest") as ReferenceAlias
++    Actor li = None
++    If al != None
++        li = al.GetActorReference()
++    EndIf
++    If li == None
++        Diag(LOG_WARN(), "RelationshipMarriage reached stage 20 with no LoveInterest; nothing to gate.")
++        Return
++    EndIf
++    Utility.Wait(2.0)                           ; a MARAS-made engagement reports "engaged" first: OnMarasStatusChanged decides
++    If MarasPresent() && MARAS.IsNPCStatus(li, "engaged")
++        Return
++    EndIf
++    If rm.GetStage() < 20 || (rm.GetAliasByName("LoveInterest") as ReferenceAlias).GetActorReference() != li
++        Return                                  ; already undone or moved on
++    EndIf
++    Bool child = li.IsChild()
++    If !child && !IEB_ShouldBlockProposal(li)
++        Diag(LOG_INFO(), "Vanilla-path engagement allowed for " + li.GetDisplayName() + " (gate open at " + PointsOf(li) + " pts).")
++        Return
++    EndIf
++    IEB_UndoVanillaEngagement(rm, li, child)
++EndFunction
++
++Function IEB_UndoVanillaEngagement(Quest rm, Actor li, Bool abChild)
++    { No MARAS calls. MARAS's quest-stop listener reacts on its own (cleanup, next fiance). }
++    Faction asked = Game.GetFormFromFile(0x000FF7F3, "Skyrim.esm") as Faction
++    If asked != None && li.IsInFaction(asked)
++        li.RemoveFromFaction(asked)
++    EndIf
++    Quest wed = Game.GetFormFromFile(0x0007404E, "Skyrim.esm") as Quest
++    If wed != None && wed.IsRunning()
++        wed.Reset()
++        wed.Stop()
++    EndIf
++    rm.FailAllObjectives()
++    rm.Reset()
++    rm.Stop()
++    rm.SetStage(10)
++    rm.SetStage(15)
++    rm.SetObjectiveDisplayed(10, False)
++    rm.SetObjectiveDisplayed(20, False)
++    If abChild
++        Diag(LOG_ERROR(), "Vanilla-path engagement of a CHILD (" + li.GetDisplayName() + ") UNDONE: marriage quests reset. Nothing else was written.")
++    Else
++        Diag(LOG_INFO(), "Vanilla-path engagement UNDONE for " + li.GetDisplayName() + " (" + PointsOf(li) + \
++            " pts, below the gate): marriage quests reset, MarriageAskedFaction cleared.")
++    EndIf
++EndFunction
 diff --git a/src/relationships/src/scripts/SNRom_Decorators.psc b/src/relationships/src/scripts/SNRom_Decorators.psc
 index a5e9ef3..0365732 100644
 --- a/src/relationships/src/scripts/SNRom_Decorators.psc
@@ -229,16 +296,20 @@ index a5e9ef3..0365732 100644
 
 === SNRom_PlayerAlias.psc vs upstream 2.0.1
 --- upstream/relationships-2.0.1/src/scripts/SNRom_PlayerAlias.psc	2026-10-11 10:46:26.696929300 -0400
-+++ src/relationships/src/scripts/SNRom_PlayerAlias.psc	2026-10-11 10:47:14.980451100 -0400
-@@ -28,6 +28,7 @@
++++ src/relationships/src/scripts/SNRom_PlayerAlias.psc	2026-10-11 10:52:44.770027800 -0400
+@@ -28,6 +28,11 @@
        the part that got skipped. Real time cannot distinguish sessions; this
        event can. }
      Rebind(True)
 +    IEB_AmuletWatch()                          ; Patch rv117: re-arm the amulet watch (or restore if it is off)
++    SNRom_Bridge bridge = GetOwningQuest() as SNRom_Bridge
++    If bridge != None
++        bridge.IEB_RegisterMarriageWatch()     ; Patch c2: vanilla-path engagements
++    EndIf
  EndEvent
  
  Function Rebind(Bool abForce = False)
-@@ -38,3 +39,47 @@
+@@ -38,3 +43,47 @@
      EndIf
      bridge.Bootstrap(abForce)
  EndFunction
@@ -287,12 +358,116 @@ index a5e9ef3..0365732 100644
 +    RegisterForSingleUpdate(5.0)
 +EndFunction
 
-=== harness
+=== harness IEB_TestCtl vs the installed build (29c4c4a)
 diff --git a/src/harness/Source/Scripts/IEB_TestCtl.psc b/src/harness/Source/Scripts/IEB_TestCtl.psc
-index f9d5b10..96f4329 100644
+index 4c89c56..542abf0 100644
 --- a/src/harness/Source/Scripts/IEB_TestCtl.psc
 +++ b/src/harness/Source/Scripts/IEB_TestCtl.psc
-@@ -2192,6 +2192,32 @@ String Function Def(String s, String d)
+@@ -753,6 +753,103 @@ Function EssKill(Int aiFormId, Int aiMode)
+         + " hp=" + (a.GetActorValue("Health") as Int))
+ EndFunction
+ 
++; ============================================================================ U4 Azura family (tests_azura.py, spec §11.15)
++; Test-profile only. Mirror Lucienne.esl's own steps (build/src/lucienne/Source/Scripts/LUC_PlayerAliasScript.psc) through the
++; same global APIs, never its script types (no compile dependency on the Lucienne sources). Log ids, flags, counts and
++; lengths only: never a journal, digest or reply text.
++
++Function LucOpen()
++    {AZ-3/6/8/10/13: open a prayer as LUC_PlayerAliasScript.StartPrayer does (LUC_VEName, LUC_Praying = 1,
++     LUC_PrayerStart, EnableVirtualNPC, inner-voice effect), minus TriggerTextThought: no text box opens, the thought is
++     injected by the harness. Refused unless LUC_Active == 1 and LUC_PrayerEnabled >= 1, as StartPrayer is. The
++     alias's own update loop then polls Dusk every 2 s and ends the prayer (journal summary) once Dusk is disabled.}
++    Actor p = Game.GetPlayer()
++    GlobalVariable en = Game.GetFormFromFile(0x802, "Lucienne.esl") as GlobalVariable
++    If StorageUtil.GetIntValue(p, "LUC_Active", 0) != 1 || en == None || en.GetValue() < 1.0
++        Log("LUCOPEN refused active=" + StorageUtil.GetIntValue(p, "LUC_Active", 0) + " enabledGlobal=" + ((en != None) as Int))
++        Return
++    EndIf
++    StorageUtil.SetStringValue(p, "LUC_VEName", "Dusk")
++    StorageUtil.SetIntValue(p, "LUC_Praying", 1)
++    StorageUtil.SetFloatValue(p, "LUC_PrayerStart", Utility.GetCurrentGameTime())
++    Int rc = SkyrimNetApi.EnableVirtualNPC("Dusk")
++    String uuid = SkyrimNetApi.GetVirtualNPCUUID("Dusk")
++    If uuid != ""
++        StorageUtil.SetStringValue(p, "LUC_DuskUUID", uuid)
++        SkyrimNetApi.SetVoiceEffectByUUID(uuid, "player_thought_effect")
++    EndIf
++    Log("LUCOPEN rc=" + rc + " dusk=" + Def(uuid, "none"))
++EndFunction
++
++Function LucDusk(Int aiOn)
++    {AZ-5/6/7/8: Dusk on or off without touching LUC_Praying (renders; Dusk on/off). Off during an open prayer is the
++     production end path: the alias poll sees Dusk gone and ends the prayer itself (EndPrayer -> journal summary).}
++    Int rc = 0
++    If aiOn == 1
++        rc = SkyrimNetApi.EnableVirtualNPC("Dusk")
++    Else
++        rc = SkyrimNetApi.DisableVirtualNPC("Dusk")
++    EndIf
++    Log("LUCDUSK on=" + aiOn + " rc=" + rc + " dusk=" + Def(SkyrimNetApi.GetVirtualNPCUUID("Dusk"), "none"))
++EndFunction
++
++Function LucProbe()
++    {AZ family state, Papyrus-side (no cached template render): LUC_Active, LUC_Praying, Dusk's UUID (none = disabled),
++     prayer count, journal entries and the shortest entry's LENGTH, digest LENGTH, LUC_DigestEvery, LUC_JournalMax,
++     LUC_PrayerEnabled, shrine flag. Never a text.}
++    Actor p = Game.GetPlayer()
++    Int n = StorageUtil.StringListCount(p, "LUC_PrayerJournal")
++    Int jmin = -1
++    Int i = 0
++    While i < n
++        Int l = StringUtil.GetLength(StorageUtil.StringListGet(p, "LUC_PrayerJournal", i))
++        If jmin < 0 || l < jmin
++            jmin = l
++        EndIf
++        i += 1
++    EndWhile
++    GlobalVariable every = Game.GetFormFromFile(0x803, "Lucienne.esl") as GlobalVariable
++    GlobalVariable jmax = Game.GetFormFromFile(0x804, "Lucienne.esl") as GlobalVariable
++    GlobalVariable en = Game.GetFormFromFile(0x802, "Lucienne.esl") as GlobalVariable
++    Int everyV = -1
++    Int jmaxV = -1
++    Int enV = -1
++    If every != None
++        everyV = every.GetValueInt()
++    EndIf
++    If jmax != None
++        jmaxV = jmax.GetValueInt()
++    EndIf
++    If en != None
++        enV = en.GetValueInt()
++    EndIf
++    Log("LUCPROBE active=" + StorageUtil.GetIntValue(p, "LUC_Active", 0) + " praying=" + StorageUtil.GetIntValue(p, "LUC_Praying", 0) \
++        + " dusk=" + Def(SkyrimNetApi.GetVirtualNPCUUID("Dusk"), "none") + " count=" + StorageUtil.GetIntValue(p, "LUC_PrayerCount", 0) \
++        + " journal=" + n + " jmin=" + jmin + " digest=" + StringUtil.GetLength(StorageUtil.GetStringValue(p, "LUC_PrayerDigest", "")) \
++        + " every=" + everyV + " jmax=" + jmaxV + " enabled=" + enV + " shrine=" + StorageUtil.GetIntValue(p, "LUC_VisitedAzuraShrine", 0))
++EndFunction
++
++Function FormOfFile(String asPlugin, Int aiLocal)
++    {AZ-11: the runtime FormID of a plugin-local form (load-order independent), plus actor flags. Ids and flags only,
++     never a name (the caller's targets come from a private file).}
++    Form f = Game.GetFormFromFile(aiLocal, asPlugin)
++    If f == None
++        Log("FORMOF none local=" + PO3_SKSEFunctions.IntToString(aiLocal, True))
++        Return
++    EndIf
++    Actor a = f as Actor
++    Int isActor = 0
++    Int loaded = 0
++    Int dead = 0
++    If a != None
++        isActor = 1
++        loaded = a.Is3DLoaded() as Int
++        dead = a.IsDead() as Int
++    EndIf
++    Log("FORMOF local=" + PO3_SKSEFunctions.IntToString(aiLocal, True) + " id=" + Watcher().Hex(f) + " actor=" + isActor \
++        + " loaded=" + loaded + " dead=" + dead)
++EndFunction
++
+ Function PlayerPlace(Float afX, Float afY, Float afZ)
+     {REVIEW_LOG RV-79-upd: put the player at a position in the current (exterior) worldspace, then log it.}
+     Game.GetPlayer().SetPosition(afX, afY, afZ)
+@@ -2095,6 +2192,69 @@ String Function Def(String s, String d)
      Return s
  EndFunction
  
@@ -322,12 +497,49 @@ index f9d5b10..96f4329 100644
 +        + " child=" + (a.IsChild() as Int))
 +EndFunction
 +
++Function VanillaEngage(Int aiFormId)
++    {RV-119 GATE-4: an engagement MARAS did not make, done exactly as a proposal INFO fragment does it (Remiel's
++     INFO 0x3211EF, the vanilla amulet INFOs): MarriageAskedFaction (0xFF7F3), RelationshipMarriage (0x74793) alias
++     LoveInterest -> the actor, SetStage(20). Adult only (refuses a child, nothing written). Logs VENG <actor> set.}
++    Actor a = A(aiFormId)
++    If a == None
++        Return
++    EndIf
++    If a.IsChild()
++        Log("VENG " + Watcher().Hex(a) + " refused child")
++        Return
++    EndIf
++    Quest rm = Game.GetFormFromFile(0x00074793, "Skyrim.esm") as Quest
++    Faction asked = Game.GetFormFromFile(0x000FF7F3, "Skyrim.esm") as Faction
++    a.AddToFaction(asked)
++    (rm.GetAliasByName("LoveInterest") as ReferenceAlias).ForceRefTo(a)
++    rm.SetStage(20)
++    Log("VENG " + Watcher().Hex(a) + " set stage=" + rm.GetStage())
++EndFunction
++
++Function VengProbe(Int aiFormId)
++    {RV-119 GATE-4 read-back: RelationshipMarriage stage, running flag, its LoveInterest, the wedding quest (0x7404E)
++     running flag, the actor's MarriageAskedFaction rank (-2 = not a member). Logs VENGPROBE <actor> ...}
++    Actor a = A(aiFormId)
++    If a == None
++        Return
++    EndIf
++    Quest rm = Game.GetFormFromFile(0x00074793, "Skyrim.esm") as Quest
++    Quest wed = Game.GetFormFromFile(0x0007404E, "Skyrim.esm") as Quest
++    Actor li = (rm.GetAliasByName("LoveInterest") as ReferenceAlias).GetActorReference()
++    Int asked = MarasFR(a, 0xFF7F3, "Skyrim.esm")
++    If asked > -3 && !a.IsInFaction(Game.GetFormFromFile(0x000FF7F3, "Skyrim.esm") as Faction)
++        asked = -2
++    EndIf
++    Log("VENGPROBE " + Watcher().Hex(a) + " rmStage=" + rm.GetStage() + " rmRun=" + (rm.IsRunning() as Int) + " li="         + Watcher().Hex(li) + " wedRun=" + (wed.IsRunning() as Int) + " asked=" + asked + " maras=" + MARAS.GetNpcStatusEnum(a))
++EndFunction
++
  Function Log(String asMsg)
      Debug.Trace("[IEB-TEST] " + asMsg)
  EndFunction
 
 === pex sha1
-fec15816ecc8fbbb000b039ffab2ac9ec81ff634 *bin/rel_patched/SNRom_Bridge.pex
-063e918d0905f0ab7b16a922af14ebc4814bd2b3 *bin/rel_patched/SNRom_Decorators.pex
-59b07d221020e290a3fecb4ef453992fb6c304fa *bin/rel_patched/SNRom_PlayerAlias.pex
-4d3812e3d87f94dea94e03f32d0d2f96f08f55bc *bin/harness/IEB_TestCtl.pex
+04994acce0c9cd8cd74906ed08df2672fcd03962 *bin/rel_patched/SNRom_Bridge.pex
+5586fa31aff29e78396ea95a626a7ce9ef241981 *bin/rel_patched/SNRom_Decorators.pex
+ec667275b8e2b614a2a015753c6671174e2d085c *bin/rel_patched/SNRom_PlayerAlias.pex
+6bcdf55352dd96f34fe5365bdf2f9b9fcbab6d3d *bin/harness/IEB_TestCtl.pex

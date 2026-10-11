@@ -310,11 +310,23 @@ def build():
             # T0M_WORLD keeps f25=0 / f200=0 (recorded in the build log); tests needing the quest's PlayerHousecarl
             # alias say so by ID (see t0m_builder.md).
             say("  housecarl quest did not start (loc=%s); RV-116 (7): enabling the housecarl ref directly" % w.get("loc"))
-            con("%08X.enable" % HOUSECARL)
-            for _ in range(10):
-                time.sleep(2)
-                w = world()
+            # run 5: "<ref>.enable" left it disabled (no enable parent: ACHR flags 0x800/0xC00 only). Log the MCP response of
+            # each form and fall back to prid + enable (INFERRED: the console may not take a bare hex ref prefix over MCP)
+            for cmds in (["%08X.enable" % HOUSECARL], ["prid %08X" % HOUSECARL, "enable"],
+                         ["prid %X" % HOUSECARL, "enable"]):
+                for c in cmds:
+                    try:
+                        res = RUN[0].tool("execute_console_command", {"command": c})
+                    except Exception as e:
+                        res = type(e).__name__
+                    say("  CONSOLE %s -> %s" % (c, str(res)[:200]))
+                for _ in range(5):
+                    time.sleep(2)
+                    w = world()
+                    if iv(w, "hcDis") == 0:
+                        break
                 if iv(w, "hcDis") == 0:
+                    say("  housecarl enabled by: %s" % " ; ".join(cmds))
                     break
             need(iv(w, "hcDis") == 0, "housecarl 0x%08X still disabled after enable" % HOUSECARL)
             step(4, "housecarl", "DIRECT (quest not started) f25=%s f200=%s hcDis=0" % (w.get("f25"), w.get("f200")))
