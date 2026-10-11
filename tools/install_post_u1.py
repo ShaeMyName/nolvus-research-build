@@ -12,7 +12,8 @@ MANIFEST = B + "out/install_step7.json"
 BACKUP = "C:/nolvus-research/backups/install_post_u1_%s/" % time.strftime("%Y%m%d-%H%M%S")
 SETS = [("Errand Bridge", "bin/eb/"), ("IE NoWipe + Dispatch Guard", "bin/patched/"),
         ("SkyrimNet Relationships - Private Patch", "bin/rel_patched/"), ("Errand Bridge - Test Harness", "bin/harness/")]
-LAYERS = [("Lucienne - Private (TEST STUB)", "layers/lucienne-test/"), ("SkyrimNet Test - SEC Bio", "layers/sectest/")]
+LAYERS = [("Lucienne - Private (TEST STUB)", "layers/lucienne-test/"), ("SkyrimNet Test - SEC Bio", "layers/sectest/"),
+          ("SkyrimNet - Follower Bios", "layers/followerbios/")]   # RV-121-dec (Inigo, Lucien), TEST only
 # single files at a mod's root (2026-10-11: the regenerated test-harness plugin, B-22 package-watch quest 0x840)
 FILES = [("Errand Bridge - Test Harness", "out/ErrandBridgeTest.esp", "ErrandBridgeTest.esp"),
          # 2026-10-11: quest_integrity rebuilt with the Creation Club masters (+6 story quests, +20 reserved NPCs)
@@ -22,7 +23,7 @@ FILES = [("Errand Bridge - Test Harness", "out/ErrandBridgeTest.esp", "ErrandBri
          # REVIEW_LOG RV-104: ships with the bridge (component A), the mod that reads it, so promotion carries it once
          ("Errand Bridge", "private_out/ErrandBridge/ess_windows.json", "SKSE/Plugins/ErrandBridge/ess_windows.json", True)]
 # new test-only mod folders this tool may create, added to the TEST profile's modlist (never Nolvus Awakening)
-NEW_TEST_MODS = {"SkyrimNet Test - SEC Bio"}
+NEW_TEST_MODS = {"SkyrimNet Test - SEC Bio", "SkyrimNet - Follower Bios"}
 PROFILE_MODLIST = "C:/Nolvus/Instances/Nolvus Awakening/MODS/profiles/SkyrimNet Test/modlist.txt"
 MODLIST_AFTER = "+Lucienne - Private (TEST STUB)"
 DRY = "--dry" in sys.argv

@@ -1,0 +1,11 @@
+{
+  "id": "shae.follower-bios",
+  "type": "bundle",
+  "title": "Follower Bios (private)",
+  "tagline": "Private: SkyrimNet bios for the mod followers Inigo and Lucien.",
+  "description": "Personality, voice and surface background from the followers' own mods (no personal-quest content). Approved by Shae 2026-10-11 (REVIEW_LOG RV-121-dec). Private; never published.",
+  "author": "shae",
+  "version": "1.0.0",
+  "min_skyrimnet_version": "0.25.0",
+  "nsfw": false
+}
