@@ -70,6 +70,8 @@ for p in ccc + active:
 stale = sorted(have.values())
 for f in stale:
     os.remove(OUT + f)
+with open(OUT + "_profile.txt", "w", encoding="utf-8", newline="\n") as fh:   # REVIEW_LOG RV-103 (3)
+    fh.write(PROFILE + "\n")
 with open(OUT + "_loadorder.txt", "w", encoding="utf-8", newline="\n") as fh:
     fh.write("\n".join(BASE + ccc + active) + "\n")
 print("creation club masters:", len(ccc), "| active plugins:", len(active), "| unchanged:", same, "| copied (new or changed):", copied,

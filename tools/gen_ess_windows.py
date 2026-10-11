@@ -9,12 +9,18 @@ Outputs (never committed: build/private_out/ is gitignored):
   build/private_out/ErrandBridge/ess_windows_rows0.json  test variant, rows = 0 ("no windows", for E-* tests)
 
 Schema (IEB_EssLib.psc header + LoadWindows): int "rows" = N (0..64); formList "w_quest", "w_base"; intList "w_any",
-"w_mode", "w_lo", "w_hi"; all lists N long. Open while the quest runs and w_lo <= GetStage() < w_hi (w_hi < 0 = no upper
-bound). Form strings are PapyrusUtil's "0x<lowercase hex local id>|<Plugin>" (quest_integrity_builder.form_string, Q-9).
+"w_mode", "w_lo", "w_hi"; all lists N long. Optional (REVIEW_LOG RV-101 / RV-101-review), each absent or N long:
+intList "w_done" (1 = open on IsStageDone(w_lo) OR GetStage() >= w_lo, close only on IsStageDone(w_hi)), intList
+"w_after" (1 = stays open after the quest stops; needs w_done 1), formList "w_fac" (a Faction, or the row's own quest
+form as the "no condition" placeholder). Form strings are PapyrusUtil's "0x<lowercase hex local id>|<Plugin>"
+(quest_integrity_builder.form_string, Q-9).
 
-Encoding rules (from the record's §D and §E):
-  - §D gives each row's (from, to): "N -> M" / "N -> M or K" (closing stages collapsed to the lowest, since the bridge
-    compares the current stage) / "N -> stop" (w_hi -1) / "start -> M" (w_lo 0) / "<id>, N, null ..." (w_hi -1).
+Encoding rules (from the record's §D and §E). Every limit errs toward staying open (closing early is the blocker):
+  - w_done = 1 on every row.
+  - §D gives each row's (from, to): "N -> M" / "N -> M or K" (several closing stages: the HIGHEST, since none is shown to
+    be always reached last) / "N -> stop" (w_hi -1) / "start -> M" (w_lo 0) / "<id>, N, null ..." (w_hi -1).
+  - A "null + faction" spec: w_after 1, w_hi -1, w_fac = the Faction whose EditorID the row's §A window cell names
+    (resolved by EditorID in the load order). Unresolved: w_after 1, w_hi -1, no faction (open-ended), counted.
   - §E gives the mode: "ACTIVE REMOVAL" = 1 (suspend), "stay out" = 0.
   - Any-follower rows (§B): w_any 1, w_base = the row's quest form (LoadWindows needs a form in every slot).
   - Rows whose quest or actor base does not resolve in the load order are left out and counted by §A tag.
@@ -89,7 +95,7 @@ def parse_record():
     last_quest = None
     for c in table(sec["A"]):
         assert len(c) >= 7, "section A: row with %d cells" % len(c)
-        num, actor, quest, tagcell = c[0], c[1], c[2], c[-1]
+        num, actor, quest, wincell, tagcell = c[0], c[1], c[2], c[-2], c[-1]
         m = re.match(r"^\s*([A-Za-z0-9_]+)", quest)
         qedid = m.group(1) if m else ""
         if quest.strip().lower() == "same" and last_quest:
@@ -111,16 +117,16 @@ def parse_record():
                 edids = [parts[0]] + [prefix + p for p in parts[1:]]
             for k in range(count):
                 rows.append(dict(sec="A", num="%s.%d" % (num, k + 1), tag=tag, name=name, actor_cell=actor,
-                                 quest_edid=qedid, quest_cell=quest, any=False,
+                                 quest_edid=qedid, quest_cell=quest, any=False, win_cell=wincell,
                                  group_edid=edids[k] if len(edids) == count else None, group=True))
         else:
             rows.append(dict(sec="A", num=num, tag=tag, name=name, actor_cell=actor, quest_edid=qedid,
-                             quest_cell=quest, any=False, group_edid=None, group=False))
+                             quest_cell=quest, any=False, win_cell=wincell, group_edid=None, group=False))
     for c in table(sec["B"]):
         quest = c[0]
         m = re.match(r"^\s*([A-Za-z0-9_]+)", quest)
         rows.append(dict(sec="B", num="B", tag="B", name="", actor_cell="", quest_edid=m.group(1) if m else "",
-                         quest_cell=quest, any=True, group_edid=None, group=False))
+                         quest_cell=quest, any=True, win_cell=c[-1], group_edid=None, group=False))
 
     # §D windows: "<label> (<spec>)" items after the first colon of the "Rows from" sentence
     dtext = " ".join(l.strip() for l in sec["D"])
@@ -147,7 +153,8 @@ def parse_record():
 
 
 def parse_spec(spec):
-    """(lo, hi, flags) from a §D spec. flags: 'collapsed' (several closing stages), 'extra' (condition not encodable)."""
+    """(lo, hi, flags) from a §D spec. flags: 'higher' (several closing stages: the highest is used), 'extra' (an added
+    condition), 'faction' (that condition is a faction rule)."""
     flags = set()
     if "->" in spec:
         lo_s, hi_s = spec.split("->", 1)
@@ -160,9 +167,9 @@ def parse_spec(spec):
             raise ValueError("lo")
         hi_i = [int(x) for x in re.findall(r"\b\d+\b", hi_s)]
         if hi_i:
-            hi = min(hi_i)
+            hi = max(hi_i)
             if len(hi_i) > 1:
-                flags.add("collapsed")
+                flags.add("higher")
         elif "stop" in hi_s.lower():
             hi = -1
         else:
@@ -178,13 +185,15 @@ def parse_spec(spec):
             hi = -1
             if "+" in hp:
                 flags.add("extra")
+                if "faction" in hp.lower():
+                    flags.add("faction")
         else:
             hi_i = [int(x) for x in re.findall(r"\b\d+\b", hp)]
             if not hi_i:
                 raise ValueError("hi")
-            hi = min(hi_i)
+            hi = max(hi_i)
             if len(hi_i) > 1:
-                flags.add("collapsed")
+                flags.add("higher")
     return lo, hi, flags
 
 
@@ -209,8 +218,8 @@ def plugin_for_hint(hint, order):
 
 
 def scan(order):
-    """Winning QUST and NPC_ records by (origin_lower, local24): EDID, alias actor refs."""
-    quests, npcs, light = {}, {}, set()
+    """Winning QUST, NPC_ and FACT records by (origin_lower, local24): EDID, alias actor refs."""
+    quests, npcs, facts, light = {}, {}, {}, set()
     for name in order:
         buf = open(qib.plugin_path(name), "rb").read()
         start, masters, hflags = qib.header(buf)
@@ -222,15 +231,15 @@ def scan(order):
             idx = fid >> 24
             return (_m[idx] if idx < len(_m) else _self, fid & 0xFFFFFF)
 
-        for typ, flags, fid, off, size in qib.walk(buf, start, len(buf), {b"QUST", b"NPC_"}):
-            if typ not in (b"QUST", b"NPC_"):
+        for typ, flags, fid, off, size in qib.walk(buf, start, len(buf), {b"QUST", b"NPC_", b"FACT"}):
+            if typ not in (b"QUST", b"NPC_", b"FACT"):
                 continue
             body = qib.body_of(buf, off, size, flags)
             edid, unique, forced, in_ref = "", set(), set(), False
             for t, v in qib.subrecs(body):
                 if t == b"EDID":
                     edid = v.rstrip(b"\0").decode("latin1")
-                    if typ == b"NPC_":
+                    if typ != b"QUST":
                         break
                 elif t == b"ALST":
                     in_ref = True
@@ -243,9 +252,11 @@ def scan(order):
             key = resolve(fid)
             if typ == b"QUST":
                 quests[key] = dict(edid=edid, unique=unique, forced=forced)
+            elif typ == b"FACT":
+                facts[key] = edid
             else:
                 npcs[key] = edid
-    return quests, npcs, light
+    return quests, npcs, facts, light
 
 
 def achr_bases(order, refs):
@@ -294,17 +305,20 @@ def main():
     rows, ditems, eitems = parse_record()
     order = [l.strip() for l in open(qib.ACTIVE + "_loadorder.txt", encoding="utf-8") if l.strip()]
     case = {n.lower(): n for n in order}
-    quests, npcs, light = scan(order)
-    q_by_edid, n_by_edid = {}, {}
+    quests, npcs, facts, light = scan(order)
+    q_by_edid, n_by_edid, f_by_edid = {}, {}, {}
     for k, q in quests.items():
         q_by_edid.setdefault(q["edid"].lower(), []).append(k)
     for k, e in npcs.items():
         n_by_edid.setdefault(e.lower(), []).append(k)
+    for k, e in facts.items():
+        f_by_edid.setdefault(e.lower(), []).append(k)
 
     def fs(key):
         return qib.form_string(case.get(key[0], key[0]), key[1] & (0xFFF if key[0] in light else 0xFFFFFF))
 
-    notes = {"prefix_masked": 0, "collapsed": 0, "extra": 0, "alias_linked": 0, "name_resolved": 0}
+    notes = {"prefix_masked": 0, "higher": 0, "extra": 0, "alias_linked": 0, "name_resolved": 0,
+             "fac_resolved": 0, "fac_unresolved": 0, "frag_resolved": 0}
 
     # ---- windows (§D) and modes (§E) per row
     row_tokens = []
@@ -338,6 +352,14 @@ def main():
     for r in rows:
         r["qkey"], r["why"] = None, None
         cands = q_by_edid.get(r["quest_edid"].lower(), []) if r["quest_edid"] else []
+        if not cands:
+            # the cell may name the quest only by its fragment script, "QF_<EditorID>_<8-hex FormID>" (Creation Kit
+            # naming); accept it only when that EditorID and that local id agree on one quest
+            fm = re.search(r"QF[ _]+([A-Za-z0-9_]+?)_([0-9A-Fa-f]{8})\b", r["quest_cell"])
+            if fm:
+                fid = int(fm.group(2), 16)
+                cands = [k for k in q_by_edid.get(fm.group(1).lower(), []) if same_local(k[1], fid, k[0], light)]
+                notes["frag_resolved"] += 1 if len(cands) == 1 else 0
         if len(cands) != 1:
             r["why"] = "quest_edid_%s" % ("missing" if not cands else "ambiguous")
             continue
@@ -431,16 +453,31 @@ def main():
     for r in bad:
         diag("row %s unresolved: %s" % (r["num"], r["why"]))
     for r in ok:
-        notes["collapsed"] += 1 if "collapsed" in r.get("flags", ()) else 0
-        notes["extra"] += 1 if "extra" in r.get("flags", ()) else 0
+        fl = r.get("flags", ())
+        notes["higher"] += 1 if "higher" in fl else 0
+        notes["extra"] += 1 if "extra" in fl and "faction" not in fl else 0
+        # RV-101: stage-done semantics everywhere; faction-rule rows stay open after the quest stops
+        r["done"], r["after"], r["fkey"] = 1, 0, r["qkey"]
+        if "faction" in fl:
+            r["after"], r["hi"] = 1, -1
+            names = {t.lower() for t in re.findall(r"[A-Za-z_][A-Za-z0-9_]*Faction\b", r.get("win_cell", ""))}
+            cands = {k for t in names for k in f_by_edid.get(t, [])}
+            if len(cands) == 1:
+                r["fkey"] = cands.pop()
+                notes["fac_resolved"] += 1
+            else:
+                notes["fac_unresolved"] += 1   # open-ended, no faction: errs toward open
+                diag("row %s: faction %s" % (r["num"], "missing" if not cands else "ambiguous"))
     assert len(ok) <= MAX_ROWS, "rows %d > %d" % (len(ok), MAX_ROWS)
 
     def build(rs):
         return {
             "int": {"rows": len(rs)},
-            "formList": {"w_quest": [fs(r["qkey"]) for r in rs], "w_base": [fs(r["bkey"]) for r in rs]},
+            "formList": {"w_quest": [fs(r["qkey"]) for r in rs], "w_base": [fs(r["bkey"]) for r in rs],
+                         "w_fac": [fs(r["fkey"]) for r in rs]},
             "intList": {"w_any": [1 if r["any"] else 0 for r in rs], "w_mode": [r["mode"] for r in rs],
-                        "w_lo": [r["lo"] for r in rs], "w_hi": [r["hi"] for r in rs]},
+                        "w_lo": [r["lo"] for r in rs], "w_hi": [r["hi"] for r in rs],
+                        "w_done": [r["done"] for r in rs], "w_after": [r["after"] for r in rs]},
         }
 
     os.makedirs(OUTDIR, exist_ok=True)
@@ -449,18 +486,18 @@ def main():
             json.dump(build(rs), fh, indent=1)
 
     # ---- self-check: re-read both files
-    known = {fs(k): k for k in list(quests) + list(npcs)}
+    known = {fs(k): k for k in list(quests) + list(npcs) + list(facts)}
     lo_order = {n.lower() for n in order}
     for path, want in ((OUT, len(ok)), (OUT0, 0)):
         j = json.load(open(path, encoding="utf-8"))
         n = j["int"]["rows"]
         assert n == want and 0 <= n <= MAX_ROWS, "%s: rows" % path
-        for lst in ("w_quest", "w_base"):
+        for lst in ("w_quest", "w_base", "w_fac"):
             assert len(j["formList"][lst]) == n, "%s: %s length" % (path, lst)
-        for lst in ("w_any", "w_mode", "w_lo", "w_hi"):
+        for lst in ("w_any", "w_mode", "w_lo", "w_hi", "w_done", "w_after"):
             assert len(j["intList"][lst]) == n, "%s: %s length" % (path, lst)
             assert all(isinstance(v, int) for v in j["intList"][lst]), "%s: %s not int" % (path, lst)
-        for lst in ("w_quest", "w_base"):
+        for lst in ("w_quest", "w_base", "w_fac"):
             for s in j["formList"][lst]:
                 m = re.fullmatch(r"0x([0-9a-f]+)\|(.+\.(?:esp|esm|esl))", s)
                 assert m, "%s: form string format" % path
@@ -473,7 +510,16 @@ def main():
             assert q in quests, "%s: w_quest not a quest" % path
             if j["intList"]["w_any"][k] == 0:
                 assert known[j["formList"]["w_base"][k]] in npcs, "%s: w_base not an actor base" % path
+            else:
+                # never compared by WindowHit when w_any = 1; guard future edits: must be a Quest, never NPC_/ACHR
+                wb = known[j["formList"]["w_base"][k]]
+                assert wb in quests and wb not in npcs, "%s: any-follower w_base not a quest" % path
             assert j["intList"]["w_any"][k] in (0, 1) and j["intList"]["w_mode"][k] in (0, 1), "%s: flag" % path
+            done, after = j["intList"]["w_done"][k], j["intList"]["w_after"][k]
+            assert done in (0, 1) and after in (0, 1), "%s: w_done/w_after flag" % path
+            assert after == 0 or done == 1, "%s: w_after without w_done" % path
+            fac = j["formList"]["w_fac"][k]
+            assert known[fac] in facts or fac == j["formList"]["w_quest"][k], "%s: w_fac not a faction or own quest" % path
             lo, hi = j["intList"]["w_lo"][k], j["intList"]["w_hi"][k]
             assert lo >= 0 and (hi < 0 or lo < hi), "%s: window bounds" % path
 
@@ -485,9 +531,13 @@ def main():
     print("rows written: %d | any-follower: %d | mode 0: %d, mode 1: %d" % (
         len(ok), sum(r["any"] for r in ok), sum(r["mode"] == 0 for r in ok), sum(r["mode"] == 1 for r in ok)))
     print("unresolved: %d %s" % (len(bad), dict(sorted(by_tag.items()))))
-    print("notes: quest ids with a load-index prefix masked %d | closing stages collapsed %d | extra conditions not "
-          "encodable %d | actors resolved by name via quest alias %d | actor bases alias-linked to their quest %d"
-          % (notes["prefix_masked"], notes["collapsed"], notes["extra"], notes["name_resolved"], notes["alias_linked"]))
+    print("RV-101: w_done=1 rows %d | w_after=1 rows %d | w_fac faction rows %d | faction resolved %d, unresolved "
+          "(open-ended) %d" % (sum(r["done"] for r in ok), sum(r["after"] for r in ok),
+                               sum(r["fkey"] != r["qkey"] for r in ok), notes["fac_resolved"], notes["fac_unresolved"]))
+    print("quests resolved via fragment-script name: %d" % notes["frag_resolved"])
+    print("notes: quest ids with a load-index prefix masked %d | higher closing stage chosen %d | other extra conditions "
+          "not encodable %d | actors resolved by name via quest alias %d | actor bases alias-linked to their quest %d"
+          % (notes["prefix_masked"], notes["higher"], notes["extra"], notes["name_resolved"], notes["alias_linked"]))
     print("self-check: OK (%s rows=%d, %s rows=0)" % (os.path.basename(OUT), len(ok), os.path.basename(OUT0)))
 
 

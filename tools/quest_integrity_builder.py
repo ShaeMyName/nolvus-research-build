@@ -93,6 +93,15 @@ def main():
     test_q = "--test-story-quest" in sys.argv
     if test_q and not probe:                     # REVIEW_LOG RV-86: the test quest can never reach a real-play build
         sys.exit("REFUSED: --test-story-quest needs --probe (test builds only)")
+    # REVIEW_LOG RV-103 (3): the expected story-quest count is never hard-coded: it is whatever the profile's own
+    # Skyrim.ccc + plugins.txt yield. A real-play build must come from Lucienne's profile (sync_active.py "<her profile>").
+    try:
+        prof = open(ACTIVE + "_profile.txt", encoding="utf-8").read().strip()
+    except OSError:
+        prof = "?"
+    print("load order from profile:", prof)
+    if not probe and prof in ("SkyrimNet Test", "?"):
+        sys.exit("REFUSED: a real-play build needs gamedata/active synced from Lucienne's profile (now: %s)" % prof)
     light = set()
     order = [l.strip() for l in open(ACTIVE + "_loadorder.txt", encoding="utf-8") if l.strip()]
     exempt_l = {e.lower() for e in EXEMPT}
