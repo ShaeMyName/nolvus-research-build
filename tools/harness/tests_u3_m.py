@@ -562,6 +562,95 @@ def _say(r, uuid, text):
     time.sleep(3)
 
 
+# RV-129-close: DA-9 parts 3/4 count as PASS only when the RDO line is shown fireable for the friend. Conditions decoded
+# read-only from Relationship Dialogue Overhaul.esp (investigation/round10/da9_rdo_conditions.md). No RDO patch in the
+# load order overrides these records (scan of the 4 plugins with RDO as master).
+DA9_RDO = "Relationship Dialogue Overhaul.esp"
+DA9_FRALIA = 0x0001A684           # the static conditions below (voice type) were checked for her winning NPC_ record only
+DA9_RECRUIT_INFO = 0x516E17       # RDOFollowerRecruitTopic (top-level branch): her only RDO_DefaultRecruit INFO
+DA9_RECRUIT_Q = 0x59594C          # a_RDOGenericFollowerDialogue (start-game enabled; quest condition IsCommandedActor == 0)
+DA9_GIFT_Q = 0xC17A62             # a_RDOMiscSharedInfoDialogue (start-game enabled; no quest conditions)
+# every INFO whose fragment is RDO_DefaultRecruit (RDO-local ids; 0x03A47E is Dragonborn's Talvas INFO overridden by RDO)
+DA9_RECRUIT_LOCALS = (0x679836, 0x790149, 0x6BB627, 0x66F62E, 0x03A47E, 0x7534F9, 0x437F9D, 0x4421F3, 0x4B6A0F,
+                      0x4CFF6E, 0x567F72, 0x58B732, 0x5BE1D7, 0x5F0C54, 0x614390, 0x6194B5, 0x6194B6, 0x6236BF,
+                      0x637AE0, 0x637AE1, 0x720ABF, 0x77BD1E, 0x77BD20, 0x7C2B9B, 0x832227, 0x85AA4E, 0x86EE8C,
+                      0x87E1B4, 0x94395D, 0x516E17, 0x0D73A2, 0x0D73A3, 0x0D73A4, 0x0D73A5, 0x0FAB9D, 0x0FAB9E, 0x0FAB9F)
+DA9_GIFT_LOCALS = (0xEE6A7F, 0xE9AB40, 0xEE6A80, 0xEA9E48)    # RDOFriendConversationGiveGift, fragment RDO_ShowFriendGiftMenu
+# Skyrim.esm factions as decimal FormIDs (a numeric id cannot silently miss the way an unknown EditorID does, K-1)
+FAC_TOWN_WHITERUN, FAC_CURRENT_FOLLOWER, FAC_POTENTIAL_FOLLOWER, FAC_POTENTIAL_HIRELING = 164210, 378958, 378957, 773274
+
+
+def _da9_fired(txt, locals_):
+    """True when a TriggerDialogueLine / TIF-EXEC line names one of these INFOs (any load-order byte)."""
+    ids = "|".join("%06X" % x for x in locals_)
+    return bool(re.search(r"(?i)(?:TriggerDialogueLine firing|\[TIF-EXEC\] fired info) (?:0x)?[0-9A-F]{2}(?:%s)\b" % ids,
+                          txt))
+
+
+def _da9_frank(r, u, fac):
+    """get_faction_rank by numeric FormID: rank, -1 = not a member, None = unreadable."""
+    v = iv({"v": rval(r, u, "get_faction_rank(actorUUID, %d)" % fac)}, "v")
+    return None if v == -99 else v
+
+
+def _da9_quest_running(r, local):
+    """Quest.IsRunning() of an RDO quest: FormOfFile -> runtime id, then QAlias (both in the installed TestCtl).
+    True / False / None = unreadable."""
+    m = ctl_line(r, "FormOfFile", [DA9_RDO, local], r"(?i)\[IEB-TEST\] FORMOF (?:local=\S+ id=(\S+)|none)", 15)
+    if not m or not m.group(1):
+        return None
+    try:
+        qid = int(m.group(1), 16)
+    except ValueError:
+        return None
+    m = ctl_line(r, "QAlias", [s32(qid)], r"\[IEB-TEST\] QALIAS \S+ running=(\d)", 15)
+    return None if not m else m.group(1) == "1"
+
+
+def _da9_recruit_ready(r, fr, fu):
+    """Every condition of RDO INFO 0x516E17 (and its quest/branch) for the friend. Returns (ready, why-not).
+    Read now: rank >= 1 (RankProbe), CurrentFollowerFaction / PotentialHireling not member, PotentialFollowerFaction member
+    (set with read-back if missing: adult, the block reloads T0-M after this test), PlayerFollowerCount == 0
+    (get_global_value), IsCommandedActor == 0 (is_summoned / is_reanimated, INFERRED proxy), quest running (QAlias).
+    Static (VERIFIED from the plugins, not readable at runtime): voice FemaleOldKindly is in DefaultNPCVoiceTypes and
+    not in _RDO_OriginalVoicesFollowerAll / MaleOldGrumpy / FemaleNord; aaa_RDOPreventedActorsList is empty and no RDO
+    or NFF script adds to it."""
+    if fr != DA9_FRALIA:
+        return False, "static conditions (voice type) were decoded for Fralia only, rdo_friend is %08X" % fr
+    if iv(rank(r, fr) or {}, "r", -9) < 1:
+        return False, "rank >= 1 not met"
+    town = _da9_frank(r, fu, FAC_TOWN_WHITERUN)
+    if town is None or town < 0:
+        return False, "faction read control failed (TownWhiterunFaction rank %s, her record has 0)" % town
+    for fac, name in ((FAC_CURRENT_FOLLOWER, "CurrentFollowerFaction"), (FAC_POTENTIAL_HIRELING, "PotentialHireling")):
+        v = _da9_frank(r, fu, fac)
+        if v is None or v >= 0:
+            return False, "%s == 0 not shown (rank %s)" % (name, v)
+    pot = _da9_frank(r, fu, FAC_POTENTIAL_FOLLOWER)
+    if pot is not None and pot < 0:
+        con(r, "%08X.addfac %08X 0" % (fr, FAC_POTENTIAL_FOLLOWER))
+        time.sleep(2)
+        pot = _da9_frank(r, fu, FAC_POTENTIAL_FOLLOWER)
+        r.log("  PotentialFollowerFaction added for the test, read-back rank %s (RV-123 (3))" % pot)
+    if pot is None or pot < 0:
+        return False, "PotentialFollowerFaction == 1 not met (read-back rank %s)" % pot
+    pfc = rval(r, fu, 'get_global_value("PlayerFollowerCount")')
+    try:
+        pfc = float(pfc)
+    except (TypeError, ValueError):
+        return False, "PlayerFollowerCount unreadable"
+    if pfc != 0:
+        return False, "PlayerFollowerCount == 0 not met (%g; NFF owns it, not written here)" % pfc
+    for dec in ("is_summoned", "is_reanimated"):
+        v = rval(r, fu, "%s(actorUUID)" % dec)
+        if v is None or v.strip().lower() not in ("false", "0"):
+            return False, "IsCommandedActor == 0 not shown (%s -> %s)" % (dec, v)
+    run = _da9_quest_running(r, DA9_RECRUIT_Q)
+    if not run:
+        return False, "quest a_RDOGenericFollowerDialogue running not shown (%s)" % run
+    return True, ""
+
+
 @test("DA-9", "DA", save="T0-M", reload=True)
 def da9(r):
     """RDO blacklist, script-name keys (S-33). (1) SkyrimNet.log '[DialogueActionsLibrary] ... N blacklist entr(ies)'
@@ -570,8 +659,12 @@ def da9(r):
     (rank stays < 0). (3) At an RDO friend, 'Come with me.' -> no RDO_DefaultRecruit fired, she does not become a
     teammate. (4) 'Can I give you something?' -> no gift menu opens (SkyrimNet.log "Menu 'GiftMenu' is opening" = 0).
     LLM calls: 3. INFERRED: (a) the blacklist count is summed over all layers; (b) the TIF-EXEC line carries the
-    fragment's script name when it fires one; (c) the gift menu's name is 'GiftMenu'. If a script-name key fails, the
-    YAML's quest fallback applies (README)."""
+    fragment's script name when it fires one (the INFO FormIDs are matched too); (c) the gift menu's name is 'GiftMenu'.
+    If a script-name key fails, the YAML's quest fallback applies (README).
+    RV-129-close (investigation/round10/da9_rdo_conditions.md): (3) is a PASS only when every condition of her recruit
+    INFO is read back met (_da9_recruit_ready; PotentialFollowerFaction is added with a read-back when missing), else
+    INCONCLUSIVE; (4) cannot PASS (its topic sits under INFOs gated GetIsID(Player) == 1), so its negative is
+    INCONCLUSIVE. A firing in (3) or (4) is a FAIL either way."""
     if not harness_ready(r):
         return
     sn = tail("skyrimnet")
@@ -608,11 +701,12 @@ def da9(r):
     time.sleep(10)
     if not near_player(r, fr, "player.moveto", maxd=1000):
         return
-    fu, _, _ = who(r, fr)
+    fu, _, child = who(r, fr)
     if not fu:
         return inc(r, "rdo_friend not loaded")
-    # RV-129: make her an RDO friend (rank >= 1), read back before relying on it (RV-123 (3)). INFERRED that rank 1 is
-    # what RDO's recruit/gift lines need for a non-follower; the checks below are negative, so a missing line is vacuous
+    if child is not False:
+        return inc(r, "rdo_friend child flag not shown false (%s): nothing is written to her" % child)
+    # RV-129: make her an RDO friend (rank >= 1), read back before relying on it (RV-123 (3))
     k0 = rank(r, fr) or {}
     if iv(k0, "r", -9) < 1:
         con(r, "%08X.setrelationshiprank player 1" % fr)
@@ -620,16 +714,39 @@ def da9(r):
         k0 = rank(r, fr) or {}
         if iv(k0, "r", -9) < 1:
             return inc(r, "rdo_friend rank not raised to 1 (read-back r=%s)" % k0.get("r"))
+    # RV-129-close: the negative checks count as PASS only when the line is shown fireable; a firing is a FAIL either way.
+    # Part 3 at Fralia: her recruit INFO is also covered by the quest key a_RDOGenericFollowerDialogue, so this part does
+    # not isolate the RDO_DefaultRecruit script key (only the DialogueFavorGeneric / Tel Mithryn INFOs depend on it alone).
+    ready3, why3 = _da9_recruit_ready(r, fr, fu)
+    r.log("  part 3 recruit line fireable: %s%s" % (ready3, "" if ready3 else " (" + why3 + ")"))
     tm0 = (maras_probe(r, fr) or {}).get("tm")
     t = tail("skyrimnet")
     _say(r, fu, "Come with me.")
     txt = t.read()
-    r.check("RDO_DefaultRecruit" not in txt, "no RDO_DefaultRecruit fired")
+    fired3 = "RDO_DefaultRecruit" in txt or _da9_fired(txt, DA9_RECRUIT_LOCALS)
     tm1 = (maras_probe(r, fr) or {}).get("tm")
-    r.check(tm0 == "0" and tm1 == "0", "the friend did not become a teammate (tm %s -> %s)" % (tm0, tm1))
+    if ready3 or fired3:
+        r.check(not fired3, "no RDO_DefaultRecruit fired")
+    else:
+        inc(r, "part 3: no RDO recruit line fired, but the line was not shown fireable: %s" % why3)
+    if ready3:
+        r.check(tm0 == "0" and tm1 == "0", "the friend did not become a teammate (tm %s -> %s)" % (tm0, tm1))
+    else:
+        r.log("  part 3 teammate flag (not a verdict, line not shown fireable): tm %s -> %s" % (tm0, tm1))
+    # Part 4: the gift INFO's own condition (voice in DefaultNPCVoiceTypes) holds for her, but its topic is reached only
+    # through the friend-conversation INFOs, all gated GetIsID(Player) == 1 run on the speaker (VERIFIED in the plugin;
+    # INFERRED never true for an NPC) plus GetAllowWorldInteractions (no reader). So no PASS is possible here: the
+    # negative is logged INCONCLUSIVE, a gift menu or gift-INFO firing is still a FAIL.
+    run4 = _da9_quest_running(r, DA9_GIFT_Q)
     t = tail("skyrimnet")
     _say(r, fu, "Can I give you something?")
-    r.check(not re.search(r"Menu 'GiftMenu' is opening", t.read()), "no gift menu opened")
+    txt = t.read()
+    fired4 = bool(re.search(r"Menu 'GiftMenu' is opening", txt)) or _da9_fired(txt, DA9_GIFT_LOCALS)
+    if fired4:
+        r.check(False, "no gift menu opened / no RDO gift line fired")
+    else:
+        inc(r, "part 4: no gift menu, but the gift line is not shown fireable (path INFOs gated GetIsID(Player) == 1 on "
+               "the speaker; GetAllowWorldInteractions unreadable; quest running %s)" % run4)
 
 
 # ============================================================================ MA-2: the boxes ARE the pass
