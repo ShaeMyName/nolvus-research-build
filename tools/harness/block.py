@@ -305,6 +305,17 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
         t0 = time.time()
         call_test(meta["fn"], r)        # a harness bug fails the test, not the block; SetupReached ends a setup-only test
         crashed = "SkyrimSE.exe" not in game.procs()
+        if not crashed:
+            # REVIEW_LOG RV-87 (1): crash context after every test (game hour, days, Saffir's package/3D: the actor in
+            # both 2026-10-10/11 crash logs, signature SkyrimSE+067496C / AI Overhaul pkg 0xCF001957). Fire and forget:
+            # the line lands in Papyrus.0.log, which is archived with any crash.
+            try:
+                ctl.ctl("CrashCtx", [0x0001A66C], sync=False)
+            except Exception:
+                pass
+        else:
+            last = re.findall(r"CRASHCTX [^\r\n]*", r.tails["papyrus"].read())
+            r.log("NOTE %s: last crash context before the crash: %s" % (tid, last[-1] if last else "none in this test's window"))
         # Reviewer 2026-10-10 (U1 run 16, 14:50): a guard defeated the test player and Shadow of Skyrim jailed and stripped
         # her; every later test ran on that state. Any defeat/bleedout makes this test INCONCLUSIVE and forces a relaunch.
         defeat = player_defeated(r.tails["papyrus"].read(), r.tails["skyrimnet"].read())
