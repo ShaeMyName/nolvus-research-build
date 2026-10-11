@@ -359,7 +359,7 @@ def _home_case(r, tid, scene):
         time.sleep(2)
         d = dist(r, HOUSECARL)
         if d is None or not (250 <= d <= 350):
-            return inc(r, "%s: housecarl at %s u, wanted 250-350 (outside 200, inside 800)" % (tid, d))
+            return inc(r, "%s: housecarl at %s u, wanted 250-350 (outside the 200 u whisper radius, inside the live radius)" % (tid, d))
         lo = los(r, hu, pu)
         r.log("  %s: housecarl %d u away, line of sight to the player: %s (counts only)" % (tid, d, lo))
         n800 = near(r, radius(r), F1)
@@ -410,31 +410,62 @@ def wh4(r):
     _home_case(r, "WH-4", scene=False)
 
 
-@test("WH-5", "WH", reload=True)
-def wh5(r):
-    """Spec-literal: EXTERIOR, partner only: whisper on; then a guard 400 u away: off within ~10 s. The code
-    (IEB_SceneMain.PrivatePlace) returns False for any exterior cell, so this is expected to FAIL on the first check if the
-    market ever had nobody within the live radius: a spec/code discrepancy to report, not a harness bug. In a normal market the
-    precondition (nobody else within the live radius) fails and the test is INCONCLUSIVE. Guard ref: first of WR_GUARDS."""
+@test("WH-5a", "WH", reload=True)
+def wh5a(r):
+    """[CHANGED 2026-10-11, REVIEW_LOG RV-89] Exterior, partner only: whisper stays OFF (IEB_SceneMain.PrivatePlace needs
+    an interior cell, spec §11.9 rule), and a guard approaching changes nothing. The market at 02:00 (SetHour; townsfolk
+    go home, INFERRED) gives 'partner only'; self-checked with CountNearNPCs, else INCONCLUSIVE."""
     fids = [F1] + WR_GUARDS[:1]
     try:
         market(r)
+        ctl_line(r, "SetHour", [2.0, 0x0001A66C], r"\[IEB-TEST\] CRASHCTX")
+        time.sleep(45)                                  # packages re-evaluate; townsfolk head home
         bring_back(r, F1)
         n = near(r, radius(r), F1)
         if n is None:
             return
         if n > 0:
-            return inc(r, "market has %d NPC(s) within the live radius besides the partner: no 'partner only' exterior here" % n)
+            return inc(r, "market at 02:00 still has %d NPC(s) within the live radius besides the partner" % n)
         checkpoint(r)
-        ok, secs, c = wait_whisper(r, True)
-        r.check(ok, "exterior, partner only: whisper on (spec; the code requires an interior) after %d s" % secs)
-        if not ok:
-            return
-        t = ptail()
+        ok, secs, c = wait_whisper(r, True, timeout=25)
+        r.check(not ok, "exterior, partner only: whisper stays off for 25 s")
         place(r, WR_GUARDS[0], 400, 0, 0)
+        ok, secs, c = wait_whisper(r, True, timeout=20, step=2.0)
+        r.check(not ok, "a guard approaching: still off")
+    finally:
+        for f in fids:
+            bring_back(r, f)
+
+
+WH5B_CELL = "WhiterunUnderforge"    # INFERRED: an interior with no house keyword and nobody in it at T0; self-checked
+
+
+@test("WH-5b", "WH", reload=True)
+def wh5b(r):
+    """[CHANGED 2026-10-11, REVIEW_LOG RV-89] Interior, alone together (rule iii): whisper ON; then an NPC enters the live
+    radius (placed 300 u away): OFF within about 10 s. The interior must have no player-house keyword and no owned
+    furniture (else rules i/ii keep it on): self-checked by the OFF step itself (stays on -> INCONCLUSIVE, not FAIL)."""
+    fids = [F1, FRALIA]
+    try:
+        con(r, "coc %s" % WH5B_CELL)
+        time.sleep(12)
+        bring_back(r, F1)
+        time.sleep(4)
+        n = near(r, radius(r), F1)
+        if n is None:
+            return
+        if n > 0:
+            return inc(r, "%s is not empty (%d NPC(s) within the radius)" % (WH5B_CELL, n))
+        ok, secs, c = wait_whisper(r, True, timeout=30)
+        if not ok:
+            return inc(r, "alone together in %s but whisper did not come on (%d s)" % (WH5B_CELL, secs))
+        checkpoint(r)
+        con(r, "%08X.moveto player" % FRALIA)
+        time.sleep(1)
+        place(r, FRALIA, 300, 0, 0)
         t0 = time.time()
         ok, secs, c = wait_whisper(r, False, timeout=40, step=2.0)
-        r.check(ok and time.time() - t0 <= HYST_S + 8, "a guard within the live radius: whisper off within about 10 s (%d s)" % secs)
+        r.check(ok and time.time() - t0 <= HYST_S + 8, "an NPC enters the radius: whisper off within about 10 s (%d s)" % secs)
     finally:
         for f in fids:
             bring_back(r, f)
