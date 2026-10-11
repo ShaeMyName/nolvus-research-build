@@ -149,8 +149,7 @@ def _stub(tid, family, why):
     return fn
 
 
-_stub("X-9", "X", "needs 0210 removed and restored (layer file swap with MO2 closed) -> U3 restart group")
-_stub("X-10", "X", "latency with vs without 0210: same layer swap -> U3 restart group")
+# X-9 / X-10 are real tests in tests_u3_g.py (U3G); no U2 stub, so the IDs are registered once.
 _stub("X-11", "X", "model moderation behaviour: judgement of refusals over the U2 logs -> reported from the block's SkyrimNet.log by the reviewer")
 _stub("MA-1", "MA", "needs a fiance in a breakup state: T0-M (U3)")
 _stub("AZ-11", "AZ", "Azura family: written with the U4 group (pass/fail only)")

@@ -437,6 +437,103 @@ Function MarasWorld()
     Log(s)
 EndFunction
 
+; --- U3 block (tests_u3*.py, 2026-10-11). Functions only; numbers and flags, never MARAS or dialogue text.
+
+Function U3MarasProbe(Int aiFormId)
+    {U3 MA/EN/K-M/RS/DA: MARAS status (enum, -1 = not registered, and its name), MARAS's housed faction rank (TT_MARAS.esp
+     0x6C, -2 = not a member), tenant house, MARAS log level, teammate, current package, child flag. The display name
+     comes LAST (host regex use only). Logs U3MARASPROBE <actor> ... name=<name>.}
+    Actor a = Game.GetForm(aiFormId) as Actor
+    If a == None
+        Log("U3MARASPROBE none " + PO3_SKSEFunctions.IntToString(aiFormId, True))
+        Return
+    EndIf
+    Faction housed = Game.GetFormFromFile(0x6C, "TT_MARAS.esp") as Faction
+    Int hr = -3
+    If housed != None
+        hr = a.GetFactionRank(housed)
+        If !a.IsInFaction(housed)
+            hr = -2
+        EndIf
+    EndIf
+    Package pk = a.GetCurrentPackage()
+    Log("U3MARASPROBE " + Watcher().Hex(a) + " st=" + MARAS.GetNpcStatusEnum(a) + " status=" + MARAS.GetNpcStatusName(a) \
+        + " housed=" + hr + " house=" + Watcher().Hex(MARAS.GetTenantHouse(a)) + " loglevel=" + MARAS.GetLogLevel() \
+        + " tm=" + (a.IsPlayerTeammate() as Int) + " pkg=" + Watcher().Hex(pk) + " child=" + (a.IsChild() as Int) \
+        + " name=" + a.GetDisplayName())
+EndFunction
+
+Function U3MarasLog(Int aiLevel)
+    {U3: MARAS's runtime log level (MARAS.SetLogLevel, MARAS.psc:352; 1 = Debug, which the PackageStartHook lines need).
+     Logs U3MARASLOG level=<level read back>.}
+    MARAS.SetLogLevel(aiLevel)
+    Log("U3MARASLOG level=" + MARAS.GetLogLevel())
+EndFunction
+
+Function U3GiftRank(Int aiFormId, Int aiRank)
+    {U3 RS-10: RDO's empty-gift counter, the faction 0xED7778 of Relationship Dialogue Overhaul.esp that IEB_RankSync.Apply
+     reads. aiRank >= 0 sets it (adds the faction first); aiRank < 0 only reads. Refuses a child. Logs U3GIFT <actor>
+     rank=<rank read back> (-2 = not a member, -3 = faction missing).}
+    Actor a = A(aiFormId)
+    Faction f = Game.GetFormFromFile(0xED7778, "Relationship Dialogue Overhaul.esp") as Faction
+    If a == None
+        Log("U3GIFT none rank=-3")
+        Return
+    EndIf
+    If f == None
+        Log("U3GIFT " + Watcher().Hex(a) + " rank=-3")
+        Return
+    EndIf
+    If aiRank >= 0
+        If a.IsChild()
+            Log("U3GIFT " + Watcher().Hex(a) + " refused child rank=" + a.GetFactionRank(f))
+            Return
+        EndIf
+        If !a.IsInFaction(f)
+            a.AddToFaction(f)
+        EndIf
+        a.SetFactionRank(f, aiRank)
+    EndIf
+    Int rk = -2
+    If a.IsInFaction(f)
+        rk = a.GetFactionRank(f)
+    EndIf
+    Log("U3GIFT " + Watcher().Hex(a) + " rank=" + rk)
+EndFunction
+
+Function U3ExecAction(Int aiFormId, String asAction)
+    {U3 MA-2 forced route: run a registered SkyrimNet action for the actor (SkyrimNetApi.ExecuteAction, irrespective of
+     cooldowns or eligibility, b25 SkyrimNetApi.psc:54-55), e.g. MARAS's InitiateDivorce / CancelWeddingEngagement, whose
+     Papyrus shows a confirmation box and waits for it. So the request line is logged FIRST; the rc line comes only
+     after the box is answered. Refuses a child. Logs U3EXEC <actor> <action> requested / refused child / rc=<rc>.}
+    Actor a = A(aiFormId)
+    If a == None
+        Log("U3EXEC none " + asAction + " refused")
+        Return
+    EndIf
+    If a.IsChild()
+        Log("U3EXEC " + Watcher().Hex(a) + " " + asAction + " refused child")
+        Return
+    EndIf
+    Log("U3EXEC " + Watcher().Hex(a) + " " + asAction + " requested")
+    Int rc = SkyrimNetApi.ExecuteAction(asAction, a, "{}")
+    Log("U3EXEC " + Watcher().Hex(a) + " " + asAction + " rc=" + rc)
+EndFunction
+
+Function U3StewardProbe(Int aiFormId)
+    {U3 ENT-4 precondition: is the actor an SA steward (SeverActionsNativeExt2.Steward_HoldNameOf != "", as
+     IEB_SALib.StewardVisit :41-47 reads it; flag only, no hold name), mid-visit now (IEB_SALib.StewardVisit), told to
+     wait (WFP), teammate, NFF seat. Logs U3STEWARD <actor> hold=<0|1> visit=<0|1> wfp=<v> tm=<0|1> seat=<n>.}
+    Actor a = A(aiFormId)
+    If a == None
+        Log("U3STEWARD none hold=0")
+        Return
+    EndIf
+    Log("U3STEWARD " + Watcher().Hex(a) + " hold=" + ((SeverActionsNativeExt2.Steward_HoldNameOf(a) != "") as Int) \
+        + " visit=" + (IEB_SALib.StewardVisit(a) as Int) + " wfp=" + a.GetActorValue("WaitingForPlayer") \
+        + " tm=" + (a.IsPlayerTeammate() as Int) + " seat=" + Watcher().SeatOf(a))
+EndFunction
+
 Function PlayerPlace(Float afX, Float afY, Float afZ)
     {REVIEW_LOG RV-79-upd: put the player at a position in the current (exterior) worldspace, then log it.}
     Game.GetPlayer().SetPosition(afX, afY, afZ)

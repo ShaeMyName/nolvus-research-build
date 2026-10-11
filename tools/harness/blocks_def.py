@@ -38,7 +38,7 @@ block("U2", "T0", ["tests_u2", "tests_u2_e", "tests_u2_wh", "tests_u2_len", "tes
     # in-line actions and reaction counts
     "E-4", "E-5", "E-7", "E-8", "RE-3",
     # dialogue actions (inn, Arcadia's)
-    "DA-1", "DA-3", "DA-4", "DA-5", "DA-6", "DA-8", "DA-2", "DA-7", "DA-9",
+    "DA-1", "DA-3", "DA-4", "DA-5", "DA-6", "DA-8", "DA-2", "DA-7",
     # situational whisper + private flag (one room, one house); long watches last in the group
     "WH-1", "WH-3", "WH-4", "PV-4", "WH-5a", "WH-5b", "WH-6", "WH-7", "PV-1", "PV-2", "PV-3", "WH-2", "PV-5", "WH-8",
     # length tiers and discretion
@@ -48,7 +48,7 @@ block("U2", "T0", ["tests_u2", "tests_u2_e", "tests_u2_wh", "tests_u2_len", "tes
     # notices (the per-decision audit runs after every test anyway)
     "NT-1", "NT-2", "NT-4",
     # equip-event audience, child addressed, storage
-    "X-6", "CS-2", "T10-1", "X-9", "X-10", "X-11", "MA-1", "AZ-11", "T10-3", "T10-7", "T10-8",
+    "X-6", "CS-2", "T10-1", "X-11", "MA-1", "AZ-11", "T10-3", "T10-7", "T10-8",
     # intimacy profiles (mechanics only; feature switched on per test, T0 reload after each)
     "IP-7", "IP-1", "IP-2", "IP-3", "IP-4", "IP-6",
     # saves/reloads last before the block's end
@@ -60,3 +60,34 @@ block("U2", "T0", ["tests_u2", "tests_u2_e", "tests_u2_wh", "tests_u2_len", "tes
 block("U2V", "T0", ["tests_u2", "tests_u2_e", "tests_u2_len"], ["H-2", "E-2", "LEN-7"],
       est={"H": 2, "E": 5, "LEN": 10}, harness=True, voices=True, gamemaster=True, launch_min_avail_gb=12.0)
 # U2 written 2026-10-11 (RV-86): every U2 ID of the time plan has a test or a stub with its route.
+
+# U3 "restarts + watches" (time plan §5 :380), written 2026-10-11 (tests_u3*.py). One time-plan block, five sub-blocks,
+# run in U3_SEQUENCE order:
+#  - a restart test closes/relaunches the game itself and ends on its block save with the normal config; block.py's
+#    control session is stale after it, which is harmless only while no reload=True test follows in the same block, so
+#    the restart groups (U3R, U3MR) are their own blocks, every test in them reload=False;
+#  - block.py loads one save per block: T0 (U3R, U3G), T0-M (U3MR, U3M), T0-ENT4 (U3E, made in S-A);
+#  - GameMaster off for U3 (DECISIONS:413), except U3G: X-9 and RE-2 are in block.GM_TESTS (X-9/X-10/RE-2 moved here
+#    from U2 for their relaunches: REVIEW_LOG RV-91);
+#  - harness=True everywhere: DA-9/MA-2/X-9/RE-2 need the /harness API, and every T0/T0-M reload needs the Timeline
+#    Mismatch auto-clear (the D1 extension reason for U1). D1 does not name U3 yet: Shae to confirm (FOR_SHAE);
+#  - acceleration: x100 only for MA-4+MA-5 (one 24-game-hour window) and ENT-4 (D3, TASK_C.md:424-428).
+# E-1 is dropped (DECISIONS:423 D5). Stubs: CS-27 (child-safety ruling), Q-10 (b)-(d) (Q10_SWAP_APPROVED),
+# RE-2 (RE2_WRITE_APPROVED); see the module docstrings.
+U3_SEQUENCE = ["U3R", "U3MR", "U3M", "U3G", "U3E"]
+block("U3R", "T0", ["tests_u3"], ["D-3", "EN-4", "CS-27", "Q-10"],
+      fixed={"D-3": 14, "EN-4": 20, "CS-27": 1, "Q-10": 2}, harness=True, voices=False, gamemaster=False)
+block("U3MR", "T0-M", ["tests_u3"], ["MA-7", "K-M2"],
+      fixed={"MA-7": 15, "K-M2": 1}, harness=True, voices=False, gamemaster=False)
+block("U3M", "T0-M", ["tests_u3", "tests_u3_m"], [
+    "MA-3", "MA-4", "MA-5",              # MA-4/MA-5: one x100 window of 24 game hours; reload after MA-5
+    "MA-6", "K-M3",
+    "RS-2", "RS-5", "RS-8d", "RS-10be",
+    "DA-9",
+    "MA-2a", "MA-2b",                    # the boxes are the pass, never dismissed: last, each followed by a reload
+], fixed={"MA-3": 5, "MA-4": 17, "MA-5": 1, "MA-6": 8, "K-M3": 6, "RS-2": 2, "RS-5": 3, "RS-8d": 3, "RS-10be": 4,
+          "DA-9": 5, "MA-2a": 4, "MA-2b": 4}, harness=True, voices=False, gamemaster=False)
+block("U3G", "T0", ["tests_u3", "tests_u3_g"], ["X-9", "X-10", "RE-2"],
+      fixed={"X-9": 30, "X-10": 1, "RE-2": 1}, harness=True, voices=False, gamemaster=True)
+block("U3E", "T0-ENT4", ["tests_u3", "tests_u3_m"], ["ENT-4"],
+      fixed={"ENT-4": 70}, harness=True, voices=False, gamemaster=False)

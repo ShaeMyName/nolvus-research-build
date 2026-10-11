@@ -155,7 +155,12 @@ class Run:
         "Speak": "Speak",
         "StartTask": "IntelEngine\\ quest\\ missing|StartTask|StartTask:\\ ModEvent\\.Create\\ failed|StartTask:\\ invalid\\ or\\ dead\\ actor,\\ or\\ no\\ IE\\ Core|StartTask:\\ unknown\\ action|StartTask\\ dispatched",
         "StepPlayer": "StepPlayer",
-        "UUIDOf": "UUID"
+        "UUIDOf": "UUID",
+        "U3MarasProbe": "(?i:U3MARASPROBE) ",     # tests_u3*.py (U3 block); literals fold to the function's case
+        "U3MarasLog": "(?i:U3MARASLOG) ",
+        "U3GiftRank": "U3GIFT ",
+        "U3ExecAction": "U3EXEC ",               # the 'requested' line comes before the box; rc only after it
+        "U3StewardProbe": "U3STEWARD "
     }
     CTL_UNSYNC = ["ExpectWFP", "TestCFRefuse"]
 

@@ -176,8 +176,4 @@ def da7(r):
     inc(r, "needs a forced-state story beat; deferred to the forced-state route")
 
 
-@test("DA-9", "DA")
-def da9(r):
-    """RDO blacklist at a married spouse: needs T0-M (U3)."""
-    checkpoint(r)
-    inc(r, "needs the T0-M save (U3)")
+# DA-9 is a real test in tests_u3 (on T0-M); no U2 stub, so the ID is registered once.
