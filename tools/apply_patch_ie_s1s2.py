@@ -708,7 +708,8 @@ elif G == "rv72":   # REVIEW_LOG RV-72 (a) + RV-72-upd (1) + (c): no array-vs-No
     a blank key on an active slot means "being torn down", and the bridge makes no decision on it (DecisionTaskType).
     After a load the key was found blank on resumed errands (RV-70 probe): restore it from SlotTaskTypes, but only on
     the 5 s re-check (restore = true), so a teardown saved mid-ClearSlot finishes first (ClearSlot has no waits) and
-    "" keeps meaning teardown. restore = false: log only (IEB_LOADKEYS, the RV-72 (c) load-side probe) and return how
+    "" keeps meaning teardown. RV-74 (1): also only while the actor is still in IntelEngine_TaskFaction (removed
+    before the key on every teardown path), so a slow teardown is excluded by state, not timing. restore = false: log only (IEB_LOADKEYS, the RV-72 (c) load-side probe) and return how
     many slots would be restored.}
     Int[] st = SlotStates
     String[] ty = SlotTaskTypes
@@ -726,13 +727,17 @@ elif G == "rv72":   # REVIEW_LOG RV-72 (a) + RV-72-upd (1) + (c): no array-vs-No
                 a = al.GetActorReference()
             EndIf
             String key = ""
+            Bool fac = false
             If a
                 key = StorageUtil.GetStringValue(a, "Intel_TaskType", "")
+                fac = a.IsInFaction(IntelEngine_TaskFaction)
             EndIf
             If !restore
-                DebugMsg("IEB_LOADKEYS slot=" + i + " state=" + st[i] + " slotType=" + ty[i] + " actor=" + a + " key=" + key)
+                DebugMsg("IEB_LOADKEYS slot=" + i + " state=" + st[i] + " slotType=" + ty[i] + " actor=" + a + " key=" + key + " fac=" + fac)
             EndIf
-            If a && !a.IsDead() && key == "" && ty[i] != ""
+            ; REVIEW_LOG RV-74 (1): AllocateSlot adds the task faction (:753); both teardown paths remove it BEFORE the key
+            ; unset (ClearSlot :814 -> :817, Travel :578 -> ClearSlot), so no faction = teardown, never restored
+            If a && !a.IsDead() && fac && key == "" && ty[i] != ""
                 found += 1
                 If restore
                     StorageUtil.SetStringValue(a, "Intel_TaskType", ty[i])
@@ -747,7 +752,8 @@ EndFunction
 
 Event OnUpdate()
     {Patch (REVIEW_LOG RV-72-upd 1): the 5 s re-check registered by Maintenance. Core had no OnUpdate before this patch;
-    single updates are per script, so the other scripts on the quest are unaffected.}
+    single updates are per script, so the other scripts on the quest are unaffected. A pending one is saved with the
+    game; harmless, the re-scan re-checks every condition.}
     IEB_TaskTypeScan(true)
 EndEvent
 

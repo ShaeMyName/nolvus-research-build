@@ -54,3 +54,25 @@ FAIL IntelEngine_StoryEngine.pex <auto>.IEB_FastWhy src:274 asm:1800  cast ::tem
 FAIL IntelEngine_StoryEngine.pex <auto>.IEB_FastWhy src:279 asm:1820  cast ::temp5 None
 ARRAY_NONE_GATE FAIL: 15 pex, 9 ours, 1 stock upstream
 ## freeze_check: out/ErrandBridge.esp bin/eb PASS; out/ErrandBridgeTest.esp bin/harness FREEZE CHECK: PASS. IntelEngine: no property/variable changes (ie_callsites shows none).
+
+## RV-74 update (1) task-faction condition + fac= in IEB_LOADKEYS, (2) gate fails on empty/garbled decompile (tested: random-bytes pex -> FAIL rc=1). Core vs pre-RV-72 HEAD:
+functions: A 104, B 107
+  FUNC only in B: <auto>.ieb_reservedage(('int',), 'float')
+  FUNC only in B: <auto>.ieb_tasktypescan(('bool',), 'int')
+  FUNC only in B: <auto>.onupdate((), 'none')
+call sites: A 875, B 889
+  ieb_reservedage                    utility.getcurrentrealtime                     0 -> 1
+  ieb_tasktypescan                   debugmsg                                       0 -> 3
+  ieb_tasktypescan                   getactorreference                              0 -> 1
+  ieb_tasktypescan                   getagentalias                                  0 -> 1
+  ieb_tasktypescan                   getdisplayname                                 0 -> 1
+  ieb_tasktypescan                   isdead                                         0 -> 1
+  ieb_tasktypescan                   isinfaction                                    0 -> 1
+  ieb_tasktypescan                   storageutil.getstringvalue                     0 -> 1
+  ieb_tasktypescan                   storageutil.setstringvalue                     0 -> 1
+  maintenance                        ieb_tasktypescan                               0 -> 1
+  maintenance                        registerforsingleupdate                        0 -> 1
+  onupdate                           ieb_tasktypescan                               0 -> 1
+DIFFERENT
+## array_none_gate after RV-74
+ARRAY_NONE_GATE PASS: 23 pex, 0 ours, 0 stock upstream

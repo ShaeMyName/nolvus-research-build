@@ -15,7 +15,15 @@ def asm(pex):
     d = tempfile.mkdtemp()
     subprocess.run([CH, "-a", d, "-p", d, pex], capture_output=True)
     p = os.path.join(d, os.path.splitext(os.path.basename(pex))[0] + ".pas")
-    return open(p, encoding="utf-8", errors="replace").read().splitlines()
+    # REVIEW_LOG RV-74 (2): an empty or garbled decompile must fail, never pass silently
+    lines = open(p, encoding="utf-8", errors="replace").read().splitlines() if os.path.exists(p) else []
+    if not any(l.strip().startswith(".function ") for l in lines):
+        raise DecompileError(pex)
+    return lines
+
+
+class DecompileError(Exception):
+    pass
 
 
 def hits(pex):
@@ -75,12 +83,22 @@ def main(argv):
             pexes += [os.path.join(t, f) for f in sorted(os.listdir(t)) if f.lower().endswith(".pex")]
     fail = up = 0
     for p in pexes:
-        h = hits(p)
+        try:
+            h = hits(p)
+        except DecompileError:
+            print("FAIL %s: no decompiled .function (empty or garbled Champollion output)" % os.path.basename(p))
+            fail += 1
+            continue
         if not h:
             continue
         bdir = base.get(os.path.normcase(os.path.abspath(os.path.dirname(p))))
         bp = os.path.join(bdir, os.path.basename(p)) if bdir else None
-        bh = hits(bp) if bp and os.path.exists(bp) else {}
+        try:
+            bh = hits(bp) if bp and os.path.exists(bp) else {}
+        except DecompileError:
+            print("FAIL %s: baseline did not decompile; stock hits cannot be excused" % os.path.basename(bp))
+            fail += 1
+            bh = {}
         for k, lst in sorted(h.items()):
             stock = len(bh.get(k, [])) >= len(lst)
             for n, src, s in lst:
