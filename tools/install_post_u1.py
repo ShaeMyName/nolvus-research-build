@@ -12,6 +12,8 @@ SETS = [("Errand Bridge", "bin/eb/"), ("IE NoWipe + Dispatch Guard", "bin/patche
         ("SkyrimNet Relationships - Private Patch", "bin/rel_patched/"), ("Errand Bridge - Test Harness", "bin/harness/")]
 LAYERS = [("Lucienne - Private (TEST STUB)", "layers/lucienne-test/")]
 DRY = "--dry" in sys.argv
+# REVIEW_LOG RV-78: --only=a.pex,b.pex installs just those files (one change at a time between live runs)
+ONLY = next((x.split("=", 1)[1].split(",") for x in sys.argv if x.startswith("--only=")), None)
 
 
 def h(p):
@@ -35,7 +37,7 @@ def main():
             sys.exit("ABORT: mod folder missing: " + mod)
         for f in sorted(os.listdir(B + src)):
             s, d, key = B + src + f, MODS + mod + "/Scripts/" + f, mod + "/Scripts/" + f
-            if not os.path.exists(d) or h(s) != h(d):
+            if (not os.path.exists(d) or h(s) != h(d)) and (ONLY is None or f in ONLY):
                 todo.append((s, d, key))
     for mod, src in LAYERS:     # SkyrimNet layer trees, mirrored file by file (same paths as install_step7.py)
         root = B + src
@@ -44,7 +46,7 @@ def main():
                 s = os.path.join(dp, f).replace("\\", "/")
                 rel = s[len(root):]
                 d, key = MODS + mod + "/" + rel, mod + "/" + rel
-                if not os.path.exists(d) or h(s) != h(d):
+                if (not os.path.exists(d) or h(s) != h(d)) and ONLY is None:
                     todo.append((s, d, key))
     for s, d, key in todo:
         print("%s %s -> %s (was %s)" % ("WOULD COPY" if DRY else "COPY", key, h(s), h(d) if os.path.exists(d) else "new"))
