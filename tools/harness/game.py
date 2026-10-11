@@ -137,6 +137,15 @@ def procs():
 
 
 MIN_AVAIL_GB, MAX_COMMIT_PCT = 8.0, 70.0    # REVIEW_LOG RV-73 pre-launch gate
+MAX_NONPAGED_MB = 2560.0                    # REVIEW_LOG RV-73 pool gate (idle 1.38 GB on 2026-10-10 23:35)
+POOLGATE_FLAG = "C:/nolvus-research/test_runs/POOLGATE_TRIPPED"
+
+
+def nonpaged_mb():
+    out = subprocess.run(["powershell", "-NoProfile", "-Command",
+                          "[int]((Get-CimInstance Win32_PerfFormattedData_PerfOS_Memory).PoolNonpagedBytes/1MB)"],
+                         capture_output=True, text=True).stdout.strip()
+    return float(out) if out.isdigit() else 99999.0
 
 
 def commit_pct():
@@ -152,10 +161,19 @@ def memory_ready(log=print, timeout=600, why="launch"):
     """REVIEW_LOG RV-73 (Windows bugcheck 0xA5 / insufficient resources at 23:22, 20 s after a relaunch): before a
     launch, no game/MO2/loader process, Available >= 8 GB and commit <= 70 %; otherwise wait (logged) up to timeout."""
     t0 = time.time()
+    if os.path.exists(POOLGATE_FLAG):
+        log("POOLGATE: %s exists (the sampler stopped a run on pool growth); no launch until the reviewer clears it"
+            % POOLGATE_FLAG)
+        return False
     while True:
-        p, av, cp = procs(), available_ram_gb(), commit_pct()
+        p, av, cp, np_ = procs(), available_ram_gb(), commit_pct(), nonpaged_mb()
+        if np_ > MAX_NONPAGED_MB:
+            log("POOLGATE refused before %s: nonpaged pool %d MB > %d MB; leave the machine idle (REVIEW_LOG RV-73)"
+                % (why, np_, MAX_NONPAGED_MB))
+            return False
         if not p and av >= MIN_AVAIL_GB and cp <= MAX_COMMIT_PCT:
-            log("MEMGATE ok before %s after %d s: Available %.1f GB, commit %d%%" % (why, time.time() - t0, av, cp))
+            log("MEMGATE ok before %s after %d s: Available %.1f GB, commit %d%%, nonpaged %d MB"
+                % (why, time.time() - t0, av, cp, np_))
             return True
         if time.time() - t0 >= timeout:
             log("MEMGATE FAILED before %s after %d s: running %s, Available %.1f GB, commit %d%%"
