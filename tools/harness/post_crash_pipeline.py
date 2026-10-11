@@ -116,6 +116,12 @@ def s1():
     return not crashed
 
 
+def s1t():
+    """REVIEW_LOG RV-108-dec (Shae: 60 s): intel_story_dm gets its own 60 s timeout in the TEST config, game closed."""
+    rc, out = sh([H + "set_dm_timeout.py", "60"], timeout=120)
+    return rc == 0 and "DM TIMEOUT" in out
+
+
 def s2():
     if not install(changed("SkyrimNet Relationships - Private Patch/Scripts")):
         return False
@@ -240,7 +246,7 @@ def s4():
     return smoke("S4", chk)
 
 
-STEPS = [("S0", s0), ("S1", s1), ("S2", s2), ("S3", s3), ("S3bp", s3bp), ("S3c", s3c), ("S4", s4)]
+STEPS = [("S0", s0), ("S1", s1), ("S1t", s1t), ("S2", s2), ("S3", s3), ("S3bp", s3bp), ("S3c", s3c), ("S4", s4)]
 
 
 def main():
