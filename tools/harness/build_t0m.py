@@ -35,6 +35,8 @@ QG_FACTION = 0x000A2CA2  # Favor253QuestGiverFaction: the 0xA2C9E QuestGiver ali
 OUTSIDE = (0x0001B743, 0x0001B74F)   # Riverwood guard refs (Imperial01 / SonsOfSkyrim01): RiverwoodLocation 0x13163,
                                      # not a LocTypeDwelling; one of the two sets is enabled per civil-war state
 RIVERWOOD_LOC = 0x00013163
+TRY_QUEST_START = False   # 2026-10-11 runs 1-4: the quest never started (moveto) and the gate walk ran the game out of
+                          # RAM (29.7 GB, guard close); RV-116 (7): enable the housecarl ref directly
 WR_GATE_OUT = 0x0001B1F1  # Whiterun main gate, Tamriel side (load door, XTEL -> 0x1B1F3 in WhiterunWorld 0x1A26F)
 HP_PRICE = 25000         # HPWhiterun 0xF728B, winner Nolvus Awakening Economy Patch.esp
 MARAS_LOG = game.DOCS + "SKSE/MARAS.log"
@@ -266,40 +268,43 @@ def build():
                 if iv(ww, "f25") == 1 and iv(ww, "hcDis") == 0:
                     return ww
             return ww
-        con("%08X.addfac %08X 0" % (JARL, QG_FACTION))
-        time.sleep(2)
-        out = None
-        for ref in OUTSIDE:
-            con("player.moveto %08X" % ref)
-            time.sleep(12)
-            w = world()
-            if is_fid(w.get("loc"), RIVERWOOD_LOC):
-                out = ref
-                break
-            say("  moveto %08X: loc=%s, not RiverwoodLocation" % (ref, w.get("loc")))
-        need(out is not None, "could not reach RiverwoodLocation for the location-change start (loc=%s)" % w.get("loc"))
-        con("player.moveto %08X" % BZ_DOOR)
-        time.sleep(15)
-        w = stage25(10)
-        if iv(w, "f25") != 1:
-            # REVIEW_LOG RV-114 (3): if a console moveto does not fire the location event, walk in through the gate
-            say("  moveto re-entry did not start the quest; walking in through the Whiterun gate (DoorUse %08X)"
-                % WR_GATE_OUT)
-            con("player.moveto %08X" % WR_GATE_OUT)
-            time.sleep(12)
-            call("DoorUse", [WR_GATE_OUT], r"DoorUse[^\r\n]*", 30)
-            time.sleep(20)
+        if not TRY_QUEST_START:
+            w = {"f25": "0"}            # RV-116 (7): straight to the direct enable below
+        else:
+            con("%08X.addfac %08X 0" % (JARL, QG_FACTION))
+            time.sleep(2)
+            out = None
+            for ref in OUTSIDE:
+                con("player.moveto %08X" % ref)
+                time.sleep(12)
+                w = world()
+                if is_fid(w.get("loc"), RIVERWOOD_LOC):
+                    out = ref
+                    break
+                say("  moveto %08X: loc=%s, not RiverwoodLocation" % (ref, w.get("loc")))
+            need(out is not None, "could not reach RiverwoodLocation for the location-change start (loc=%s)" % w.get("loc"))
+            con("player.moveto %08X" % BZ_DOOR)
+            time.sleep(15)
             w = stage25(10)
-        if iv(w, "f25") != 1:
-            # Diagnostics for the reviewer (numbers only): does the console return output over MCP (INFERRED), and
-            # what are the Jarl's JobJarlFaction (0x50920, rank -1 in every NPC_ override) / questgiver faction ranks
-            for cmd in ("%08X.getfactionrank 00050920" % JARL, "%08X.getfactionrank %08X" % (JARL, QG_FACTION),
-                        "%08X.getdisabled" % JARL, "%08X.getdead" % JARL):
-                try:
-                    res = RUN[0].tool("execute_console_command", {"command": cmd})
-                except Exception as e:
-                    res = type(e).__name__
-                say("  DIAG %s -> %s" % (cmd, str(res)[:160]))
+            if iv(w, "f25") != 1:
+                # REVIEW_LOG RV-114 (3): if a console moveto does not fire the location event, walk in through the gate
+                say("  moveto re-entry did not start the quest; walking in through the Whiterun gate (DoorUse %08X)"
+                    % WR_GATE_OUT)
+                con("player.moveto %08X" % WR_GATE_OUT)
+                time.sleep(12)
+                call("DoorUse", [WR_GATE_OUT], r"DoorUse[^\r\n]*", 30)
+                time.sleep(20)
+                w = stage25(10)
+            if iv(w, "f25") != 1:
+                # Diagnostics for the reviewer (numbers only): does the console return output over MCP (INFERRED), and
+                # what are the Jarl's JobJarlFaction (0x50920, rank -1 in every NPC_ override) / questgiver faction ranks
+                for cmd in ("%08X.getfactionrank 00050920" % JARL, "%08X.getfactionrank %08X" % (JARL, QG_FACTION),
+                            "%08X.getdisabled" % JARL, "%08X.getdead" % JARL):
+                    try:
+                        res = RUN[0].tool("execute_console_command", {"command": cmd})
+                    except Exception as e:
+                        res = type(e).__name__
+                    say("  DIAG %s -> %s" % (cmd, str(res)[:160]))
         if iv(w, "f25") != 1:
             # REVIEW_LOG RV-116 (7): the formal quest is dropped from T0-M; the housecarl ref is enabled directly.
             # T0M_WORLD keeps f25=0 / f200=0 (recorded in the build log); tests needing the quest's PlayerHousecarl

@@ -2218,6 +2218,43 @@ Function GateProbe(Int aiFormId)
         + " child=" + (a.IsChild() as Int))
 EndFunction
 
+Function VanillaEngage(Int aiFormId)
+    {RV-119 GATE-4: an engagement MARAS did not make, done exactly as a proposal INFO fragment does it (Remiel's
+     INFO 0x3211EF, the vanilla amulet INFOs): MarriageAskedFaction (0xFF7F3), RelationshipMarriage (0x74793) alias
+     LoveInterest -> the actor, SetStage(20). Adult only (refuses a child, nothing written). Logs VENG <actor> set.}
+    Actor a = A(aiFormId)
+    If a == None
+        Return
+    EndIf
+    If a.IsChild()
+        Log("VENG " + Watcher().Hex(a) + " refused child")
+        Return
+    EndIf
+    Quest rm = Game.GetFormFromFile(0x00074793, "Skyrim.esm") as Quest
+    Faction asked = Game.GetFormFromFile(0x000FF7F3, "Skyrim.esm") as Faction
+    a.AddToFaction(asked)
+    (rm.GetAliasByName("LoveInterest") as ReferenceAlias).ForceRefTo(a)
+    rm.SetStage(20)
+    Log("VENG " + Watcher().Hex(a) + " set stage=" + rm.GetStage())
+EndFunction
+
+Function VengProbe(Int aiFormId)
+    {RV-119 GATE-4 read-back: RelationshipMarriage stage, running flag, its LoveInterest, the wedding quest (0x7404E)
+     running flag, the actor's MarriageAskedFaction rank (-2 = not a member). Logs VENGPROBE <actor> ...}
+    Actor a = A(aiFormId)
+    If a == None
+        Return
+    EndIf
+    Quest rm = Game.GetFormFromFile(0x00074793, "Skyrim.esm") as Quest
+    Quest wed = Game.GetFormFromFile(0x0007404E, "Skyrim.esm") as Quest
+    Actor li = (rm.GetAliasByName("LoveInterest") as ReferenceAlias).GetActorReference()
+    Int asked = MarasFR(a, 0xFF7F3, "Skyrim.esm")
+    If asked > -3 && !a.IsInFaction(Game.GetFormFromFile(0x000FF7F3, "Skyrim.esm") as Faction)
+        asked = -2
+    EndIf
+    Log("VENGPROBE " + Watcher().Hex(a) + " rmStage=" + rm.GetStage() + " rmRun=" + (rm.IsRunning() as Int) + " li="         + Watcher().Hex(li) + " wedRun=" + (wed.IsRunning() as Int) + " asked=" + asked + " maras=" + MARAS.GetNpcStatusEnum(a))
+EndFunction
+
 Function Log(String asMsg)
     Debug.Trace("[IEB-TEST] " + asMsg)
 EndFunction

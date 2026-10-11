@@ -118,6 +118,51 @@ def gate1b(r):
     r.check("restored at rank 1" in txt, "snrom.log: 'restored at rank 1'")
 
 
+def veng(r, fid):
+    """IEB_TestCtl.VengProbe -> dict(rmStage, rmRun, li, wedRun, asked, maras) or None."""
+    m = ctl_line(r, "VengProbe", [s32(fid)], r"(?i)\[IEB-TEST\] VENGPROBE (%s) (.*)" % fid_any_rx(fid), 15)
+    return parse_kv(m.group(2)) if m else None
+
+
+@test("GATE-4", "GATE", save="T0-M", reload=True)
+def gate4(r):
+    """RV-119 (2), patch c2: an engagement MARAS did not make (TestCtl.VanillaEngage = what a proposal INFO fragment
+    does: MarriageAskedFaction, RelationshipMarriage LoveInterest, SetStage 20) on a never-enrolled adult (Fralia) is
+    UNDONE: 'Vanilla-path engagement UNDONE' in snrom.log, RelationshipMarriage back below 20 with no LoveInterest,
+    Fralia out of MarriageAskedFaction, MARAS status untouched. Then the SAME again, to confirm the stage event fires on a
+    repeated SetStage(20) (quest DNAM 0x19, INFERRED allow-repeated-stages)."""
+    g0 = gate(r, FRALIA)
+    if not g0:
+        return inc(r, "Fralia: no GATE line")
+    if iv(g0, "child") != 0:
+        return inc(r, "Fralia: child=1, refused")
+    if iv(rank(r, FRALIA) or {}, "tier") >= 0:
+        return inc(r, "Fralia is enrolled in T0-M; this test needs a never-enrolled actor")
+    v0 = veng(r, FRALIA)
+    if not v0:
+        return inc(r, "no VENGPROBE line (new IEB_TestCtl installed?)")
+    if iv(v0, "rmStage") >= 20:
+        return inc(r, "RelationshipMarriage already at stage %s in T0-M" % v0.get("rmStage"))
+    m0 = v0.get("maras")
+    checkpoint(r)
+    for n in (1, 2):
+        t = tail("snrom")
+        ctl_line(r, "VanillaEngage", [s32(FRALIA)], r"(?i)\[IEB-TEST\] VENG \S+ set", 15)
+        deadline, txt = time.time() + 30, ""
+        while time.time() < deadline and "Vanilla-path engagement UNDONE for" not in txt:
+            time.sleep(2)
+            txt += t.read()
+        r.check("Vanilla-path engagement UNDONE for" in txt, "round %d: snrom.log 'Vanilla-path engagement UNDONE'" % n)
+        time.sleep(2)
+        v = veng(r, FRALIA)
+        r.check(bool(v) and iv(v, "rmStage") < 20, "round %d: RelationshipMarriage back below 20 (stage %s)"
+                % (n, v and v.get("rmStage")))
+        r.check(bool(v) and v.get("li") in ("None", "none", "0x00000000", None) or (v and "none" in str(v.get("li")).lower()),
+                "round %d: no LoveInterest (li=%s)" % (n, v and v.get("li")))
+        r.check(bool(v) and iv(v, "asked") == -2, "round %d: out of MarriageAskedFaction (asked=%s)" % (n, v and v.get("asked")))
+        r.check(bool(v) and v.get("maras") == m0, "round %d: MARAS status untouched (%s -> %s)" % (n, m0, v and v.get("maras")))
+
+
 def _backstop(r, why, setup):
     """Shared GATE-2/3 body: F1 a candidate set up by `setup`, the other engaged partner checked before/after, then
     MARAS promotes F1 to engaged (TestCtl.MarasSet, the native the dialogue/AI paths call) and the backstop must put F1

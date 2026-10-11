@@ -9190,3 +9190,70 @@ Function IEB_AmuletRestoreAll()
         i -= 1
     EndWhile
 EndFunction
+
+; ============================================================================ Patch c2 (vanilla-path engagements, 2026-10-11)
+
+Function IEB_RegisterMarriageWatch()
+    { Called on every load by SNRom_PlayerAlias. Registering twice is harmless (PO3 keeps one entry per form). }
+    Quest rm = Game.GetFormFromFile(0x00074793, "Skyrim.esm") as Quest
+    If rm != None
+        PO3_Events_Form.RegisterForQuestStage(Self, rm)
+    EndIf
+EndFunction
+
+Event OnQuestStageChange(Quest akQuest, Int aiNewStage)
+    If aiNewStage == 20 && akQuest == Game.GetFormFromFile(0x00074793, "Skyrim.esm") as Quest
+        IEB_VanillaEngagement(akQuest)
+    EndIf
+EndEvent
+
+Function IEB_VanillaEngagement(Quest rm)
+    ReferenceAlias al = rm.GetAliasByName("LoveInterest") as ReferenceAlias
+    Actor li = None
+    If al != None
+        li = al.GetActorReference()
+    EndIf
+    If li == None
+        Diag(LOG_WARN(), "RelationshipMarriage reached stage 20 with no LoveInterest; nothing to gate.")
+        Return
+    EndIf
+    Utility.Wait(2.0)                           ; a MARAS-made engagement reports "engaged" first: OnMarasStatusChanged decides
+    If MarasPresent() && MARAS.IsNPCStatus(li, "engaged")
+        Return
+    EndIf
+    If rm.GetStage() < 20 || (rm.GetAliasByName("LoveInterest") as ReferenceAlias).GetActorReference() != li
+        Return                                  ; already undone or moved on
+    EndIf
+    Bool child = li.IsChild()
+    If !child && !IEB_ShouldBlockProposal(li)
+        Diag(LOG_INFO(), "Vanilla-path engagement allowed for " + li.GetDisplayName() + " (gate open at " + PointsOf(li) + " pts).")
+        Return
+    EndIf
+    IEB_UndoVanillaEngagement(rm, li, child)
+EndFunction
+
+Function IEB_UndoVanillaEngagement(Quest rm, Actor li, Bool abChild)
+    { No MARAS calls. MARAS's quest-stop listener reacts on its own (cleanup, next fiance). }
+    Faction asked = Game.GetFormFromFile(0x000FF7F3, "Skyrim.esm") as Faction
+    If asked != None && li.IsInFaction(asked)
+        li.RemoveFromFaction(asked)
+    EndIf
+    Quest wed = Game.GetFormFromFile(0x0007404E, "Skyrim.esm") as Quest
+    If wed != None && wed.IsRunning()
+        wed.Reset()
+        wed.Stop()
+    EndIf
+    rm.FailAllObjectives()
+    rm.Reset()
+    rm.Stop()
+    rm.SetStage(10)
+    rm.SetStage(15)
+    rm.SetObjectiveDisplayed(10, False)
+    rm.SetObjectiveDisplayed(20, False)
+    If abChild
+        Diag(LOG_ERROR(), "Vanilla-path engagement of a CHILD (" + li.GetDisplayName() + ") UNDONE: marriage quests reset. Nothing else was written.")
+    Else
+        Diag(LOG_INFO(), "Vanilla-path engagement UNDONE for " + li.GetDisplayName() + " (" + PointsOf(li) + \
+            " pts, below the gate): marriage quests reset, MarriageAskedFaction cleared.")
+    EndIf
+EndFunction

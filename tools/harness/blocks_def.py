@@ -80,7 +80,7 @@ block("U3R", "T0", ["tests_u3"], ["D-3", "EN-4", "CS-27", "Q-10"],
 block("U3MR", "T0-M", ["tests_u3"], ["MA-7", "K-M2"],
       fixed={"MA-7": 15, "K-M2": 1}, harness=True, voices=False, gamemaster=False)
 block("U3M", "T0-M", ["tests_u3", "tests_u3_m", "tests_u3_gate"], [
-    "GATE-1", "GATE-1b", "GATE-2", "GATE-3",        # RV-98 gate (tests_u3_gate.py); each reloads T0-M
+    "GATE-1", "GATE-1b", "GATE-2", "GATE-3", "GATE-4",        # RV-98 gate (tests_u3_gate.py); each reloads T0-M
     "MA-3", "MA-4", "MA-5",              # MA-4/MA-5: one x100 window of 24 game hours; reload after MA-5
     "MA-6", "K-M3",
     "RS-2", "RS-5", "RS-8d", "RS-10be",
@@ -88,7 +88,7 @@ block("U3M", "T0-M", ["tests_u3", "tests_u3_m", "tests_u3_gate"], [
     "MA-2a", "MA-2b",                    # the boxes are the pass, never dismissed: last, each followed by a reload
 ], fixed={"MA-3": 5, "MA-4": 17, "MA-5": 1, "MA-6": 8, "K-M3": 6, "RS-2": 2, "RS-5": 3, "RS-8d": 3, "RS-10be": 4,
           "DA-9": 5, "MA-2a": 4, "MA-2b": 4,
-          "GATE-1": 3, "GATE-1b": 3, "GATE-2": 3, "GATE-3": 3}, harness=True, voices=False, gamemaster=False)
+          "GATE-1": 3, "GATE-1b": 3, "GATE-2": 3, "GATE-3": 3, "GATE-4": 3}, harness=True, voices=False, gamemaster=False)
 # U3G runs with GameMaster ON (X-9 and RE-2 are GameMaster-dependent): allowed under DECISIONS:412(2), REVIEW_LOG RV-100 (2)
 block("U3G", "T0", ["tests_u3", "tests_u3_g"], ["X-9", "X-10", "RE-2"],
       fixed={"X-9": 30, "X-10": 1, "RE-2": 1}, harness=True, voices=False, gamemaster=True)

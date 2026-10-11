@@ -29,6 +29,10 @@ Event OnPlayerLoadGame()
       event can. }
     Rebind(True)
     IEB_AmuletWatch()                          ; Patch rv117: re-arm the amulet watch (or restore if it is off)
+    SNRom_Bridge bridge = GetOwningQuest() as SNRom_Bridge
+    If bridge != None
+        bridge.IEB_RegisterMarriageWatch()     ; Patch c2: vanilla-path engagements
+    EndIf
 EndEvent
 
 Function Rebind(Bool abForce = False)
