@@ -3,7 +3,7 @@
  "Errand Bridge/Scripts/IEB_CFData.pex": "b4fe8f85fc4e336a",
  "Errand Bridge/Scripts/IEB_CFLib.pex": "8b08457fcaf4b03c",
  "Errand Bridge/Scripts/IEB_IELib.pex": "6dd016b2cec651ab",
- "Errand Bridge/Scripts/IEB_Main.pex": "3f32fe77e8692a54",
+ "Errand Bridge/Scripts/IEB_Main.pex": "7fa3924d9f48a4d5",
  "Errand Bridge/Scripts/IEB_NFFLib.pex": "8c703c85594fcb59",
  "Errand Bridge/Scripts/IEB_PlayerAlias.pex": "baeef97f45adc811",
  "Errand Bridge/Scripts/IEB_RankSync.pex": "4137dc667f472d52",
@@ -19,7 +19,7 @@
  "Errand Bridge/SKSE/Plugins/ErrandBridge/custom_followers.json": "422f7b81b12841df",
  "IE NoWipe + Dispatch Guard/Scripts/IntelEngine_Battle.pex": "032efcb45e2a9077",
  "IE NoWipe + Dispatch Guard/Scripts/IntelEngine_Core.pex": "a29558239aef66df",
- "IE NoWipe + Dispatch Guard/Scripts/IntelEngine_StoryEngine.pex": "3b21d7ea844ce3bb",
+ "IE NoWipe + Dispatch Guard/Scripts/IntelEngine_StoryEngine.pex": "ebad522d24b48276",
  "IE NoWipe + Dispatch Guard/SKSE/Plugins/ErrandBridge/quest_integrity.json": "f66ae85f4bc98468",
  "SceneControls/SceneControls.esp": "76ecc21c6c756f23",
  "SceneControls/Scripts/IEB_SceneMain.pex": "97b1621bc16584d6",
@@ -83,9 +83,10 @@
  "SkyrimNet - Marriage/SKSE/Plugins/SkyrimNet/external/shae.marriage/prompts/submodules/guidelines/0501_marriage_chances.prompt": "c7c882521f4a3012",
  "Errand Bridge - Test Harness/ErrandBridgeTest.esp": "f69f5bbf5da9ee8e",
  "Errand Bridge - Test Harness/Scripts/IEB_SoakProbe.pex": "74b17693bc871b1a",
- "Errand Bridge - Test Harness/Scripts/IEB_TestCtl.pex": "f3a5014bc4a91d4a",
+ "Errand Bridge - Test Harness/Scripts/IEB_TestCtl.pex": "92fb0dace82400c7",
  "Errand Bridge - Test Harness/Scripts/IEB_Watcher.pex": "64c91af359e96b9a",
  "MARAS Config/SKSE/Plugins/PackageOverrides.ini": "be377dc8e763e024",
  "IE NoWipe + Dispatch Guard/Scripts/IntelEngine_NPCTasks.pex": "610cf788a4910cfb",
- "IE NoWipe + Dispatch Guard/Scripts/IntelEngine_Travel.pex": "27f10bf354a4b649"
+ "IE NoWipe + Dispatch Guard/Scripts/IntelEngine_Travel.pex": "27f10bf354a4b649",
+ "Lucienne - Private (TEST STUB)/SKSE/Plugins/SkyrimNet/external/shae.lucienne/prompts/submodules/character_bio/0956_luc_azura_priestess.prompt": "d07e5e27a5542666"
 }
