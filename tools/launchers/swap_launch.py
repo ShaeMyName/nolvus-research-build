@@ -13,13 +13,16 @@ USAGE (through Play_Lucienne.bat / Play_SkyrimNet_Test.bat / swap_launch.ps1):
     python swap_launch.py --profile Lucienne [--unattended] [--no-tts]       launch (the default command)
     python swap_launch.py --profile Lucienne --recover                       a run died mid-swap
     python swap_launch.py --status                                           read-only health report
-    python swap_launch.py --init                                             one-time promotion setup (both stores + marker)
+    python swap_launch.py --init [--verify-mode]                             one-time promotion setup (both stores + marker); her ini gets
+                                                                             DebugLevel=2 (--verify-mode: 3, D-S2 verify sessions only)
+    python swap_launch.py --assert-rest                                      read-only: exit 6 + loud message unless the rest state holds
     (a launch finds a half-finished earlier run, e.g. the console was closed mid-session: it warns and runs --recover first)
     python swap_launch.py --reset-live                                       resolve a refused hash mismatch (discard the live files)
-    python swap_launch.py --adopt-live                                       resolve it the other way (keep the live files as hers)
+    python swap_launch.py --adopt-live                                       resolve it the other way (keep the live files as hers; shows a
+                                                                             key-level diff first, then backs up, then adopts)
 
 Exit codes: 0 ok | 2 refused before touching anything | 3 launch problem (files restored) | 4 copy-back or restore failed
-(marker left in a non-CLEAN state: run --recover) | 5 internal error.
+(marker left in a non-CLEAN state: run --recover) | 5 internal error | 6 --assert-rest: the rest state does not hold.
 
 MODEL
   * Rest state (REVIEW_LOG RV-140 (1)): HER (Lucienne's) files stay live in place after her session and after every test
@@ -43,6 +46,7 @@ import hashlib
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -67,7 +71,8 @@ LOCK_NAME = "_ieb_swap.lock"
 KEEP_BACKUPS = 40
 NOWIN = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 NEWCON = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
-EXIT_REFUSED, EXIT_LAUNCH, EXIT_COPYBACK, EXIT_INTERNAL = 2, 3, 4, 5
+EXIT_REFUSED, EXIT_LAUNCH, EXIT_COPYBACK, EXIT_INTERNAL, EXIT_ASSERT = 2, 3, 4, 5, 6
+LUC_DEBUG_LEVEL, VERIFY_DEBUG_LEVEL = 2, 3     # RV-150 (a): IntelEngine.log level for her store copy (2 = warnings + errors); 3 = info
 
 
 class Refused(Exception):
@@ -209,6 +214,89 @@ def write_atomic(path, text):
     with open(tmp, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
     retry(lambda: os.replace(tmp, path), "write %s" % path)
+
+
+def set_ini_key(path, key, value):
+    """RV-150 (a): set `key=<value>` on its line(s) in an INI, touching only the value bytes (line endings, BOM, comments, every
+    other byte stay).  Returns the list of old values replaced (empty = the key is not in the file; nothing written)."""
+    data = open(path, "rb").read()
+    rx = re.compile(rb"(?im)^([ \t]*" + re.escape(key.encode("ascii")) + rb"[ \t]*=[ \t]*)([^\s;#]*)")
+    olds = [m.group(2).decode("utf-8", "replace") for m in rx.finditer(data)]
+    if not olds:
+        return []
+    new = rx.sub(lambda m: m.group(1) + str(value).encode("ascii"), data)
+    tmp = path + ".swaptmp"
+    with open(tmp, "wb") as f:
+        f.write(new)
+    retry(lambda: os.replace(tmp, path), "write %s" % path)
+    return olds
+
+
+# ---------------------------------------------------------------- key-level diff (RV-150 (b))
+def flat_json(raw):
+    """JSON bytes -> {path: scalar-or-container-summary}.  Dict keys join with '.', list items as [i]; leaves only."""
+    out = {}
+
+    def walk(v, path):
+        if isinstance(v, dict):
+            if not v and path:
+                out[path] = "{}"
+            for k, x in v.items():
+                walk(x, "%s.%s" % (path, k) if path else str(k))
+        elif isinstance(v, list):
+            if not v:
+                out[path] = "[]"
+            for i, x in enumerate(v):
+                walk(x, "%s[%d]" % (path, i))
+        else:
+            out[path] = json.dumps(v, ensure_ascii=False)
+    walk(json.loads(raw.decode("utf-8-sig")), "")
+    return out
+
+
+def flat_ini(raw):
+    """INI bytes -> {'[Section] key': value}; comments (; #) and blank lines ignored; a later duplicate wins."""
+    out, sec = {}, ""
+    for line in raw.decode("utf-8-sig", "replace").splitlines():
+        t = line.strip()
+        if not t or t[0] in ";#":
+            continue
+        if t.startswith("[") and t.endswith("]"):
+            sec = t
+            continue
+        if "=" in t:
+            k, v = t.split("=", 1)
+            out["%s %s" % (sec, k.strip())] = v.strip()
+    return out
+
+
+def key_diff(name, old_path, new_path, limit=60):
+    """Key-level differences between two copies of one shared file, store -> live: lines '~ key: old -> new', '+ key: value'
+    (only in live), '- key: value' (only in the store copy).  Never raises: an unparseable file says so."""
+    if sha(old_path) == sha(new_path):
+        return ["  %s: identical" % name]
+    try:
+        flat = flat_ini if name.lower().endswith(".ini") else flat_json
+        a = flat(open(old_path, "rb").read()) if os.path.isfile(old_path) else {}
+        b = flat(open(new_path, "rb").read()) if os.path.isfile(new_path) else {}
+    except Exception as e:
+        return ["  %s: bytes differ (%s -> %s); key-level diff not possible (%s: %s)" % (
+            name, short(sha(old_path)), short(sha(new_path)), type(e).__name__, e)]
+    cut = lambda v: v if len(v) <= 80 else v[:77] + "..."
+    rows = []
+    for k in sorted(set(a) | set(b)):
+        if k in a and k in b:
+            if a[k] != b[k]:
+                rows.append("    ~ %s: %s -> %s" % (k, cut(a[k]), cut(b[k])))
+        elif k in b:
+            rows.append("    + %s: %s   (only in live)" % (k, cut(b[k])))
+        else:
+            rows.append("    - %s: %s   (only in her store copy)" % (k, cut(a[k])))
+    head = "  %s (%s -> %s):" % (name, short(sha(old_path)), short(sha(new_path)))
+    if not rows:
+        return [head + " no key-level differences (bytes differ in comments, whitespace, ordering or line endings only)"]
+    extra = ["    ... %d more" % (len(rows) - limit)] if len(rows) > limit else []
+    return [head + " %d key difference(s)" % len(rows)] + rows[:limit] + extra
 
 
 # ---------------------------------------------------------------- marker, manifest, lock
@@ -681,6 +769,10 @@ def cmd_adopt_live(c):
             log(c, "live files already match the marker; nothing to adopt")
             return 0
         log(c, "adopting live changes: %s" % "; ".join(bad))
+        log(c, "KEY-LEVEL DIFF, her store copy -> live (RV-150 (b); nothing has been changed yet):")
+        for n in FILES:
+            for ln in key_diff(n, os.path.join(store_dir(c, c.rest), n), os.path.join(c.skse, n)):
+                log(c, ln)
         make_backup(c, "adopt-live", c.rest)
         live = copy_back(c, c.rest)
         write_marker(c, "CLEAN", c.rest, live, adopted="1")
@@ -688,6 +780,38 @@ def cmd_adopt_live(c):
         return 0
     finally:
         release_lock(c)
+
+
+def cmd_assert_rest(c):
+    """RV-150 (c): read-only check (no lock, no log file) that the REST state holds: marker CLEAN, owner = the rest profile
+    (Lucienne), the live files byte-equal to her store.  Exit 0 if so, else EXIT_ASSERT (6) with a loud message.  Called at the
+    end of a test block (block.py) to catch a closed launcher console that left the test copies live."""
+    why = []
+    m = read_kv(c.marker)
+    if m is None:
+        why.append("owner marker %s is missing" % c.marker)
+    else:
+        if m.get("state") != "CLEAN":
+            why.append("marker state is %s, not CLEAN (a swap run did not finish; its console was probably closed)" % m.get("state"))
+        if m.get("owner") != c.rest:
+            why.append("marker owner is '%s', not '%s'" % (m.get("owner"), c.rest))
+    store = hashes(store_dir(c, c.rest))
+    live = hashes(c.skse)
+    if store != live:
+        why.append("live files differ from %s's store: %s" % (c.rest, "; ".join(diff(store, live))))
+    if not why:
+        print("ASSERT-REST OK: marker CLEAN, owner '%s', live files == her store" % c.rest, flush=True)
+        return 0
+    bar = "!" * 78
+    print(bar, flush=True)
+    print("ASSERT-REST FAILED: the live shared SKSE files are NOT guaranteed to be %s's.  A game started now without the launchers "
+          "may use the wrong settings." % c.rest, flush=True)
+    for w in why:
+        print("  - " + w, flush=True)
+    print("  Fix: swap_launch.py --status, then --recover (run did not finish) / --reset-live (discard the live files) / "
+          "--adopt-live (keep them as hers).", flush=True)
+    print(bar, flush=True)
+    return EXIT_ASSERT
 
 
 def cmd_status(c):
@@ -721,13 +845,13 @@ def cmd_status(c):
     return 0 if ok else 1
 
 
-def cmd_init(c, baseline, luc_ini, force):
+def cmd_init(c, baseline, luc_ini, force, verify_mode=False):
     """One-time promotion setup (spec 8b + 8c; RV-140 (2)).  Order matters:
       1. the 8b baseline files must match SHA256SUMS;
       2. the TEST store is snapshotted from the CURRENT live files (today these are the test settings), hashes recorded,
          BEFORE anything is overwritten;
-      3. HER store = the baseline SA files + her IntelEngine.ini (the live copy plus only what DECISIONS.md records for her
-         profile: nothing today, see play_lucienne_8c.md);
+      3. HER store = the baseline SA files + her IntelEngine.ini (the live copy plus DebugLevel=2 (RV-150 (a); 3 with
+         --verify-mode) and only what DECISIONS.md records for her profile: nothing else today, see play_lucienne_8c.md);
       4. the live files are overwritten from her store (the live ones were backed up first) and the 8b assert holds as
          written: live == baseline for the two SA files;
       5. marker CLEAN, owner = her (the rest state)."""
@@ -782,7 +906,18 @@ def cmd_init(c, baseline, luc_ini, force):
             shutil.copyfile(src, os.path.join(ld, n))
             lh[n] = sha(os.path.join(ld, n))
             log(c, "  her store %s: %s (from %s)" % (n, short(lh[n]), src))
-        write_manifest(c, LUC_PROFILE, lh, "init from 8b baseline + her IntelEngine.ini")
+        # RV-150 (a): her IntelEngine.log level.  DebugLevel only sets the native DLL's spdlog level for IntelEngine.log (Settings.h
+        # ApplyDebugLevel: 0 off, 1 err, 2 warn, 3 info, 4 debug); no safety path reads it (QISelfCheck and the RV-72 net use
+        # Debug.Trace/Notification).  So her copy gets 2 (warnings + errors); --verify-mode keeps 3 for D-S2 verify sessions.
+        # Only the value bytes of the key line change; the TEST store keeps the live copy untouched.
+        lvl = VERIFY_DEBUG_LEVEL if verify_mode else LUC_DEBUG_LEVEL
+        olds = set_ini_key(os.path.join(ld, "IntelEngine.ini"), "DebugLevel", lvl)
+        if olds:
+            log(c, "  her store IntelEngine.ini: DebugLevel %s -> %d%s (only that value changed)" % ("/".join(sorted(olds)), lvl, " (--verify-mode)" if verify_mode else ""))
+        else:
+            log(c, "  her store IntelEngine.ini: no DebugLevel key in the source file; left as is")
+        lh["IntelEngine.ini"] = sha(os.path.join(ld, "IntelEngine.ini"))
+        write_manifest(c, LUC_PROFILE, lh, "init from 8b baseline + her IntelEngine.ini (DebugLevel=%d)" % lvl)
         for n in sa:
             assert lh[n] == want[n], n
 
@@ -815,6 +950,8 @@ def build_parser():
     g.add_argument("--init", action="store_true")
     g.add_argument("--reset-live", action="store_true")
     g.add_argument("--adopt-live", action="store_true")
+    g.add_argument("--assert-rest", action="store_true")
+    ap.add_argument("--verify-mode", action="store_true", help="with --init: her IntelEngine.ini gets DebugLevel=3 (info) instead of 2; D-S2 verify sessions only")
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--baseline-dir", default=DEFAULT_BASELINE)
     ap.add_argument("--luc-ini", help="her IntelEngine.ini (default: the current live one)")
@@ -844,8 +981,10 @@ def main(argv=None):
     try:
         if a.status:
             return cmd_status(c)
+        if a.assert_rest:
+            return cmd_assert_rest(c)
         if a.init:
-            return cmd_init(c, a.baseline_dir, a.luc_ini, a.force)
+            return cmd_init(c, a.baseline_dir, a.luc_ini, a.force, a.verify_mode)
         if a.reset_live:
             return cmd_reset_live(c)
         if a.adopt_live:

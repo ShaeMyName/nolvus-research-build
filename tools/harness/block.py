@@ -257,6 +257,33 @@ def setup_reloads():
 
 SETUP_EST_S = 45.0     # setup-only ETA per test (base/moveto/probe/settle); the pace factor corrects it
 
+# REVIEW_LOG RV-150 (c): once the 8c swap launchers are in use (marker file exists), a block must end in the rest state (marker
+# CLEAN, owner Lucienne, live shared SKSE files == her store). A closed launcher console leaves the TEST copies live.
+SWAP_MARKER = os.path.join(os.path.expanduser("~"), "Documents", "My Games", "Skyrim Special Edition", "SKSE", "_ieb_owner.txt")
+SWAP_LAUNCH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "launchers", "swap_launch.py")
+
+
+def assert_rest_end(summary, marker=SWAP_MARKER, swap_args=(), wait=180, gap=10):
+    """End-of-block --assert-rest, ONLY IF the swap marker exists (before promotion wiring: no-op, no summary row). The launcher
+    copies back ~15 s after the game exits, so a failing assert is retried for `wait` s before it counts. Failure: a loud console
+    line and a FINDING row in the summary."""
+    if not os.path.exists(marker):
+        return None
+    cmd = [sys.executable, SWAP_LAUNCH, "--assert-rest"] + list(swap_args)
+    deadline, res = time.time() + wait, None
+    while True:
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        if res.returncode == 0 or time.time() >= deadline:
+            break
+        time.sleep(gap)
+    if res.returncode == 0:
+        summary.append("| swap rest-state assert | ok | | marker CLEAN, owner Lucienne, live == her store |")
+        return True
+    why = " ".join((res.stdout + res.stderr).replace("!", "").split())[:300]
+    print("BLOCK FINDING swap rest-state assert FAILED (rc %d): %s" % (res.returncode, why), flush=True)
+    summary.append("| swap rest-state assert | FINDING | | rc %d: %s |" % (res.returncode, why.replace("|", "/")))
+    return False
+
 
 def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_only=False):
     b = BLOCKS[name]
@@ -508,6 +535,10 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
         if b["harness"]:        # D1: asserted off after each block
             ok = game.set_harness_mode(False, ctl.log)
             summary.append("| harness mode off after the block | %s | | |" % ("verified" if ok else "FAILED"))
+        try:
+            assert_rest_end(summary)
+        except Exception as e:
+            summary.append("| swap rest-state assert | FINDING | | could not run: %r |" % (e,))
     summary.append("| watcher transients | %s | | re-read cleared within 1 s |"
                    % (", ".join("%s=%d" % kv for kv in sorted(TRANSIENTS.items())) or "none"))
     narch = game.archive_logs("end")
