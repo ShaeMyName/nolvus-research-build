@@ -1,6 +1,7 @@
 """REVIEW_LOG RV-73 (3): memory sampler, every 30 s, one line per sample, flushed and fsynced so it survives a crash.
 Logs Available, commit (used/limit, %), paged/nonpaged pool, SkyrimSE private bytes + handle count, and the top 5
-processes by private bytes. Started detached by game.launch (one per machine session); stop it with taskkill.
+processes by private bytes and by handles. POOLGATE (RV-73-upd, RV-73-upd2) closes the game and blocks launches on
+pool growth or commit > 85 %. Started detached by game.launch (one per machine session); stop it with taskkill.
 Output: C:/nolvus-research/test_runs/mem_sampler.log"""
 import os, subprocess, time
 
@@ -18,6 +19,7 @@ $gp= if ($g) { '{0:N1}GB h={1}' -f ($g.PrivateMemorySize64/1GB), $g.HandleCount 
 
 FLAG = "C:/nolvus-research/test_runs/POOLGATE_TRIPPED"
 GROW_MB, CEIL_MB = 800.0, 3072.0             # REVIEW_LOG RV-73: stop on +800 MB over the pre-launch value or > 3 GB
+COMMIT_TRIP_PCT = 85.0                       # REVIEW_LOG RV-73-upd2 (2): stop on system commit > 85 % of the limit
 
 
 def stop_game(f, why):
@@ -61,8 +63,12 @@ def main():
             try:
                 np_ = float(line.split("nonpaged=")[1].split("MB")[0].replace(",", ""))
                 game = " game=-" not in line
+                cpct = float(line.split("GB(")[1].split("%")[0])
             except Exception:
-                np_, game = None, False
+                np_, game, cpct = None, False, None
+            # REVIEW_LOG RV-73-upd2 (2): commit pressure trips too (the 1450 errors may have been commit, not pool)
+            if game and cpct is not None and cpct > COMMIT_TRIP_PCT and not os.path.exists(FLAG):
+                stop_game(f, "commit %d%% of the limit (> %d%%)" % (cpct, COMMIT_TRIP_PCT))
             if np_ is not None:
                 if not game:
                     if ingame:
