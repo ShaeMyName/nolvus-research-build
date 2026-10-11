@@ -179,7 +179,7 @@ def s3():
 
 
 def s3c():
-    only = [f for f in changed("IE NoWipe + Dispatch Guard/Scripts") if f in ("IntelEngine_NPCTasks.pex", "IntelEngine_Schedule.pex")]
+    only = [f for f in changed("IE NoWipe + Dispatch Guard/Scripts") if f in ("IntelEngine_NPCTasks.pex", "IntelEngine_Schedule.pex", "IntelEngine_Core.pex")]
     if not install(only):
         return False
     return smoke("S3c", None)

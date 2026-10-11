@@ -1,0 +1,8 @@
+# BLD-2 RV-99 (diagnostics): IEB_LOADKEYS gains sIntel/sIEB (StorageUtil string-value counts by prefix); new IEB_PRERESTORE line (key/tgt/copy/fac/islot + string counts) before the restore writes. A = HEAD, B = this build.
+functions: A 107, B 107
+call sites: A 893, B 901
+  ieb_tasktypescan                   debugmsg                                       3 -> 4
+  ieb_tasktypescan                   storageutil.countobjstringvalueprefix          0 -> 4
+  ieb_tasktypescan                   storageutil.getintvalue                        2 -> 3
+  ieb_tasktypescan                   storageutil.getstringvalue                     3 -> 5
+DIFFERENT

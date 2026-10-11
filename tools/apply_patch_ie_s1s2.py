@@ -1,6 +1,6 @@
 """Post-U1 IntelEngine hunks (post_u1_build_plan §1 timer fix F1/F2, §2 slot race) on build/src/intelengine.
 Usage: apply_patch_ie_s1s2.py <group>. Every anchor must match exactly once (CRLF kept). Same edit() as apply_patch_b.py.
-Groups: f1 | f2 | core-slot | callers | core-expiry | rv68 | rv68b | rv70 | rv72 | rv72sched | rv72keys | nt4"""
+Groups: f1 | f2 | core-slot | callers | core-expiry | rv68 | rv68b | rv70 | rv72 | rv72sched | rv72keys | nt4 | rv99"""
 import sys
 
 D = "C:/nolvus-research/build/src/intelengine/Source/Scripts/"
@@ -881,6 +881,26 @@ elif G == "nt4":   # spec §17a NT-4 (approved): a follower's SCHEDULED fetch/de
     Else
         confirmResult = Core.ShowTaskConfirmationForAction(akAgent, akAgent.GetDisplayName() + " wants to deliver a message to " + targetName + ".", "DeliverMessage")
     EndIf
+"""),
+])
+elif G == "rv99":   # REVIEW_LOG RV-99 (1) + (3): the restore can run before Maintenance's scan (a pending update carried in
+    # the save), and in R1 the STRING keys (Intel_TaskType, Intel_Target, IEB_TaskType) were blank while the ints survived.
+    # (1) log the pre-restore state before writing; (3) at the scan and the restore, count the actor's StorageUtil string
+    # values by prefix (CountObjStringValuePrefix): all strings gone vs one key gone, at the earliest load point we own.
+    edit("IntelEngine_Core.psc", [
+("""                DebugMsg("IEB_LOADKEYS slot=" + i + " state=" + st[i] + " slotType=" + ty[i] + " actor=" + a + " key=" + key + " fac=" + fac + sib)
+""",
+"""                If a
+                    sib += " sIntel=" + StorageUtil.CountObjStringValuePrefix(a, "Intel_") + " sIEB=" + StorageUtil.CountObjStringValuePrefix(a, "IEB_")
+                EndIf
+                DebugMsg("IEB_LOADKEYS slot=" + i + " state=" + st[i] + " slotType=" + ty[i] + " actor=" + a + " key=" + key + " fac=" + fac + sib)
+"""),
+("""                If restore
+                    StorageUtil.SetStringValue(a, "Intel_TaskType", ty[i])
+""",
+"""                If restore
+                    DebugMsg("IEB_PRERESTORE slot=" + i + " key=" + key + " tgt=" + StorageUtil.GetStringValue(a, "Intel_Target", "") + " copy=" + StorageUtil.GetStringValue(a, "IEB_TaskType", "") + " fac=" + fac + " islot=" + StorageUtil.GetIntValue(a, "Intel_Slot", -9) + " sIntel=" + StorageUtil.CountObjStringValuePrefix(a, "Intel_") + " sIEB=" + StorageUtil.CountObjStringValuePrefix(a, "IEB_"))
+                    StorageUtil.SetStringValue(a, "Intel_TaskType", ty[i])
 """),
 ])
 else:

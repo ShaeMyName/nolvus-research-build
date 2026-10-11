@@ -294,9 +294,13 @@ def log_findings():
     err = re.compile(r"Error: (?:Cannot cast from None|[^\r\n]*non-array|[^\r\n]*None array)[^\r\n]*((?:\r?\n[^\r\n]*){0,4})")
     for p in best.values():
         text = open(p, encoding="utf-8", errors="replace").read()
-        c["blank_key_loadkeys"] += len(re.findall(r"(?i)IEB_LOADKEYS [^\r\n]* key= fac=TRUE", text))
+        restored = text.count("TASKTYPE_RESTORED")
+        # REVIEW_LOG RV-99 (1): a pending single update carried in the save can run the restore BEFORE Maintenance's
+        # scan, so the scan then shows the key already back. Every restore is itself a blank-key-on-load event: count it.
+        scan_blank = len(re.findall(r"(?i)IEB_LOADKEYS [^\r\n]* key= fac=TRUE", text))
+        c["blank_key_loadkeys"] += max(scan_blank, restored)
         c["blank_key_teardown_info"] += len(re.findall(r"(?i)IEB_LOADKEYS [^\r\n]* key= fac=FALSE", text))
-        c["tasktype_restored"] += text.count("TASKTYPE_RESTORED")
+        c["tasktype_restored"] += restored
         c["array_errors"] += sum(1 for m in err.finditer(text) if re.search(r"IntelEngine_|IEB_", m.group(0)))
     return c
 

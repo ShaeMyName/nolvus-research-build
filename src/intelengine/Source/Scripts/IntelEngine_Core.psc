@@ -536,6 +536,9 @@ Int Function IEB_TaskTypeScan(Bool restore)
                 If a
                     sib = " tgt=" + StorageUtil.GetStringValue(a, "Intel_Target", "") + " islot=" + StorageUtil.GetIntValue(a, "Intel_Slot", -9) + " istate=" + StorageUtil.GetIntValue(a, "Intel_State", -9) + " copy=" + StorageUtil.GetStringValue(a, "IEB_TaskType", "")
                 EndIf
+                If a
+                    sib += " sIntel=" + StorageUtil.CountObjStringValuePrefix(a, "Intel_") + " sIEB=" + StorageUtil.CountObjStringValuePrefix(a, "IEB_")
+                EndIf
                 DebugMsg("IEB_LOADKEYS slot=" + i + " state=" + st[i] + " slotType=" + ty[i] + " actor=" + a + " key=" + key + " fac=" + fac + sib)
             EndIf
             ; REVIEW_LOG RV-74 (1): AllocateSlot adds the task faction (:753); both teardown paths remove it BEFORE the key
@@ -543,6 +546,7 @@ Int Function IEB_TaskTypeScan(Bool restore)
             If a && !a.IsDead() && fac && key == "" && ty[i] != ""
                 found += 1
                 If restore
+                    DebugMsg("IEB_PRERESTORE slot=" + i + " key=" + key + " tgt=" + StorageUtil.GetStringValue(a, "Intel_Target", "") + " copy=" + StorageUtil.GetStringValue(a, "IEB_TaskType", "") + " fac=" + fac + " islot=" + StorageUtil.GetIntValue(a, "Intel_Slot", -9) + " sIntel=" + StorageUtil.CountObjStringValuePrefix(a, "Intel_") + " sIEB=" + StorageUtil.CountObjStringValuePrefix(a, "IEB_"))
                     StorageUtil.SetStringValue(a, "Intel_TaskType", ty[i])
                     DebugMsg("TASKTYPE_RESTORED slot=" + i + " type=" + ty[i] + " actor=" + a.GetDisplayName())
                 EndIf
