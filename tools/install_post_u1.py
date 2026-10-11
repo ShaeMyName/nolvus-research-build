@@ -49,7 +49,7 @@ def main():
         if h(d) != h(s):
             sys.exit("ABORT: hash mismatch after copy: " + key)
         man[key] = h(d)
-    text = json.dumps(man, indent=1, ensure_ascii=False) + "\n"
+    text = json.dumps(man, indent=1, ensure_ascii=False)          # install_step7.py format: no final newline
     open(MANIFEST, "wb").write((text.replace("\n", "\r\n") if crlf else text).encode("utf-8"))
     bad = [k for k, v in man.items() if os.path.exists(MODS + k) and h(MODS + k) != v]
     print("INSTALLED %d file(s); backup %s; manifest entries not matching the installed file: %s"
