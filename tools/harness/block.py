@@ -314,8 +314,12 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
             except Exception:
                 pass
         else:
-            last = re.findall(r"CRASHCTX [^\r\n]*", r.tails["papyrus"].read())
-            r.log("NOTE %s: last crash context before the crash: %s" % (tid, last[-1] if last else "none in this test's window"))
+            try:
+                pap = open(game.LOGS["papyrus"], "rb").read().decode("utf-8", "replace")
+            except OSError:
+                pap = ""
+            last = re.findall(r"CRASHCTX [^\r\n]*", pap)
+            r.log("NOTE %s: last crash context before the crash: %s" % (tid, last[-1] if last else "none in Papyrus.0.log"))
         # Reviewer 2026-10-10 (U1 run 16, 14:50): a guard defeated the test player and Shadow of Skyrim jailed and stripped
         # her; every later test ran on that state. Any defeat/bleedout makes this test INCONCLUSIVE and forces a relaunch.
         defeat = player_defeated(r.tails["papyrus"].read(), r.tails["skyrimnet"].read())
