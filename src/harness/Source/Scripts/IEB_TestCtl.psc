@@ -167,6 +167,21 @@ Function ReserveProbe()
     Log("RESERVEPROBE reserved=" + r + " age=" + age + " find=" + f + " skipped=" + (f != r) + " afterRelease=" + after)
 EndFunction
 
+Function PlayerWhere()
+    {REVIEW_LOG RV-79-upd: the player's cell, worldspace and position (location control for the crash repro).}
+    Actor p = Game.GetPlayer()
+    Cell c = p.GetParentCell()
+    Log("PLAYERPOS cell=" + Watcher().Hex(c) + " ws=" + Watcher().Hex(p.GetWorldSpace()) + " x=" + p.GetPositionX() \
+        + " y=" + p.GetPositionY() + " z=" + p.GetPositionZ())
+EndFunction
+
+Function PlayerPlace(Float afX, Float afY, Float afZ)
+    {REVIEW_LOG RV-79-upd: put the player at a position in the current (exterior) worldspace, then log it.}
+    Game.GetPlayer().SetPosition(afX, afY, afZ)
+    Utility.Wait(2.0)
+    PlayerWhere()
+EndFunction
+
 Function HeadStartOp(Int aiFormId, String asOp, Int aiN)
     {REVIEW_LOG RV-69-dec / RV-77 tests (throwaway test save only): one Relationships action on an actor, then her
      numbers. ops: reset (unenrol + clear the latch, points, bank), unenroll (latch kept), byhand, courtship (M4' entry), beginspark,

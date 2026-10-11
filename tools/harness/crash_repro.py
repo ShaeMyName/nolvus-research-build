@@ -25,6 +25,18 @@ def say(m):
     LOG.append(line)
 
 
+POSF = OUT + "crash_repro_R1_pos.txt"
+
+
+def where(ctl, label):
+    """[cell, ws, x, y, z] from TestCtl.PlayerWhere, or None."""
+    t = game.Tail(game.LOGS["papyrus"])
+    ctl.ctl("PlayerWhere", [], sync=False)
+    m = t.wait(r"(?i)PLAYERPOS cell=(\S+) ws=(\S+) x=(-?[\d.]+) y=(-?[\d.]+) z=(-?[\d.]+)", 30)
+    say("%s: %s" % (label, m.group(0) if m else "no PLAYERPOS line"))
+    return list(m.groups()) if m else None
+
+
 def crash_files():
     return set(glob.glob(CRASHES + "crash-*.log"))
 
@@ -62,6 +74,22 @@ def arm(name):
     say("%s LOAD %s: %s" % (name, save, "OK" if ok else "FAILED"))
     if not ok:
         return None
+    # RV-79-upd: R2/R3 stand where R1 stands (same cell/spot); every arm logs the player's cell and position
+    pos = where(ctl, name + " start")
+    if name == "R1" and pos:
+        open(POSF, "w").write(" ".join(pos))
+    elif name in ("R2", "R3"):
+        if not os.path.exists(POSF):
+            say("%s INCONCLUSIVE: no R1 position recorded (%s)" % (name, POSF))
+            return None
+        x, y, z = open(POSF).read().split()[2:5]
+        ctl.ctl("PlayerPlace", [float(x), float(y), float(z)], sync=False)
+        time.sleep(10)
+        pos2 = where(ctl, name + " placed")
+        r1 = open(POSF).read().split()
+        if not pos2 or pos2[0] != r1[0] or abs(float(pos2[2]) - float(x)) > 300 or abs(float(pos2[3]) - float(y)) > 300:
+            say("%s INCONCLUSIVE: player not at R1's spot (R1 %s, now %s)" % (name, r1, pos2))
+            return None
     text = pap.read()
     for l in text.splitlines():
         if "IEB_LOADKEYS" in l or "TASKTYPE_RESTORED" in l:

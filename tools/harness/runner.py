@@ -78,6 +78,8 @@ class Run:
         "DashCancel": "DASHCANCEL ",
         "ReserveProbe": "RESERVEPROBE ",
         "HeadStartOp": "HSOP ",
+        "PlayerWhere": "PLAYERPOS ",
+        "PlayerPlace": "PLAYERPOS ",
         "AutoSaveNow": "AUTOSAVE requested",
         "NFFGuardOn": "NFFGuardOn",
         "NFFStaleFac": "NFFStaleFac",
