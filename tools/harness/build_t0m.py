@@ -329,8 +329,8 @@ def build():
             say("  housecarl quest did not start (loc=%s); RV-116 (7): enabling the housecarl ref directly" % w.get("loc"))
             # run 5: "<ref>.enable" left it disabled (no enable parent: ACHR flags 0x800/0xC00 only). Log the MCP response of
             # each form and fall back to prid + enable (INFERRED: the console may not take a bare hex ref prefix over MCP)
-            for cmds in (["%08X.enable" % HOUSECARL], ["prid %08X" % HOUSECARL, "enable"],
-                         ["prid %X" % HOUSECARL, "enable"]):
+            # RV-123: only the target_form_id form reaches the ref (con_args); prid + bare command runs on the player
+            for cmds in (["%08X.enable" % HOUSECARL],):
                 for c in cmds:
                     try:
                         res = RUN[0].tool("execute_console_command", con_args(c))

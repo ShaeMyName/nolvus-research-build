@@ -32,8 +32,11 @@ def b1(r):                              # r is runner.Run
     r.check(cond, "what")               # PASS/FAIL line, counts fails
     r.log("text"); r.inconclusive += 1  # INCONCLUSIVE when a precondition failed (say why)
 ```
-- Console: `r.tool("execute_console_command", {"command": "prid 000E1BA9"})` then `{"command": "moveto player"}`
-  (or `"000E1BA9.moveto player"` style ref commands). INFERRED that MCP console output is returned; prefer log checks.
+- Console: use `tests_misc.con(r, "000E1BA9.moveto player")`. It turns a leading hex-ref prefix into the MCP tool's
+  `target_form_id` (`con_args()`). VERIFIED 2026-10-11 (REVIEW_LOG RV-123): `execute_console_command` runs every command
+  against `target_form_id`, which defaults to the PLAYER. A raw `"<hexref>.<cmd>"` prefix is NOT resolved, and
+  `prid <ref>` followed by a bare command ALSO runs on the player. Never send a ref command without `target_form_id`.
+  Every console or MCP state write must be followed by a read-back assert (RV-123 (3)).
 - Quest functions: `r.tool("execute_quest_function", {"quest_editor_id": Q, "script_name": S, "function_name": F,
   "arguments": [...]})`. Actor args: pass hex FormID strings like `"0x000E1BA9"` (VERIFIED for SeverActions
   `SwearCampToPlayer` 2026-10-09); Int args as ints.
