@@ -270,4 +270,128 @@ for _f in ("IntelEngine_Travel.psc", "IntelEngine_NPCTasks.psc"):
             if _k is not None and "UndoDismissOnRefusal" in _blk[_k + 1]:
                 _u += 1
     check(_n > 0 and _n == _u, "RV-68: %s: each DismissFollowerForTask (%d) is followed by a TryAllocateSlot that undoes it on refusal (%d)" % (_f, _n, _u))
+
+# ---------------------------------------------------------------- setup-only pass (block.py --setup-only)
+class SetupRun(FakeRun):
+    """FakeRun with the Run fields block.call_test / setup_verdict / the test bodies use."""
+    def __init__(self, setup_only=True, name="SELFTEST"):
+        FakeRun.__init__(self)
+        self.name, self.fails, self.inconclusive, self.setup_only = name, 0, 0, setup_only
+
+    def check(self, cond, what):
+        if not cond:
+            self.fails += 1
+        self.log("%s %s %s" % ("PASS" if cond else "FAIL", self.name, what))
+
+    def uuid(self, fid):
+        return "", None
+
+
+def _t_ok(r):
+    try:
+        r.log("setup")
+        block.checkpoint(r)
+        r.log("MAIN ACTION")
+    except Exception:           # a test's own broad except must not swallow the checkpoint
+        r.log("SWALLOWED")
+    finally:
+        r.log("cleanup ran")
+
+
+def _t_need_miss(r):
+    if not tests_b.need(r, False, "no position for F1 at A"):
+        return
+    block.checkpoint(r)
+    r.log("MAIN ACTION")
+
+
+def _t_no_checkpoint(r):
+    r.log("setup only, then returns")
+
+
+def _t_loop(r):
+    for i in (1, 2):
+        r.log("setup %d" % i)
+        if block.setup_skip(r):
+            continue
+        r.log("MAIN %d" % i)
+    block.checkpoint(r)
+    r.log("AFTER LOOP")
+
+
+r = SetupRun()
+block.call_test(_t_ok, r)
+v, why = block.setup_verdict(r)
+check(r.lines == ["setup", "SETUP checkpoint reached", "cleanup ran"] and v == "SETUP OK",
+      "setup-only: checkpoint stops before the main action, the test's finally still runs, not swallowed by except (%s)" % r.lines)
+r = SetupRun(setup_only=False)
+block.call_test(_t_ok, r)
+check(r.lines == ["setup", "MAIN ACTION", "cleanup ran"], "real run: checkpoint is a no-op, same code path (%s)" % r.lines)
+r = SetupRun(name="B-21")
+block.call_test(_t_need_miss, r)
+v, why = block.setup_verdict(r)
+check(v == "SETUP FAIL" and "no position for F1 at A" in why and "MAIN ACTION" not in r.lines,
+      "setup-only: a need() miss is SETUP FAIL with its reason (%s: %s)" % (v, why))
+r = SetupRun()
+block.call_test(_t_no_checkpoint, r)
+check(block.setup_verdict(r)[0] == "SETUP FAIL", "setup-only: returning without a checkpoint or reason is SETUP FAIL")
+def _t_boom(r):
+    raise ValueError("boom")
+
+
+r = SetupRun()
+block.call_test(_t_boom, r)
+v, why = block.setup_verdict(r)
+check(v == "SETUP FAIL" and "harness error" in why, "setup-only: a harness exception is SETUP FAIL (%s)" % why)
+r = SetupRun()
+block.call_test(_t_loop, r)
+check(r.lines == ["setup 1", "SETUP checkpoint reached (loop pass)", "setup 2", "SETUP checkpoint reached (loop pass)",
+                  "SETUP checkpoint reached"] and block.setup_verdict(r)[0] == "SETUP OK",
+      "setup-only: setup_skip runs every loop pass's setup, no pass's main (%s)" % r.lines)
+r = SetupRun(setup_only=False)
+block.call_test(_t_loop, r)
+check(r.lines == ["setup 1", "MAIN 1", "setup 2", "MAIN 2", "AFTER LOOP"], "real run: setup_skip is a no-op")
+r = SetupRun()
+r.log("  WARN snapshot line for 000E1BA9 not seen within 20 s")
+block.call_test(lambda r: block.checkpoint(r, "left to the real test"), r)
+v, why = block.setup_verdict(r)
+check(v == "SETUP OK" and "left to the real test" in why and "WARN snapshot" in why, "setup-only: note and WARN lines reach the summary")
+# summary format: one line per test
+check(block.setup_line("B-1", "SETUP OK", "") == "SETUP OK B-1", "summary: stdout line 'SETUP OK <id>'")
+check(block.setup_line("B-21", "SETUP FAIL", "INCONCLUSIVE B-21 precondition: x") == "SETUP FAIL B-21 (INCONCLUSIVE B-21 precondition: x)",
+      "summary: stdout line 'SETUP FAIL <id> (reason)'")
+check(block.setup_row("B-21", "SETUP FAIL", "a|b", 12.7) == "| B-21 | SETUP FAIL (a/b) | 12 | |", "summary: md row, reason in the verdict cell, '|' escaped")
+check(block.setup_row("B-1", "SETUP OK", "", 3) == "| B-1 | SETUP OK | 3 | |", "summary: md row for SETUP OK")
+
+# Real test bodies in setup-only mode (stubbed game): no main action, and the test's own finally/cleanup runs.
+_probe = ("[10/10/2026 - 03:08:05PM] [IEB-TEST] probe " + wline("Jenassa", "0xE1BA9").split("] ", 1)[1].replace("combat=1", "combat=0")
+          + "\n[10/10/2026 - 03:08:08PM] [IEB-TEST] snapshot " + wline("Jenassa", "0xE1BA9").split("] ", 1)[1]
+          + "\n[10/10/2026 - 03:08:09PM] [IEB-TEST] NFFStaleFac 0xE1BA9 in=1")
+import time as _time
+_sleep = _time.sleep
+_time.sleep = lambda s: None
+try:
+    with papyrus(_probe):
+        r = SetupRun(name="B-1")
+        block.call_test(block.TESTS["B-1"]["fn"], r)
+        fns = [c[0] for c in r.calls]
+        check(block.setup_verdict(r)[0] == "SETUP OK" and "StartTask" not in fns and "NFFFollow" in fns,
+              "B-1 setup-only: SETUP OK, no StartTask, its finally's tidy() ran (calls %s)" % fns)
+        r = SetupRun(name="B-6c")
+        block.call_test(block.TESTS["B-6c"]["fn"], r)
+        check(block.setup_verdict(r)[0] == "SETUP OK" and ("NFFStaleFac", [tests_b.F1, 0]) in r.calls
+              and not any(c[0] == "StartTask" for c in r.calls),
+              "B-6c setup-only: no StartTask; its finally removed the stale faction again (NFFStaleFac F1 0)")
+finally:
+    _time.sleep = _sleep
+
+# Wiring: every implemented test reaches a checkpoint in its own code or through a shared setup helper that has one.
+import inspect
+_helpers = re.compile(r"checkpoint\(r|setup_skip\(r|\b(?:rejoin_setup|in_rejoin|dismiss_case)\(r|(?<![\w.])lend\(r")
+for _m in ("tests_tm_l", "tests_misc", "tests_ie"):
+    __import__(_m)
+_nocp = [t for t, d in block.TESTS.items() if not _helpers.search(inspect.getsource(d["fn"]))]
+check(not _nocp, "setup-only wiring: every registered test has a checkpoint (missing: %s)" % _nocp)
+for _h in (tests_b.rejoin_setup, tests_b.in_rejoin, tests_b.dismiss_case, tests_tm_l.lend):
+    check("checkpoint(r)" in inspect.getsource(_h), "setup-only wiring: shared setup %s has a checkpoint" % _h.__name__)
 sys.exit(0 if ok else 1)

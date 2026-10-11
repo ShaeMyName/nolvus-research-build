@@ -24,7 +24,7 @@ Source/Scripts/; FM = SA SeverActions_FollowerManager.psc; ENT = SA SeverActions
 """
 import os, re, time
 import game
-from block import test, settle_probe
+from block import test, settle_probe, checkpoint, setup_skip
 from fidnorm import fid_norm, fid_any_rx, fid_hex8   # one FormID normaliser (REVIEW_LOG R48)
 
 # ---------------------------------------------------------------- cast (AGENT_BRIEF.md T0 table; Skyrim.esm refs)
@@ -286,6 +286,7 @@ def tm1(r):
     teammate' and no 'Dismissed follower' (IE_Core:1069-1075, VERIFIED patched build)."""
     nmF = nm(F1)
     snapshot(r, F1)
+    checkpoint(r)
     w = tail("watch")
     sa = tail("sa")
     dest, d = start_errand(r, F1, DEST_TM1)
@@ -332,6 +333,7 @@ def h1(r):
     rows = len(re.findall(r"(?i)SNEAK rt=", s.group(0))) if s else 0
     r.check(bool(s) and re.search(r"(?i)SNEAK END", s.group(0)) is not None and rows >= 3,
             "IEB_TestSneak arrived: SNEAK START..END with %d rt rows (%s)" % (rows, "seen" if s else "no line"))
+    checkpoint(r)       # harness smoke, no x1000 / LLM: setup-only runs it in full
 
 
 @test("TM-2", "TM")
@@ -351,6 +353,8 @@ def tm2(r):
         r.log("TM-2 %s" % label)
         moveto(r, first if first else HOME_REF, 10)      # F1 (following, WFP 0) catches up meanwhile
         snapshot(r, F1)
+        if setup_skip(r):       # setup-only: each run's own setup, no StartTask
+            continue
         pap, w = tail("papyrus"), tail("watch")
         try:
             t0 = time.time()
@@ -385,6 +389,7 @@ def tm2(r):
             time.sleep(10)
             release_f(r, F1)
     moveto(r, HOME_REF, 10)
+    checkpoint(r)
     check_inv(r, F1)
 
 
@@ -393,6 +398,7 @@ def tm4(r):
     """F walking away and visible; the player sneaks for 20 s. Pass: F does not sneak, or the speed loss is noted.
     SneakRun wrapper: Actor.StartSneaking (VERIFIED sdk/skse/Actor.psc:710), Actor.IsSneaking (:415)."""
     snapshot(r, F1)
+    checkpoint(r)
     dest, d = start_errand(r, F1, DEST_WALK)
     try:
         if not d or not d.startswith("[IEB] TAKE"):
@@ -449,6 +455,8 @@ def tm5(r):
             ctl_wait(r, "NFFCombatAware", [aware], r"\[IEB-TEST\] NFFCombatAware was=", 10)
             moveto(r, HOME_REF, 10)
             snapshot(r, F1)
+            if setup_skip(r):   # setup-only: both passes' setup, no errand; the outer finally restores Combat Aware
+                continue
             w, pap = tail("watch"), tail("papyrus")
             try:
                 dest, d = start_errand(r, F1, DEST_WALK)
@@ -519,6 +527,7 @@ def tm8(r):
         r.check(not any(M["never0600"] in b for _, _, b in hits), "%s: 0600 'never been a member' absent" % label)
 
     snapshot(r, F1)
+    checkpoint(r)
     dest, d = start_errand(r, F1, DEST_NEAR)
     try:
         if not d or not d.startswith("[IEB] TAKE"):
@@ -544,6 +553,7 @@ def tm10(r):
     TEAMMATE_WAS_OFF (IEB_Main:409-411)."""
     nmF = nm(F1)
     snapshot(r, F1)
+    checkpoint(r)
     dest, d = start_errand(r, F1, DEST_NEAR)
     try:
         if not d or not d.startswith("[IEB] TAKE"):
@@ -592,6 +602,7 @@ def tm11(r):
     f = probe(r, F1)
     if not f or f.get("tm") != 1:
         return inconclusive(r, "F1 is not a teammate (tm=%s)" % (f and f.get("tm")))
+    checkpoint(r)
     m = rescue(nm(F1))
     if m and "one already active" in m.group(0):
         return inconclusive(r, "a Story DM quest is already active in this save")
@@ -622,6 +633,7 @@ def tm12(r):
         r.log("  TM-1 window not available (TM-1 not run in this block): running a short errand")
         snapshot(r, F1)
         sa = tail("sa")
+        checkpoint(r)
         dest, d = start_errand(r, F1, DEST_NEAR)
         try:
             if not d:
@@ -631,6 +643,7 @@ def tm12(r):
             release_f(r, F1)
         win = {"papyrus": r.tails["papyrus"].read(), "sa": sa.read()}
         check_inv(r, F1)
+    checkpoint(r)
     nmF = nm(F1)
     r.check(not re.search(r"TeammateRemoved on track-only follower %s\b" % nmF, win["papyrus"]),
             "Papyrus: no SA TeammateRemoved for F1")
@@ -651,6 +664,7 @@ def tm13(r):
         if not m or m.group(2) != "1":
             return inconclusive(r, "SetDropTeammate wrapper missing or did not set 1")
         snapshot(r, F1)
+        checkpoint(r)
         w = tail("watch")
         dest, d = start_errand(r, F1, DEST_NEAR)
         if not d or not d.startswith("[IEB] TAKE"):
@@ -684,6 +698,7 @@ def lend(r, fid, dests=DEST_NEAR):
     4 relax, 8 guard, 16 track-only home, 32 retainer, 64 steward, 128 sleeping)."""
     snapshot(r, fid)
     ctl_wait(r, "ExpectLend", [fid], r"\[IEB-TEST\] ExpectLend", 10)
+    checkpoint(r)
     dest, d = start_errand(r, fid, dests)
     m = re.search(r"(?i)\[IEB\] LEND actor=\S.*? kind=(\d+)", d or "")
     return d, int(m.group(1)) if m else None
@@ -865,6 +880,7 @@ def l6(r):
             return inconclusive(r, "no loaded mustered member besides the chief")
         fid, name = pick[0]
         NAMES[fid] = name
+        checkpoint(r)
         sn = tail("skyrimnet")
         dest, d = start_errand(r, fid, ["Riverwood"], timeout=15)
         if not d:
@@ -902,6 +918,7 @@ def l7(r):
     try:
         if not p or p.get("wfp") != 1.0 or not p.get("saSandbox"):
             return inconclusive(r, "H not in SA's wait sandbox (wfp=%s sandbox=%s)" % (p and p.get("wfp"), p and p.get("saSandbox")))
+        checkpoint(r)
         dest, d = start_errand(r, H, DEST_NEAR)
         r.check(bool(d) and "REFUSE" in d and "reason=sa_wait" in d, "REFUSE reason=sa_wait (%s)" % (d or "no decision"))
     finally:

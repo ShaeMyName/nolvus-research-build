@@ -1,9 +1,15 @@
 """Step-8 block driver (TASK_C step 8; time plan §5): one machine for U1-U4, the CF runs and the soak.
-  block.py <BLOCK> [--only ID,ID] [--from ID] [--no-launch] [--keep-open] [--list]
+  block.py <BLOCK> [--only ID,ID] [--from ID] [--no-launch] [--keep-open] [--list] [--setup-only]
 Launches the test profile if needed (D2), loads the block's save, runs `smoke`, then each test in order. Every test is a
 Run (its own result file and timings.csv row). Tests flagged reload=True leave the save dirty (kills, churn): the
 driver reloads the block save after them. After each family, check_logs.py runs over that family's window (I5/I7/I8).
-A summary goes to test_runs/<BLOCK>_<stamp>.md. Results from forced-state saves are marked "forced state"."""
+A summary goes to test_runs/<BLOCK>_<stamp>.md. Results from forced-state saves are marked "forced state".
+
+--setup-only (post_u1_build_plan.md "Setup-only pass", Shae 2026-10-10): every test runs its OWN code up to its
+checkpoint(r) call, which sits after its setup and precondition checks and before its first main action (StartTask,
+Dispatch, kill, Accelerate, LLM wait), and stops there. One source: the real run executes the same lines (checkpoint
+is a no-op then). Reloads, relaunches, family log checks run as in the real block. Summary: one SETUP OK / SETUP FAIL
+(reason) line per test in test_runs/<BLOCK>_setup_<stamp>.md."""
 import importlib, os, re, subprocess, sys, time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.dirname(__file__))
@@ -19,6 +25,73 @@ def test(tid, family, save="T0", reload=False, forced=False):
         TESTS[tid] = dict(fn=fn, family=family, save=save, reload=reload, forced=forced)
         return fn
     return deco
+
+
+# ---------------------------------------------------------------- setup-only pass (one source for both modes)
+class SetupReached(BaseException):
+    """Raised by checkpoint() in setup-only mode. A BaseException, so a test's own `except Exception` never swallows
+    it, while every `finally:` and `with` exit between the checkpoint and the run loop still runs (the test's own
+    cleanup undoes what its setup started)."""
+
+
+def checkpoint(r, note=""):
+    """End of the test's setup + precondition checks, right before its first main action. Real run: no-op.
+    Setup-only run: stop the test here (SETUP OK unless a precondition or check before it failed). `note` is shown
+    in the summary (e.g. a setup step that is left to the real test)."""
+    if getattr(r, "setup_only", False):
+        r.setup_reached = True
+        r.setup_note = note
+        r.log("SETUP checkpoint reached%s" % (": " + note if note else ""))
+        raise SetupReached()
+
+
+def setup_skip(r):
+    """For a loop whose every pass has its own setup and precondition: `if setup_skip(r): continue` right before the
+    pass's main action. Real run: False (no-op). Setup-only run: marks the checkpoint reached and returns True, so the
+    next pass's setup runs too; the test then needs a checkpoint(r) after the loop."""
+    if getattr(r, "setup_only", False):
+        r.setup_reached = True
+        r.log("SETUP checkpoint reached (loop pass)")
+        return True
+    return False
+
+
+def call_test(fn, r):
+    """Run one test function as the block does. SetupReached ends a setup-only test normally; any other exception is a
+    harness error (INCONCLUSIVE), never a block abort."""
+    try:
+        fn(r)
+    except SetupReached:
+        pass
+    except Exception as e:
+        r.inconclusive += 1
+        r.log("INCONCLUSIVE %s harness error: %r" % (r.name, e))
+
+
+def setup_verdict(r):
+    """(verdict, reason) of one setup-only run: SETUP FAIL with the first INCONCLUSIVE/FAIL line (a precondition miss,
+    an unconfirmed controller call, a failed check or cleanup check), SETUP FAIL if the test returned before its
+    checkpoint, else SETUP OK (reason = the checkpoint note and any WARN line)."""
+    bad = [l.strip() for l in r.lines if l.startswith(("INCONCLUSIVE", "FAIL"))]
+    if bad:
+        return "SETUP FAIL", bad[0]
+    if r.fails or r.inconclusive:
+        return "SETUP FAIL", "%d FAIL, %d INCONCLUSIVE" % (r.fails, r.inconclusive)
+    if not getattr(r, "setup_reached", False):
+        return "SETUP FAIL", "the test returned before its setup checkpoint"
+    notes = [getattr(r, "setup_note", "")] + [l.strip() for l in r.lines if "WARN" in l][:2]
+    return "SETUP OK", "; ".join(x for x in notes if x)
+
+
+def setup_line(tid, verdict, reason):
+    """The one stdout line per test: 'SETUP OK <id>' / 'SETUP OK <id> (note)' / 'SETUP FAIL <id> (reason)'."""
+    return "%s %s%s" % (verdict, tid, " (%s)" % reason[:200] if reason else "")
+
+
+def setup_row(tid, verdict, reason, secs):
+    """The summary row: | id | SETUP OK / SETUP FAIL (reason) | seconds | |."""
+    cell = "%s (%s)" % (verdict, reason[:200].replace("|", "/")) if reason else verdict
+    return "| %s | %s | %d | |" % (tid, cell, secs)
 
 
 # Tests that need GameMaster on (Shae 2026-10-10: if unsure, keep it on). A block with gamemaster=False refuses to start
@@ -114,7 +187,10 @@ def settle_probe(r):
     return ("__any__", lambda: r.uuid(0xE1BA9)[0])
 
 
-def run_block(name, only=None, start=None, launch=True, keep_open=False):
+SETUP_EST_S = 45.0     # setup-only ETA per test (base/moveto/probe/settle); the pace factor corrects it
+
+
+def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_only=False):
     b = BLOCKS[name]
     for m in b["modules"]:
         importlib.import_module(m)
@@ -123,7 +199,11 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
         order = order[order.index(start):]
     missing = [t for t in order if t not in TESTS]
     stamp = time.strftime("%Y%m%d-%H%M%S")
-    summary = ["# %s %s" % (name, stamp), "", "| Test | Verdict | Seconds | Note |", "|---|---|---|---|"]
+    if setup_only:      # own summary/archive names: a setup pass never reads as a real block result
+        stamp = "setup_" + stamp
+    ok_word = "SETUP OK" if setup_only else "ALL PASS"
+    summary = ["# %s %s%s" % (name, stamp, " (SETUP-ONLY: setup + precondition per test, no main action)" if setup_only
+                              else ""), "", "| Test | Verdict | Seconds | Note |", "|---|---|---|---|"]
     game.set_archive("%s_%s" % (name, stamp))
     if missing:
         print("NOT IMPLEMENTED (skipped): %s" % ", ".join(missing))
@@ -170,7 +250,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
         ctl.save()
         return 1
     fam, fam_start, results = None, time.strftime("%Y-%m-%d %H:%M:%S"), []
-    est = test_estimates(b, order)
+    est = {t: SETUP_EST_S for t in order} if setup_only else test_estimates(b, order)
     crashes = 0
     started, done_est, done_real = time.time(), 0.0, 0.0
     for i, tid in enumerate(order, 1):
@@ -196,6 +276,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
             crashes += 1
             r = Run(tid)
         r.forced = meta["forced"]
+        r.setup_only = setup_only
         if game.LAST_NUDGE:     # reviewer 2026-10-10: the settle nudge adds one real F1 reply to SkyrimNet history
             r.log("NOTE %s: the last load's settle nudge added one F1 narration to SkyrimNet history (%s)"
                   % (tid, game.LAST_NUDGE))
@@ -205,11 +286,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
         r.log("NOTE %s: RAM available at start %.1f GB (game %.1f GB private)" % (tid, game.available_ram_gb(),
                                                                                 game.game_private_gb()))
         t0 = time.time()
-        try:
-            meta["fn"](r)
-        except Exception as e:          # a harness bug fails the test, not the block
-            r.inconclusive += 1
-            r.log("INCONCLUSIVE %s harness error: %r" % (tid, e))
+        call_test(meta["fn"], r)        # a harness bug fails the test, not the block; SetupReached ends a setup-only test
         crashed = "SkyrimSE.exe" not in game.procs()
         # Reviewer 2026-10-10 (U1 run 16, 14:50): a guard defeated the test player and Shadow of Skyrim jailed and stripped
         # her; every later test ran on that state. Any defeat/bleedout makes this test INCONCLUSIVE and forces a relaunch.
@@ -251,7 +328,12 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
         for l in inv:
             r.check(False, "watcher invariant: " + l.strip())
         verdict = r.save()
-        summary.append("| %s | %s | %d | %s |" % (tid, verdict, time.time() - t0, "forced state" if r.forced else ""))
+        if setup_only:
+            verdict, why = setup_verdict(r)
+            print(setup_line(tid, verdict, why), flush=True)
+            summary.append(setup_row(tid, verdict, why, time.time() - t0))
+        else:
+            summary.append("| %s | %s | %d | %s |" % (tid, verdict, time.time() - t0, "forced state" if r.forced else ""))
         results.append((tid, verdict))
         done_est += est[tid]
         done_real += time.time() - t0
@@ -342,10 +424,10 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
     open(p, "w", encoding="utf-8").write("\n".join(summary) + "\n")
     ctl.log("summary %s" % p)
     ctl.log("raw logs archived: %d file(s) in %s" % (narch, game.ARCHIVE[0]))
-    print("BLOCK DONE %s %d/%d not ALL PASS; %.0f min" % (name, sum(1 for _, v in results if v != "ALL PASS"),
-                                                         len(results), (time.time() - started) / 60), flush=True)
+    print("BLOCK DONE %s %d/%d not %s; %.0f min" % (name, sum(1 for _, v in results if v != ok_word),
+                                                   len(results), ok_word, (time.time() - started) / 60), flush=True)
     ctl.save()
-    return sum(1 for _, v in results if v != "ALL PASS")
+    return sum(1 for _, v in results if v != ok_word)
 
 
 def held_gap(text, limit=6.0):   # 6 s = 2x nominal; observed max 4.5 s on T0 after the fix (reviewer 2026-10-10)
@@ -471,7 +553,7 @@ def main(a):
         return 0
     opt = lambda k: a[a.index(k) + 1] if k in a else None
     only = set(opt("--only").split(",")) if opt("--only") else None
-    return run_block(a[0], only, opt("--from"), "--no-launch" not in a, "--keep-open" in a)
+    return run_block(a[0], only, opt("--from"), "--no-launch" not in a, "--keep-open" in a, "--setup-only" in a)
 
 
 def restore_gamemaster():

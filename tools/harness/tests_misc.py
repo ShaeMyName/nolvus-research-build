@@ -18,7 +18,7 @@ SUUnset, RankProbe, SetRank, RankApply, SceneOn, SceneOff, PlaceRel, Spawn, Desp
 IEB_TestCtl (StartTask, Recall, UUIDOf, Check, Dispatch, Snapshot) or a direct MCP call on a mod's own quest script.
 """
 import json, os, re, time
-from block import test
+from block import test, checkpoint, setup_skip
 from runner import eligible
 from fidnorm import fid_norm, fid_any_rx, fid_hex8, fid_s32   # one FormID normaliser (REVIEW_LOG R48)
 import game
@@ -387,6 +387,7 @@ def ensure_child_enrolled(r):
         return None, None
     if iv({"v": rval(r, u, 'get_faction_rank(actorUUID, "SNRom_Bond")')}, "v") >= 0:
         return u, name
+    checkpoint(r, "child not enrolled in this save: the enrolment (one LLM call) is left to the real test")
     st, sn = tail("snrom"), tail("skyrimnet")
     rel(r, "EnrollByHand", [ah(CHILD)])
     m = st.wait(r"Enrolled by hand: %s\b" % re.escape(name), timeout=60)
@@ -487,6 +488,7 @@ def d1(r):
     if not name:
         return inc(r, "F1 not loaded")
     snapshot_sync(r, F1)
+    checkpoint(r)
     if not errand(r, F1, name, DEST_NEAR):
         return inc(r, "no TAKE for F1 within 90 s")
     try:
@@ -515,6 +517,7 @@ def d2(r):
     q = qr(r, F2)
     if not q or iv(q, "tm") != 1:
         return inc(r, "F2 is not a teammate at test start (tm=%s)" % (q and q.get("tm")))
+    checkpoint(r)
     t = tail("papyrus")
     r.ctl("Dispatch", [F2, "social"])
     m = t.wait(r"NPC Social: %s is busy or with the player - off-screen only" % re.escape(name), timeout=20)
@@ -545,6 +548,7 @@ def q1(r):
     elif iv(before, "story") > 0 or iv(before, "t1") != 0:
         inc(r, "Fralia already story-aliased or reserved before QPFill (story=%s t1=%s)" % (before.get("story"), before.get("t1")))
     else:
+        checkpoint(r)
         try:
             r.ctl("QPFill", [FRALIA])
             time.sleep(2)
@@ -558,6 +562,7 @@ def q1(r):
         cleared = fralia(qscan(r))
         r.check(bool(cleared) and iv(cleared, "story") == 0 and iv(cleared, "t1") == 0,
                 "after QPClear -> not reserved (story=%s t1=%s)" % (cleared and cleared.get("story"), cleared and cleared.get("t1")))
+    checkpoint(r)       # setup-only: reached here only after a Fralia precondition miss (SETUP FAIL with its reason)
     scan = qscan(r)
     if not scan:
         return inc(r, "QScan returned nothing")
@@ -603,6 +608,7 @@ def q2(r):
     if iv(h0, "running") == 1 or iv(h0, "completed") == 1:
         return inc(r, "quest 0x%s already running or completed in T0 (running=%s completed=%s)"
                    % (hx(qid), h0.get("running"), h0.get("completed")))
+    checkpoint(r)
     con(r, "setstage %s %d" % (edid, start))
     time.sleep(4)
     h1, actors = qalias()
@@ -674,6 +680,7 @@ def q3(r):
     d = _reserved_target(r, qscan(r))
     if not d:
         return inc(r, "no reserved, non-teammate adult loaded")
+    checkpoint(r)
     name = d.get("name", "")
     t = tail("papyrus")
     dm(r, {"type": "seek_player", "npc": name})
@@ -705,6 +712,7 @@ def q4(r):
     if v is None:
         return inc(r, "no distinct victim")
     gq0, vq0 = qr(r, g["fid"]), qr(r, v["fid"])
+    checkpoint(r)
     t = tail("papyrus")
     dm(r, {"type": "quest", "npc": g.get("name", ""), "questSubType": "rescue", "victimName": v.get("name", ""),
            "questLocation": "Halted Stream Camp", "enemyType": "bandits", "msgContent": "Please help.", "sender": ""})
@@ -729,6 +737,7 @@ def q5(r):
     u, name, _ = who(r, F1)
     if not name:
         return inc(r, "F1 not loaded")
+    checkpoint(r)
     if not errand(r, F1, name, DEST_NEAR):
         return inc(r, "no TAKE for F1")
     try:
@@ -769,6 +778,7 @@ def q6(r):
     if len(pool) < 3:
         return inc(r, "need 3 non-reserved, non-essential adults (have %d)" % len(pool))
     amb, giver, vic = pool[0], pool[1], pool[2]
+    checkpoint(r)
     # --- ambush
     b0 = qr(r, amb["fid"])
     t = tail("papyrus")
@@ -818,6 +828,7 @@ def q7(r):
     d = _reserved_target(r, qscan(r))
     if not d:
         return inc(r, "no reserved, non-teammate adult loaded as sender")
+    checkpoint(r)
     t = tail("papyrus")
     dm(r, {"type": "message", "npc": d.get("name", ""), "sender": d.get("name", ""),
            "msgContent": "Come and see me when you have a moment.", "destination": "The Bannered Mare",
@@ -846,6 +857,7 @@ def q8(r):
         return inc(r, "no assassination attempt in this session (counted again over the soak)")
     r.check(triggered <= staged, "every triggered attack was staged first (%d <= %d)" % (triggered, staged))
     partial(r, "survival and each target's reserved/essential state (log lines carry names, not FormIDs)")
+    checkpoint(r)       # read-only log count: setup-only runs it in full
 
 
 # ============================================================================ REL (spec §15.3; Relationships 2.0.1)
@@ -864,6 +876,7 @@ def rel1(r):
     if iv({"v": rval(r, u, 'get_faction_rank(actorUUID, "SNRom_Bond")')}, "v") < 0:
         return inc(r, "F1 is not enrolled (E must be enrolled)")
     snapshot_sync(r, F1)
+    checkpoint(r)
     if not errand(r, F1, name, DEST_NEAR):
         return inc(r, "no TAKE for F1")
     st = tail("snrom")
@@ -924,6 +937,7 @@ def rel2(r):
     time.sleep(5)
     if not truthy(rval(r, u, "is_follower(actorUUID)")):
         return inc(r, "recruit 0x%s is not a follower after RegisterFollower" % hx(rid))
+    checkpoint(r)
     st = tail("snrom")
     rel(r, "SweepFollowers", [])
     t_recruit = time.time()
@@ -966,6 +980,7 @@ def rel3(r):
     seg = txt[prev_ready + 1:last_ready] if last_ready >= 0 else ""
     r.check("Content layer loaded - RomanceMarkMoment is registered" in seg,
             "snrom.log: content layer loaded in the latest load (before its 'Bridge ready')")
+    checkpoint(r)       # read-only log check: setup-only runs it in full
 
 
 # ============================================================================ CS (spec §11.10.4; gates must HOLD)
@@ -984,6 +999,7 @@ def cs20(r):
     rom = romance(r, u)
     if rom is None:
         return inc(r, "prompt JSON empty after 3 tries: enrollment and lock not confirmed")
+    checkpoint(r)
     r.check(bool(rom.get("enrolled")), "child is enrolled per the prompt JSON (enrolled=%s)" % rom.get("enrolled"))
     r.check(iv(rom, "physMinTier") == -1, "child intimacy locked: prompt JSON physMinTier -1 (got %s)" % iv(rom, "physMinTier"))
     r.check(su_get(r, u, "SNRom_PhysMinTier", fid=CHILD) == -1, "child intimacy locked in the store (-1)")
@@ -1031,6 +1047,7 @@ def cs21(r):
     k0 = rank(r, CHILD)
     if not k0:
         return inc(r, "RankProbe gave no line")
+    checkpoint(r)
     target = 2100
     st = tail("snrom")
     rel(r, "ApplyDepth", [ah(CHILD), target - iv(k0, "pts", 0), "ieb test", False, "test"])
@@ -1056,6 +1073,7 @@ def cs22(r):
     u, name = ensure_child_enrolled(r)
     if not u:
         return
+    checkpoint(r)
     con(r, "set IEB_TestWatch to 0")
     try:
         if not su_set(r, CHILD, "SNRom_PhysMinTier", 4):
@@ -1100,6 +1118,7 @@ def cs12(r):
     try:
         if not ctl_line(r, "SceneOn", [F1], r"\[IEB-TEST\] SCENE on partner="):
             return inc(r, "SceneOn wrapper gave no line")
+        checkpoint(r)
         head_c = render(r, cu, '{{ render_subcomponent("system_head", "full") }}')
         fin_c = render(r, cu, '{{ render_subcomponent("user_final_instructions", "full") }}')
         head_a = render(r, au, '{{ render_subcomponent("system_head", "full") }}')
@@ -1158,6 +1177,7 @@ def rs1(r):
     k = rank(r, F2)
     if not k or iv(k, "tier") != 1 or iv(k, "r") != 0:
         return inc(r, "setup: want tier 1 rank 0, have tier %s rank %s" % (k and k.get("tier"), k and k.get("r")))
+    checkpoint(r)
     t = tail("papyrus")
     rel(r, "ApplyDepth", [ah(F2), 500, "ieb test", False, "test"])
     time.sleep(4)
@@ -1179,6 +1199,7 @@ def rs4(r):
     k0 = _set_pts(r, CHILD, 1200)
     if not k0 or iv(k0, "tier") != 2:
         return inc(r, "setup: child not at Friend tier (%s)" % (k0 and k0.get("tier")))
+    checkpoint(r)
     t = tail("papyrus")
     ctl_line(r, "RankApply", [CHILD], r"\[IEB-TEST\] RANKAPPLY")
     time.sleep(2)
@@ -1206,6 +1227,7 @@ def rs6(r):
     k0 = rank(r, F2)
     if not k0 or iv(k0, "tier") != 2 or iv(k0, "r") != 1:
         return inc(r, "setup: want Friend tier, rank 1 (have tier %s rank %s)" % (k0 and k0.get("tier"), k0 and k0.get("r")))
+    checkpoint(r)
     st = tail("snrom")
     rel(r, "ReseedActor", [ah(F2)])
     m = st.wait(r"(Seed read for|Seeded) %s|Seed .*%s.*(fail|fallback)" % (re.escape(name), re.escape(name)), timeout=150)
@@ -1230,6 +1252,7 @@ def rs8(r):
     ctl_line(r, "RankApply", [F2], r"\[IEB-TEST\] RANKAPPLY")
     ka = rank(r, F2)
     if ka and iv(ka, "r") == 2 and iv(ka, "tier") == 3:
+        checkpoint(r)
         t = tail("papyrus")
         _set_pts(r, F2, 1100)
         hits = _ranksync(t.read(), name)
@@ -1238,6 +1261,7 @@ def rs8(r):
                 "(a) Confidant -> Friend: rank 2 -> 1, why=drop")
     else:
         inc(r, "(a) setup: Confidant at rank 2 not reached (tier %s rank %s)" % (ka and ka.get("tier"), ka and ka.get("r")))
+        checkpoint(r)   # setup-only: stop on the (a) miss too (SETUP FAIL with its reason)
     # (b) romantic track: sparked + accepted stance (RefreshTrack rule, IEB_RankSync.psc:50-66), adult only
     su_set(r, F2, "SNRom_Sparked", 1)
     su_set(r, F2, "SNRom_PlayerStance", 1)
@@ -1329,6 +1353,7 @@ def k1(r):
             break
     if not eds:
         return inc(r, "get_factions returned no rows")
+    checkpoint(r)
     present = [x for x in MISSING_FACTIONS if x.lower() in eds]
     r.log("  runtime factions: %d; of the 23, present: %d" % (len(eds), len(present)))
     r.check(not present, "all 23 missing EditorIDs absent (%s)" % ",".join(present))
@@ -1360,6 +1385,7 @@ def k2(r):
     ents = [e for e in _knowledge_entries(r) if "MarkarthArnleifAndSonsFaction" in _field(e, "condition")]
     if not ents:
         return inc(r, "no knowledge entry with the case-differing condition found in list_world_knowledge")
+    checkpoint(r)
     ok = [_cond_true(r, u, _field(e, "condition")) for e in ents]
     r.log("  entries with the case-differing condition: %d; eligible for 0x%s: %d" % (len(ents), hx(LISBET), sum(1 for x in ok if x)))
     r.check(any(ok), "the pack entry is eligible for the faction member")
@@ -1385,6 +1411,7 @@ def k3(r):
     ents = [e for e in _knowledge_entries(r) if _field(e, "key").startswith("dungeon.whiterun.")]
     if not ents:
         return inc(r, "no 'dungeon.whiterun.' entries found in list_world_knowledge (key field INFERRED)")
+    checkpoint(r)
     res = [_cond_true(r, gu, _field(e, "condition")) for e in ents]
     n = sum(1 for x in res if x)
     r.log("  guard 0x%s: %d of %d Dungeons_of_Whiterun_Hold entries eligible (%d unevaluated)"
@@ -1430,6 +1457,8 @@ def x1(r):
         rows0, body = _strip_body(r, fid, u)
         if not _stripped_or_inc(r, fid, body, label):
             continue
+        if setup_skip(r):
+            continue
         rows1 = worn_rows(r, u)
         if rows1 is None:
             inc(r, "%s: worn-equipment render failed" % label)
@@ -1441,6 +1470,7 @@ def x1(r):
         sec = equip_section(bio)
         r.check(sec is not None and len(sec) == len(rows1), "%s: 0410 Worn Equipment lists exactly the worn items (%s/%d)"
                 % (label, None if sec is None else len(sec), len(rows1)))
+    checkpoint(r)
     partial(r, "visual render (nude 3BA / HIMBO+TNG body, no underwear layer): screenshot or Shae's eyes")
 
 
@@ -1453,6 +1483,7 @@ def x2(r):
     rows = worn_rows(r, u2) if u2 else None
     if not rows:
         return inc(r, "dressed NPC F2: no worn rows")
+    checkpoint(r)
     body = [x for x in rows if x[0].lower() == "torso"]
     r.log("  dressed F2: slots %s" % ",".join(sorted(x[0] for x in rows)))
     r.check(bool(body) and body_flag(r, u2) == 1, "dressed: 'torso' (body garment) field present")
@@ -1520,6 +1551,7 @@ def x3(r):
         time.sleep(1)
     if not worn:
         return
+    checkpoint(r)
     out = render(r, fu, '{{ render_character_profile("dialogue_target", responseTarget.UUID) }}', target=pu)
     sec = equip_section(out)
     if sec is None:
@@ -1542,6 +1574,7 @@ def x4(r):
     names = [x[2] for x in (worn_rows(r, pu) or []) if len(x[2]) >= 5]
     if not names:
         return inc(r, "player wears no named item")
+    checkpoint(r)
     out = render(r, fu, template="dialogue_response", target=tu)
     if out is None:
         return inc(r, "dialogue_response render failed")
@@ -1577,6 +1610,7 @@ def x7(r):
     _strip_body(r, F2, tu)
     if body_flag(r, tu) != 0:
         return inc(r, "F2 still wears a body item")
+    checkpoint(r)
     a = _attire_probe(r, fu, tu)
     if not a:
         return inc(r, "render failed")
@@ -1633,6 +1667,8 @@ def x8(r):
             if not au:
                 inc(r, "%s: no UUID" % label)
                 continue
+            if setup_skip(r):
+                continue
             a = _attire_probe(r, fu, au)
             if not a:
                 inc(r, "%s: render failed" % label)
@@ -1641,6 +1677,7 @@ def x8(r):
             r.check(not a["npcType"] and not a["mark"], "%s: excluded (no ActorTypeNPC, no attire line)" % label)
         finally:
             ctl_line(r, "DespawnRef", [s32(ref)], r"\[IEB-TEST\] (?i:DESPAWN(?:REF)?) ")
+    checkpoint(r)
     # werewolf (player): reload restores the race
     pu, _, _ = who(r, PLAYER)
     con(r, "set IEB_WitnessEnabled to 0")

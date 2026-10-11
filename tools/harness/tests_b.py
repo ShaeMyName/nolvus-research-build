@@ -45,7 +45,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, ".."))
 import game
-from block import test, settle_probe
+from block import test, settle_probe, checkpoint, setup_skip
 from runner import eligible
 from fidnorm import fid_norm, fid_any_rx, fid_hex8   # one FormID normaliser (REVIEW_LOG R48)
 
@@ -437,6 +437,7 @@ def rejoin_setup(r, label):
     -> REJOIN_WAIT (spec §7.1 :1085). Returns dict(end, spot, take_tail) or None (INCONCLUSIVE logged)."""
     nm = base(r, F1, where=GATE)[0]
     snap(r, F1)
+    checkpoint(r)
     t = fresh()
     ww = fresh("watch")
     if not took(r, go(r, F1, DEST_MARKET, t), nm):
@@ -467,6 +468,7 @@ def in_rejoin(r, label):
     p = probe(r, F1) or {}
     if p.get("iebHeld") == "2":
         r.log("  %s: continuing from the rejoin phase left by the previous test" % label)
+        checkpoint(r)
         return True
     tidy(r, F1)
     res = rejoin_setup(r, label)
@@ -513,6 +515,7 @@ def b1(r):
     try:
         nm = base(r, F1, where=GATE)[0]
         snap(r, F1)
+        checkpoint(r)
         t = fresh()
         ww = fresh("watch")
         ev = go(r, F1, DEST_MARKET, t)
@@ -562,6 +565,7 @@ def b2(r):
     try:
         nm = base(r, F1)[0]
         snap(r, F1)
+        checkpoint(r)
         t = fresh()
         r.ctl("StartTask", [F1, "FetchPerson", "Adrianne", "", ""])
         if not took(r, wait_ieb(t, DECIDE, nm, 25), nm):
@@ -591,6 +595,7 @@ def b3(r):
     try:
         nm = base(r, F1, where=GATE)[0]
         snap(r, F1)
+        checkpoint(r)
         t = fresh()
         if not took(r, go(r, F1, DEST_MARKET, t), nm):
             return
@@ -646,6 +651,7 @@ def b3b(r):
             r.log("INCONCLUSIVE: save %s did not complete; not loading it" % "IEB_B3b_pre")
             return
         time.sleep(10)
+        checkpoint(r)
         t = fresh()
         if not took(r, go(r, F1, DEST_UP, t), nm):
             return
@@ -672,6 +678,7 @@ def b4(r):
     try:
         nm = base(r, F1)[0]
         snap(r, F1)
+        checkpoint(r)
         t = fresh()
         if not took(r, go(r, F1, DEST_UP, t), nm):
             return
@@ -722,6 +729,7 @@ def b5(r):
     try:
         nm = base(r, F1)[0]
         snap(r, F1)
+        checkpoint(r)
         t = fresh()
         ww = fresh("watch")
         if not took(r, go(r, F1, DEST_FAR, t), nm):
@@ -758,6 +766,7 @@ def b6(r):
     try:
         nm = base(r, F1)[0]
         snap(r, F1)
+        checkpoint(r)
         t = fresh()
         ww = fresh("watch")
         if not took(r, go(r, F1, DEST_FAR, t), nm):
@@ -796,6 +805,7 @@ def dismiss_case(r, what, setup, dismiss, via_ok, tm_check=True):
     ww = fresh("watch")
     if not setup(nm):
         return
+    checkpoint(r)
     if not took(r, go(r, F1, DEST_FAR, t), nm):
         return
     until(lambda: any(s.get("loaded") == "0" for s in wsamples(ww.read(), F1)), 90)
@@ -859,6 +869,7 @@ def b6c(r):
         m = ctl_line(r, "NFFStaleFac", [F1, 1], r"\[IEB-TEST\] NFFStaleFac [^\r\n]*", 15)
         if not need(r, m, "NFFStaleFac wrapper missing or silent"):
             return
+        checkpoint(r)
         t = fresh()
         if not took(r, go(r, F1, DEST_UP, t), nm):
             return
@@ -908,6 +919,7 @@ def b7(r):
     try:
         n1, n2 = base(r, F1, F2)
         snap(r, F1, F2)
+        checkpoint(r)
         t = fresh()
         r.ctl("StartTask", [F1, "GoToLocation", DEST_NEAR, "1", "1"])
         r.ctl("StartTask", [F2, "GoToLocation", DEST_NEAR, "1", "1"])
@@ -936,6 +948,7 @@ def b8(r):
     from the bridge after death. Essential flag cleared first by console (INFERRED needed for a hireling)."""
     nm = base(r, F1)[0]
     snap(r, F1)
+    checkpoint(r)
     t = fresh()
     if not took(r, go(r, F1, DEST_UP, t), nm):
         return
@@ -988,6 +1001,7 @@ def b9(r):
     try:
         nm = base(r, F1)[0]
         snap(r, F1)
+        checkpoint(r)
         t = fresh()
         if not took(r, go(r, F1, DEST_UP, t), nm):
             return
@@ -1010,6 +1024,7 @@ def b10(r):
     try:
         nm = base(r, F1)[0]
         snap(r, F1)
+        checkpoint(r)
         t = fresh()
         if not took(r, go(r, F1, DEST_UP, t), nm):
             return
@@ -1050,6 +1065,7 @@ def b11(r):
     try:
         nm = base(r, F1)[0]
         snap(r, F1)
+        checkpoint(r)
         t = fresh()
         if not took(r, go(r, F1, DEST_UP, t), nm):
             return
@@ -1082,6 +1098,7 @@ def b12(r):
     try:
         nm = base(r, F1)[0]
         snap(r, F1)
+        checkpoint(r)
         t = fresh()
         if not took(r, go(r, F1, DEST_UP, t), nm):
             return
@@ -1114,6 +1131,7 @@ def b13(r):
         m = ctl_line(r, "SetIEWaitHours", [168.0], r"IEWaitHours prev=(\S+)", 10)
         if not need(r, m, "SetIEWaitHours wrapper missing"):
             return
+        checkpoint(r)
         t = fresh()
         if not took(r, go(r, F1, DEST_FAR, t), nm):
             return
@@ -1156,6 +1174,7 @@ def b14(r):
     IE SkipFollower* all true (IEB_IELib.psc:89-115; proposed SkipProbe wrapper); a new GoToLocation on F1 is silently
     refused (IE Core.psc:1075-1097 "Skipping GoToLocation for follower"); toggling back restores the old values."""
     sk0 = None
+    off = False     # ENABLE is logged only on a 0 -> 1 transition (IEB_Main.psc:138-151): toggle back only if switched off
     try:
         nm, hn = base(r, F1, H)
         snap(r, F1)
@@ -1163,6 +1182,7 @@ def b14(r):
         sk0 = skip_probe(r)
         if not need(r, sk0, "SkipProbe wrapper missing"):
             return
+        checkpoint(r)
         t = fresh()
         if not took(r, go(r, F1, DEST_UP, t), nm):
             return
@@ -1173,6 +1193,7 @@ def b14(r):
             r.inconclusive += 1
             r.log("INCONCLUSIVE B-14 lend part: H was not lent (%s)" % (hl,))
         td = fresh()
+        off = True
         con(r, "set IEB_Enabled to 0")
         d = td.wait(r"(?i)\[IEB\] DISABLE", 20)
         r.check(bool(d), "DISABLE")
@@ -1193,10 +1214,11 @@ def b14(r):
         r.check(bool(re.search(r"IntelEngine: Skipping GoToLocation for follower %s" % re.escape(nm), txt)),
                 "refused silently by IE's skip-follower check")
     finally:
-        te = fresh()
-        con(r, "set IEB_Enabled to 1")
-        e = te.wait(r"(?i)\[IEB\] ENABLE", 30)
-        r.check(bool(e), "ENABLE after toggling back")
+        if off:
+            te = fresh()
+            con(r, "set IEB_Enabled to 1")
+            e = te.wait(r"(?i)\[IEB\] ENABLE", 30)
+            r.check(bool(e), "ENABLE after toggling back")
         if sk0:
             sk2 = skip_probe(r) or {}
             r.check(all(sk2.get(k) == sk0[k] for k in SKIP_KEYS), "SkipFollower* restored (%s -> %s)" % (sk0, sk2))
@@ -1223,6 +1245,7 @@ def b15(r):
     try:
         nm = base(r, F1)[0]
         snap(r, F1)
+        checkpoint(r)
         t = fresh()
         m = ctl_line(r, "ScheduleMeeting", [F1, DEST_NEAR, "in 2 hours"], r"\[IEB-TEST\] ScheduleMeeting .* ok=(\w+)", 30)
         if not need(r, m and m.group(1).upper() == "TRUE", "ScheduleMeeting wrapper missing or refused (%s)"
@@ -1260,6 +1283,7 @@ def b16(r):
     no NFF warp. Destination WhiterunStablesMapMarker. Reload after (time and place changed)."""
     nm = base(r, F1)[0]
     snap(r, F1)
+    checkpoint(r)
     t = fresh()
     ww = fresh("watch")
     if not took(r, go(r, F1, DEST_FAR, t), nm):
@@ -1331,6 +1355,7 @@ def b18(r):
         ready = until(any_ok, 300, 10)
         if not need(r, ready, "SeverActions never settled (Carlotta has no eligible action in 5 min)"):
             return
+        checkpoint(r)
         row("S1", uf)
         r.ctl("NFFWait", [F1])
         time.sleep(3)
@@ -1406,6 +1431,7 @@ def b19(r):
         added = True
         b1_ = int(m.group(1))
         r.check(b1_ == b0 + 1, "test override added (ovr %d -> %d)" % (b0, b1_))
+        checkpoint(r)
         t = fresh()
         r.ctl("StartTask", [PROT, "GoToLocation", DEST_NEAR, "1", "0"])
         if not need(r, t.wait(r"IntelEngine: Allocated slot \d+ to %s for" % re.escape(pn), 25), "no IE slot for %s" % pn):
@@ -1452,6 +1478,7 @@ def b20(r):
     seat0 = (probe(r, F1) or {}).get("nffSeat")
     if not need(r, seat0 not in (None, "-1"), "F1 not seated"):
         return
+    checkpoint(r)
     seed = int(time.time())
     rnd = random.Random(seed)
     r.log("  seed %d" % seed)
@@ -1519,6 +1546,7 @@ def b21(r):
         p1 = (probe(r, F1) or {}).get("xyz")
         if not need(r, p1, "no position after the move"):
             return
+        checkpoint(r)
         d0 = dist2(p1, pa)
         # The watcher ticks every ~28 s in this load order (measured 2026-10-10 shakedown, also with the game focused),
         # so the 60 s watch uses the burst sampler (IEB_TestCtl.Burst: package/position only) instead.
@@ -1551,6 +1579,7 @@ def b22(r):
         r.ctl("Burst", [F1, 30.0])
         if not need(r, wb.wait(r"BURST START", 15), "no BURST START"):
             return
+        checkpoint(r)
         time.sleep(1.5)
         t = fresh()
         if not took(r, go(r, F1, DEST_UP, t), nm):
@@ -1739,6 +1768,7 @@ def b27(r):
     try:
         nm = base(r, F1, where=GATE)[0]
         snap(r, F1)
+        checkpoint(r)
         t = fresh()
         if not took(r, go(r, F1, DEST_MARKET, t), nm):
             return
@@ -1787,6 +1817,7 @@ def b28(r):
     next to the 0802 Held == 1 line, and sever_follow_state (noted only, not a failure)."""
     try:
         nm = base(r, F1, where=GATE)[0]
+        checkpoint(r)
         t = fresh()
         if not took(r, go(r, F1, DEST_MARKET, t), nm):
             return
@@ -1837,6 +1868,7 @@ def b31(r):
         seated = until(lambda: (lambda s: s if s and s["sit"] == 3 else None)(fstate()), 40, 2)
         if not need(r, seated, "F1 never sat (GetSitState 3)"):
             return
+        checkpoint(r)
         t = fresh()
         p0 = probe(r, F1) or {}
         t0 = time.time()

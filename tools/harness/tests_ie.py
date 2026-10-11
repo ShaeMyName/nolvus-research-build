@@ -11,7 +11,7 @@ Labels: VERIFIED = read in source; INFERRED = not run.
 """
 import re
 import time
-from block import test
+from block import test, checkpoint
 import tests_tm_l as T
 
 
@@ -49,6 +49,7 @@ def ie_r1(r):
         if not h or h.group(1) is None:
             return T.inconclusive(r, "HoldIEAlias wrapper missing or no free slot (%s)" % (h and h.group(2)))
         slot = int(h.group(1))
+        checkpoint(r)
         t = T.tail("papyrus")
         r.ctl("StartTask", [F, "GoToLocation", T.DEST_NEAR[0], "", ""])
         ref = t.wait(r"SLOT_REFUSED slot=%d reason=held [^\n]*requester=%s requesterId=" % (slot, re.escape(nmF)), timeout=15)
