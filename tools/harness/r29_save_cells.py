@@ -10,7 +10,7 @@ CONFIGPROBE (R31), and the meta model in openrouter_input.log (Shae's Flash swit
 import glob, os, re, sys, time
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-import game, keys
+import block, game, keys
 from runner import Run
 
 OUT = "C:/nolvus-research/test_runs/"
@@ -119,6 +119,9 @@ def cell(ctl, cid, how, errand):
         say("%s skipped: Timeline box still open" % cid)
         return False, None
     if errand:
+        # 20:05 rerun: without the block setup IE silently skips GoToLocation for a follower (T0 carries
+        # SkipFollower* ON); c2/c3/c4 so far had NO errand. Same setup as every U1 block load.
+        say("%s IE test settings: %s" % (cid, "verified" if block.ie_test_settings(ctl) else "NOT VERIFIED"))
         t = game.Tail(game.LOGS["papyrus"])
         ctl.ctl("StartTask", [F1, "GoToLocation", "Dragonsreach", "1", "1"])
         ok = t.wait(r"(?i)\[IEB\] TAKE actor=Jenassa", 30)
