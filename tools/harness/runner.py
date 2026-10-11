@@ -75,6 +75,8 @@ class Run:
         "MenuProbe": "(?i:MENUPROBE) ",
         "HeldProbe": "HELDPROBE ",
         "SlotsProbe": "SLOTSPROBE",
+        "DashCancel": "DASHCANCEL ",
+        "ReserveProbe": "RESERVEPROBE ",
         "AutoSaveNow": "AUTOSAVE requested",
         "NFFGuardOn": "NFFGuardOn",
         "NFFStaleFac": "NFFStaleFac",

@@ -132,6 +132,41 @@ Function Cancel(Int aiFormId)
     EndIf
 EndFunction
 
+Function DashCancel(Int aiFormId)
+    {REVIEW_LOG RV-72-upd: cancel exactly as the IntelEngine dashboard does (mod event, slot in numArg -> Core
+     OnDashboardCancelTask -> ClearSlotRestoreFollower, no MarkSlotProcessing first = the R54 teardown path).}
+    Actor a = A(aiFormId)
+    If a == None
+        Log("DASHCANCEL none")
+        Return
+    EndIf
+    Int slot = IEB_IELib.SlotOf(a)
+    Log("DASHCANCEL " + a.GetDisplayName() + " slot=" + slot)
+    If slot >= 0
+        SendModEvent("IntelEngine_DashboardCancelTask", "", slot as Float)
+    EndIf
+EndFunction
+
+Function ReserveProbe()
+    {REVIEW_LOG RV-72-upd: does the §2 reservation work on this build? Reserve a slot, read its stamp, check that the
+     non-reserving FindFreeAgentSlot skips it, release it, read again. Uses a free slot only; nothing is allocated.}
+    IntelEngine_Core core = IEB_IELib.IEQuest() as IntelEngine_Core
+    If core == None
+        Log("RESERVEPROBE none")
+        Return
+    EndIf
+    Int r = core.ReserveFreeAgentSlot()
+    If r < 0
+        Log("RESERVEPROBE reserve=-1 (no free slot or max tasks reached)")
+        Return
+    EndIf
+    Float age = core.IEB_ReservedAge(r)
+    Int f = core.FindFreeAgentSlot()
+    core.ReleaseSlotReservation(r)
+    Float after = core.IEB_ReservedAge(r)
+    Log("RESERVEPROBE reserved=" + r + " age=" + age + " find=" + f + " skipped=" + (f != r) + " afterRelease=" + after)
+EndFunction
+
 Function Recall(Int aiFormId, Int aiStay)
     {The CancelCurrentTask route: IEB_Main.CancelOrRecall (stayHere 1 = stay, 0 = come back).}
     Actor a = A(aiFormId)
