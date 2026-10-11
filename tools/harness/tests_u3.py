@@ -62,11 +62,11 @@ Q10_SWAP_APPROVED = False
 # T0-M cast (step8_time_plan.md:369). build_t0m.py fills these in; a None entry makes the tests that need it
 # INCONCLUSIVE. Reference FormIDs (ints).
 T0M = {
-    "spouse1": None,          # RDO-dialogue NPC, married; released from the MARAS house + SA home/work posts (MA-4/MA-6)
-    "spouse2": None,          # married, housed by MARAS (Breezehome), unposted, not following (MA-3/5/7, K-M2, DA-9)
-    "engaged": None,          # MARAS engaged NPC (MA-2a)
-    "lydia": None,            # housecarl
-    "follower_spouse": None,  # a spouse who is also an NFF follower (K-M3); None if T0-M has none
+    "spouse1": 0x00091918,  # Uthgerd: T0-M 2026-10-11 run 9 (married, st=2 r=4, teammate tm=1)          # RDO-dialogue NPC, married; released from the MARAS house + SA home/work posts (MA-4/MA-6)
+    "spouse2": 0x0001A69A,  # Ysolda: married + housed in Breezehome (housed=0, house 0x1F86F), tm=0          # married, housed by MARAS (Breezehome), unposted, not following (MA-3/5/7, K-M2, DA-9)
+    "engaged": 0x0001A6D6,  # Athis: engaged (st=1 r=3, LoveInterest of 0x74793)          # MARAS engaged NPC (MA-2a)
+    "lydia": 0x000A2C94,    # enabled DIRECTLY (RV-116 (7): the housecarl quest is not started in T0-M)            # housecarl
+    "follower_spouse": 0x00091918,  # Uthgerd is married AND following (tm=1); K-M3 re-checks NFF state  # a spouse who is also an NFF follower (K-M3); None if T0-M has none
     "rdo_friend": None,       # a friend whose RDO recruit/gift lines are in her menu (DA-9 parts 3-4)
 }
 EN4_CANDIDATES = (YSOLDA, CARLOTTA)   # EN-4's fresh fiancé: first loaded adult with no MARAS status, not enrolled
