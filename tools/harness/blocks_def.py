@@ -30,7 +30,7 @@ block("U1", "T0", ["tests_b", "tests_tm_l", "tests_misc", "tests_ie"], [
 # Unpadded estimates (time plan §5, re-tier §5): B ~2.5 h incl. B-20's 70 min; TM/L ~1.2 h; the rest ~1.2 h
 # (D-4's 29 min moved to the soak). Used only for the live ETA; the pace factor corrects them as tests finish.
 
-block("U2", "T0", ["tests_u2", "tests_u2_e", "tests_u2_wh", "tests_u2_len", "tests_u2_sc", "tests_u2_da", "tests_u2_ip"], [
+block("U2", "T0", ["tests_u2", "tests_u2_e", "tests_u2_wh", "tests_u2_len", "tests_u2_sc", "tests_u2_da", "tests_u2_ip", "tests_u2_misc"], [
     # harness API smoke first: every R5 test needs it
     "H-2",
     # witness emitter + perception scope (market)
@@ -45,14 +45,16 @@ block("U2", "T0", ["tests_u2", "tests_u2_e", "tests_u2_wh", "tests_u2_len", "tes
     "LEN-1", "LEN-2", "LEN-3", "LEN-5", "LEN-6", "LEN-8", "SEC-3", "SEC-1", "SEC-2", "SEC-4",
     # scene stack: joins/leaves first, the three 20-reply scenes last (60 LLM calls)
     "SC-7", "SC-8", "SC-9", "SC-11", "SC-12", "SC-13", "SC-10", "SC-1", "SC-3", "SC-4", "SC-2", "SC-5", "SC-6",
+    # equip-event audience, child addressed, storage
+    "X-6", "CS-2", "T10-1", "X-9", "X-10", "X-11", "MA-1", "AZ-11", "T10-3", "T10-7", "T10-8",
     # intimacy profiles (mechanics only; feature switched on per test, T0 reload after each)
     "IP-7", "IP-1", "IP-2", "IP-3", "IP-4", "IP-6",
     # saves/reloads last before the block's end
-    "IP-5", "LEN-4",
+    "IP-5", "T10-2", "LEN-4",
 ], est={"W/WE/E/RE": 45, "DA": 30, "WH/PV": 75, "LEN/SEC": 60, "SC": 70, "IP": 40, "H": 2},
    harness=True, voices=False, gamemaster=True)  # GameMaster stays on (several U2 checks are reaction-based; Shae 2026-10-10 'if unsure, keep it on')
 # REVIEW_LOG RV-90 (5): the two voice-dependent tests run in a short voiced sub-block after U2, started only with
 # >= 12 GB available (the voice server pushed the 31 GB machine to the edge on 10-10); memory gates stay on.
 block("U2V", "T0", ["tests_u2", "tests_u2_e", "tests_u2_len"], ["H-2", "E-2", "LEN-7"],
       est={"H": 2, "E": 5, "LEN": 10}, harness=True, voices=True, gamemaster=True, launch_min_avail_gb=12.0)
-# U2 written 2026-10-11 (RV-86). Still to add: X-6, X-9, X-10, X-11, the IP family, CS-2, MA-1, AZ-11, T10-1/2/3/7/8.
+# U2 written 2026-10-11 (RV-86): every U2 ID of the time plan has a test or a stub with its route.
