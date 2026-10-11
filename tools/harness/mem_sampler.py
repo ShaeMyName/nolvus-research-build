@@ -10,8 +10,9 @@ $o=Get-CimInstance Win32_OperatingSystem
 $m=Get-CimInstance Win32_PerfFormattedData_PerfOS_Memory
 $g=Get-Process SkyrimSE -ErrorAction SilentlyContinue | Select-Object -First 1
 $top=(Get-Process | Sort-Object PrivateMemorySize64 -Descending | Select-Object -First 5 | ForEach-Object { '{0}:{1:N1}' -f $_.ProcessName, ($_.PrivateMemorySize64/1GB) }) -join ' '
+$th=(Get-Process | Sort-Object HandleCount -Descending | Select-Object -First 5 | ForEach-Object { '{0}:{1}' -f $_.ProcessName, $_.HandleCount }) -join ' '
 $gp= if ($g) { '{0:N1}GB h={1}' -f ($g.PrivateMemorySize64/1GB), $g.HandleCount } else { '-' }
-'avail={0:N1}GB commit={1:N1}/{2:N1}GB({3}%) paged={4:N0}MB nonpaged={5:N0}MB game={6} top={7}' -f ($m.AvailableMBytes/1024), (($o.TotalVirtualMemorySize-$o.FreeVirtualMemory)/1MB), ($o.TotalVirtualMemorySize/1MB), [int](100*($o.TotalVirtualMemorySize-$o.FreeVirtualMemory)/$o.TotalVirtualMemorySize), ($m.PoolPagedBytes/1MB), ($m.PoolNonpagedBytes/1MB), $gp, $top
+'avail={0:N1}GB commit={1:N1}/{2:N1}GB({3}%) paged={4:N0}MB nonpaged={5:N0}MB game={6} top={7} handles={8}' -f ($m.AvailableMBytes/1024), (($o.TotalVirtualMemorySize-$o.FreeVirtualMemory)/1MB), ($o.TotalVirtualMemorySize/1MB), [int](100*($o.TotalVirtualMemorySize-$o.FreeVirtualMemory)/$o.TotalVirtualMemorySize), ($m.PoolPagedBytes/1MB), ($m.PoolNonpagedBytes/1MB), $gp, $top, $th
 """
 
 
