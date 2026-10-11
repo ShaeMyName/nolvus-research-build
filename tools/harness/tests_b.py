@@ -946,6 +946,10 @@ def b8(r):
     # Whiterun guards is an instant bounty and arrest (reviewer, after the run 16 jail). Post-U1 harness wrapper
     # KillUnattributed: base SetProtected(false) + SetEssential(false), then Kill(None); out of witness range if needed.
     # Undone by B-8's own reload (reload=True). Until it is installed, B-8 stays INCONCLUSIVE.
+    crime_rx = r"(?i)CRIMEPROBE whiterun=(-?\d+) violent=(-?\d+) curFaction=\S+ curGold=(-?\d+)"
+    pt = game.Tail(game.LOGS["papyrus"])
+    r.ctl("CrimeProbe", [])
+    gold0 = pt.wait(crime_rx, 20)
     if "KillUnattributed" in r.CTL_DONE:
         r.ctl("KillUnattributed", [F1])
     else:
@@ -967,6 +971,14 @@ def b8(r):
     sn = r.tails["skyrimnet"].read()
     crime = re.search(r"Menu 'Dialogue Menu' is opening|\(Dialogue\) [^:]*Guard: |DialogueCrimeGuards", sn)
     r.check(not crime, "no guard alarm / arrest after the kill (%s)" % (crime.group(0) if crime else "none"))
+    # post_u1_build_plan B-8: crime gold unchanged by the unattributed kill (CrimeProbe before vs now)
+    pt.mark()
+    r.ctl("CrimeProbe", [])
+    gold1 = pt.wait(crime_rx, 20)
+    if gold0 and gold1:
+        r.check(gold0.groups() == gold1.groups(), "crime gold unchanged by the kill (%s -> %s)" % (gold0.groups(), gold1.groups()))
+    else:
+        need(r, False, "CrimeProbe line missing (before=%s after=%s)" % (bool(gold0), bool(gold1)))
 
 
 @test("B-9", "B")
