@@ -512,6 +512,20 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
                    % (", ".join("%s=%d" % kv for kv in sorted(TRANSIENTS.items())) or "none"))
     narch = game.archive_logs("end")
     lf = game.log_findings()      # REVIEW_LOG RV-76 (3)/(5): any count above 0 is a finding
+    # REVIEW_LOG RV-108: OpenRouter errors per hour of play by variant; > ~1/h on a lane is a finding
+    try:
+        orf = game.openrouter_findings()
+        h = orf["hours"] or 0.0
+        errs = {}
+        for (lvl, cls, var), n in orf["by"].items():
+            if lvl == "error":
+                errs[var] = errs.get(var, 0) + n
+        worst = max(errs.values()) / h if errs and h > 0.05 else 0.0
+        summary.append("| OpenRouter errors/h by variant (%.2f h) | %s | | %s |" % (
+            h, "FINDING" if worst > 1.0 else "ok", ", ".join("%s %d (%.1f/h)" % (v, n, n / h if h > 0.05 else 0)
+                                                           for v, n in sorted(errs.items())) or "none"))
+    except Exception as e:
+        summary.append("| OpenRouter errors/h by variant | not computed | | %s |" % type(e).__name__)
     summary.append("| IE key/array findings (%d session(s)) | %s | | blank-key LOADKEYS fac=TRUE=%d TASKTYPE_RESTORED=%d array errors=%d (info: teardown-at-save blanks fac=False=%d) |"
                    % (lf.get("sessions", 0), "FINDING" if any(lf.get(k) for k in ("blank_key_loadkeys",
                       "tasktype_restored", "array_errors")) else "none", lf.get("blank_key_loadkeys", 0),

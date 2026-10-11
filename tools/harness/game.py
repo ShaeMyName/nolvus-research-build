@@ -275,6 +275,46 @@ def archive_logs(tag):
     return n
 
 
+def openrouter_findings():
+    """REVIEW_LOG RV-108: OpenRouter warnings/errors per variant per hour of play over this run's archived SkyrimNet
+    logs. Each OpenRouterInterface warning/error is attributed to the latest 'Using variant' / 'Processing template with
+    variant' line on the same thread id. Counts only. Returns {"hours": h, "by": {(level, class, variant): n}}."""
+    import collections
+    by, hours = collections.Counter(), 0.0
+    if not ARCHIVE[0]:
+        return {"hours": 0.0, "by": by}
+    best = {}                      # one copy per session: the largest file per first line (as log_findings does)
+    for p in glob.glob(ARCHIVE[0] + "*SkyrimNet*.log"):
+        try:
+            with open(p, encoding="utf-8", errors="replace") as fh:
+                head = fh.readline()
+        except OSError:
+            continue
+        if head not in best or os.path.getsize(p) > os.path.getsize(best[head]):
+            best[head] = p
+    for p in best.values():
+        last, first, end = {}, None, None
+        for line in open(p, encoding="utf-8", errors="replace"):
+            m = re.match(r"^\[(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)[^]]*\] \[(\d+)\]", line)
+            if not m:
+                continue
+            first = first or m.group(1)
+            end = m.group(1)
+            v = re.search(r"Using variant '([^']+)' for text generation|Processing template with variant '([^']+)'", line)
+            if v:
+                last[m.group(2)] = v.group(1) or v.group(2)
+            e = re.search(r"\[(warning|error)\] \[OpenRouterInterface\.cpp", line)
+            if e:
+                low = line.lower()
+                cls = "timeout" if "timeout" in low or "timed out" in low else "retry" if "retry" in low else \
+                    "empty" if "empty" in low else "other"
+                by[(e.group(1), cls, last.get(m.group(2), "?"))] += 1
+        if first and end:
+            fmt = "%Y-%m-%d %H:%M:%S"
+            hours += max(0.0, (time.mktime(time.strptime(end, fmt)) - time.mktime(time.strptime(first, fmt))) / 3600.0)
+    return {"hours": hours, "by": by}
+
+
 def log_findings():
     """REVIEW_LOG RV-76 (3)/(5): over every game session archived in this run (one Papyrus.0.log per session, the
     largest copy of each, keyed by its first line), count blank-key IEB_LOADKEYS, TASKTYPE_RESTORED and array
