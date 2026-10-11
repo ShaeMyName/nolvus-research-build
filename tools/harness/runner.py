@@ -33,6 +33,7 @@ class Run:
     def __init__(self, name):
         self.name, self.lines, self.fails, self.inconclusive = name, [], 0, 0
         self.forced = False          # set by block.py for tests on forced-state saves (Shae's rule 3)
+        self.setup_only = False      # set by block.py --setup-only: block.checkpoint() then stops the test
         self.t0 = time.time()
         self.c = MCP()
 
@@ -81,6 +82,8 @@ class Run:
         "PlayerWhere": "PLAYERPOS ",
         "PlayerPlace": "PLAYERPOS ",
         "CrashCtx": "CRASHCTX ",
+        "EquipFromList": "EQUIPLIST |EquipFromList:",
+        "BodySwap": "BODYSWAP ",
         "SetHour": "CRASHCTX ",
         "AutoSaveNow": "AUTOSAVE requested",
         "NFFGuardOn": "NFFGuardOn",
@@ -192,7 +195,7 @@ class Run:
 
     def save(self):
         os.makedirs(OUT, exist_ok=True)
-        p = OUT + "%s_%s.txt" % (self.name, time.strftime("%Y%m%d-%H%M%S"))
+        p = OUT + "%s_%s%s.txt" % (self.name, "setup_" if self.setup_only else "", time.strftime("%Y%m%d-%H%M%S"))
         open(p, "w", encoding="utf-8").write("\n".join(self.lines) + "\n")
         verdict = "%d FAIL" % self.fails if self.fails else ("INCONCLUSIVE (%d)" % self.inconclusive if self.inconclusive else "ALL PASS")
         self.log("saved %s; %s" % (p, verdict))
@@ -202,7 +205,8 @@ class Run:
         with open(t, "a", encoding="utf-8") as f:
             if new:
                 f.write("test,start,end,seconds,verdict\n")
-            f.write("%s,%s,%s,%d,%s\n" % (self.name + (" [forced state]" if self.forced else ""), time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.t0)),
+            f.write("%s,%s,%s,%d,%s\n" % (self.name + (" [forced state]" if self.forced else "")
+                                          + (" [setup-only]" if self.setup_only else ""), time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.t0)),
                                           time.strftime("%Y-%m-%d %H:%M:%S"), time.time() - self.t0, verdict))
         return verdict
 

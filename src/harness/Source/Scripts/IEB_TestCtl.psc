@@ -198,6 +198,39 @@ Function SetHour(Float afHour, Int aiFormId)
     CrashCtx(aiFormId)
 EndFunction
 
+Function EquipFromList(Int aiListId, String asPlugin, Int aiIndex)
+    {U2 WE-7: give the player the aiIndex-th form of a FormList (e.g. SceneControls IEB_MinimalBody 0x810, seeded at
+     runtime from verified Divine Elegance pieces) and equip it. Logs the form, never its name.}
+    FormList fl = Game.GetFormFromFile(aiListId, asPlugin) as FormList
+    If fl == None || aiIndex >= fl.GetSize()
+        Log("EquipFromList: no list or index out of range")
+        Return
+    EndIf
+    Form f = fl.GetAt(aiIndex)
+    Actor p = Game.GetPlayer()
+    If p.GetItemCount(f) < 1
+        p.AddItem(f, 1, True)
+    EndIf
+    p.EquipItem(f, False, True)
+    Utility.Wait(1.0)
+    Log("EQUIPLIST " + Watcher().Hex(f) + " size=" + fl.GetSize() + " worn=" + p.IsEquipped(f))
+EndFunction
+
+Function BodySwap()
+    {U2 WE-8: unequip the player's body item and re-equip it within ~0.3 s (outfit swap; the emitter debounces 1 s).}
+    Actor p = Game.GetPlayer()
+    Form b = p.GetWornForm(0x00000004)
+    If b == None
+        Log("BODYSWAP none")
+        Return
+    EndIf
+    p.UnequipItem(b, False, True)
+    Utility.Wait(0.3)
+    p.EquipItem(b, False, True)
+    Utility.Wait(0.5)
+    Log("BODYSWAP " + Watcher().Hex(b) + " worn=" + p.IsEquipped(b))
+EndFunction
+
 Function PlayerPlace(Float afX, Float afY, Float afZ)
     {REVIEW_LOG RV-79-upd: put the player at a position in the current (exterior) worldspace, then log it.}
     Game.GetPlayer().SetPosition(afX, afY, afZ)
