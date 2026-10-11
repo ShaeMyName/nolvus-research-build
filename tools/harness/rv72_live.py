@@ -119,7 +119,9 @@ def main():
         saved_mid = game.save(ctl, "IEB_RV72_mid")
         verdict("save_mid", saved_mid)
         # 3. teardown at save
-        probe(ctl, "DashCancel", [F1], "DASHCANCEL", "dashboard cancel (teardown-at-save)")
+        # 00:09 run: waiting for the DASHCANCEL line (~1 s) + the save call let ClearSlot finish before the save; send
+        # both back to back so the save lands inside the teardown (IEB_LOADKEYS on the td load then shows fac=False)
+        ctl.ctl("DashCancel", [F1], sync=False)
         saved_td = game.save(ctl, "IEB_RV72_td")
         verdict("save_td", saved_td)
         dec, _ = watch_decisions(30)

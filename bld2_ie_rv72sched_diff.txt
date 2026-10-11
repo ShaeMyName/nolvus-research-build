@@ -1,0 +1,31 @@
+# BLD-2 RV-72 stock Schedule (group rv72sched). A = stock 3.5.1 IntelEngine_Schedule.pex (bin/ie_baseline351; == installed IntelEngine mod pex by ie_callsites), B = this build. Expect: identical functions, variables, properties and call sites; only RestartMonitoring's two array tests change (If !ScheduledAgents).
+functions: A 33, B 33
+call sites: A 182, B 182
+IDENTICAL
+## installed stock vs this build
+functions: A 33, B 33
+call sites: A 182, B 182
+IDENTICAL
+## source diff vs pinned 3.5.1
+diff --git a/C:/nolvus-research/sdk/ie_roundtrip/src/IntelEngine_Schedule.psc b/src/intelengine/Source/Scripts/IntelEngine_Schedule.psc
+index 1ae05df..ffd4755 100644
+--- a/C:/nolvus-research/sdk/ie_roundtrip/src/IntelEngine_Schedule.psc
++++ b/src/intelengine/Source/Scripts/IntelEngine_Schedule.psc
+@@ -74,12 +74,13 @@ Function RestartMonitoring()
+     {Restart the schedule update loop after game load. Called by Core.Maintenance().
+     Quest scripts don't receive OnPlayerLoadGame ? this is the equivalent.
+     Script-level arrays survive save/load, so scheduled tasks are still intact.}
+-    If ScheduledAgents == None
++    ; Patch (REVIEW_LOG RV-72): `arr == None` fails in the VM ("Cannot cast from None to Actor[]"); If !arr is safe
++    If !ScheduledAgents
+         InitializeScheduleArrays()
+     EndIf
+ 
+     ; Safety: if arrays still None after init attempt (shouldn't happen), bail
+-    If ScheduledAgents == None
++    If !ScheduledAgents
+         Core.DebugMsg("Schedule: arrays still None after init — skipping recount")
+         ScheduledCount = 0
+         RegisterForNextDispatch()
+## gate
+ARRAY_NONE_GATE PASS: 6 pex, 0 ours, 0 stock upstream

@@ -1,6 +1,6 @@
 """Post-U1 IntelEngine hunks (post_u1_build_plan §1 timer fix F1/F2, §2 slot race) on build/src/intelengine.
 Usage: apply_patch_ie_s1s2.py <group>. Every anchor must match exactly once (CRLF kept). Same edit() as apply_patch_b.py.
-Groups: f1 | f2 | core-slot | callers | core-expiry | rv68 | rv68b | rv70 | rv72"""
+Groups: f1 | f2 | core-slot | callers | core-expiry | rv68 | rv68b | rv70 | rv72 | rv72sched"""
 import sys
 
 D = "C:/nolvus-research/build/src/intelengine/Source/Scripts/"
@@ -806,6 +806,29 @@ ReferenceAlias Function GetAgentAlias(Int slot)
                 If types && i < types.Length
                     t = types[i]
                 EndIf"""),
+])
+elif G == "rv72sched":   # REVIEW_LOG RV-72 live proof 2026-10-11: the only array errors left (7/7) are stock Schedule
+    # RestartMonitoring (`ScheduledAgents == None`, called from Core.Maintenance on every load). A wrong result there
+    # re-initialises (empties) the schedule arrays or zeroes ScheduledCount = scheduled IE tasks lost on load (INFERRED;
+    # T0 has no scheduled task). Schedule joins the patched set: copied unchanged from the pinned 3.5.1 source, then If-arr.
+    import shutil, os
+    src = "C:/nolvus-research/sdk/ie_roundtrip/src/IntelEngine_Schedule.psc"
+    if not os.path.exists(D + "IntelEngine_Schedule.psc"):
+        shutil.copyfile(src, D + "IntelEngine_Schedule.psc")
+    edit("IntelEngine_Schedule.psc", [
+("""    If ScheduledAgents == None
+        InitializeScheduleArrays()
+    EndIf
+""",
+"""    ; Patch (REVIEW_LOG RV-72): `arr == None` fails in the VM ("Cannot cast from None to Actor[]"); If !arr is safe
+    If !ScheduledAgents
+        InitializeScheduleArrays()
+    EndIf
+"""),
+("""    If ScheduledAgents == None
+        Core.DebugMsg(""",
+"""    If !ScheduledAgents
+        Core.DebugMsg("""),
 ])
 else:
     sys.exit("unknown group " + G)
