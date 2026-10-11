@@ -13,7 +13,7 @@ If the key is missing the app prints the `setx` line above and stops.
 ## First run (3 model calls)
 1. Rolls Jenassa's disposition with the Relationships mod's real `snrom_author_disposition` prompt (orientation, intimacy,
    ardor, exclusivity, why, limit), parsed with the game's own field rules. Saved to `disposition.json`.
-2. Writes her intimacy profile from it (the game's `ieb_intimacy_author` prompt). Saved to `profile_jenassa.md`.
+2. Writes her intimacy profile from it (the game's `ieb_intimacy_author` prompt). Saved to `_PRIVATE_profile_jenassa.md`.
 Later runs reuse both. If you edit `disposition.json` the app keeps your version and never re-rolls it.
 
 ## Commands
@@ -24,9 +24,12 @@ Later runs reuse both. If you edit `disposition.json` the app keeps your version
 
 ## Where files go
 Everything is in `C:\Users\sharp\Documents\LucPreview\` and nowhere else:
-- `transcripts\` your chats; `profile_jenassa.md`; `disposition.json` (+ `.sha256` used to tell if you edited it)
+- `transcripts\` your chats; `disposition.json` (+ `.sha256` used to tell if you edited it)
 - `scene_setup.txt` the scenario: place, time, weather, bond tier, memories, recent events. Edit freely. No quest content.
-- `last_system_prompt.txt`, `last_profile_prompt.txt`, `last_disposition_prompt.txt` exactly what was sent
+- `_PRIVATE_profile_jenassa.md`, `_PRIVATE_last_system_prompt.txt`, `_PRIVATE_last_profile_prompt.txt`,
+  `_PRIVATE_last_disposition_prompt.txt`: **these files are not for Shae to open.** They hold the intimacy profile and the
+  rendered prompts. The app never prints their text to the console either (`/profile` only says it rewrote the profile and
+  its size). Old-named copies are renamed to these names on start.
 
 ## What is real and what is faked
 Real templates: scene rules, response format, bond section (Lover tier), memories, event history (turned into the first chat
@@ -38,5 +41,5 @@ companion-feelings, combat and behaviour parts of the companion section, and the
 Traveling Party block). Relationship points are not shown to her, as in the game.
 
 Model, sort and provider ignore list come from the test profile's OpenRouter.yaml (default dialogue settings). Quantization is
-limited to fp8 or better; fp4 is never allowed. The reviewer may read the files in the folder. The key is never printed, logged
+limited to fp8 or better; fp4 is never allowed. The reviewer may read the files in the folder, except that Shae opens none of the `_PRIVATE_` files. The key is never printed, logged
 or saved.

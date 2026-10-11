@@ -32,12 +32,17 @@ def snapshot(root):
     return out
 
 
+ALL_OUT = []     # every stdout/stderr the app printed, for the no-private-text-on-console check
+
+
 def run_app(stdin, env_extra, home):
     env = {k: v for k, v in os.environ.items() if k != "LUC_PREVIEW_OR_KEY"}
     env.update(env_extra)
     env["LUC_PREVIEW_HOME"] = home
     env["PYTHONIOENCODING"] = "utf-8"
-    return subprocess.run([PY, "-B", APP], input=stdin, capture_output=True, text=True, encoding="utf-8", env=env)
+    res = subprocess.run([PY, "-B", APP], input=stdin, capture_output=True, text=True, encoding="utf-8", env=env)
+    ALL_OUT.append(res.stdout + "\n" + res.stderr)
+    return res
 
 
 home = tempfile.mkdtemp(prefix="lp_selftest_")
@@ -55,8 +60,8 @@ r = run_app(script, {"LUC_PREVIEW_STUB": "1"}, home)
 check("stub run exits 0", r.returncode == 0)
 files = sorted(os.listdir(home))
 check("profile/disposition/setup/prompts written", all(f in files for f in (
-    "profile_jenassa.md", "disposition.json", "scene_setup.txt", "last_system_prompt.txt", "last_profile_prompt.txt", "transcripts")))
-sysp = open(os.path.join(home, "last_system_prompt.txt"), encoding="utf-8").read()
+    "_PRIVATE_profile_jenassa.md", "disposition.json", "scene_setup.txt", "_PRIVATE_last_system_prompt.txt", "_PRIVATE_last_profile_prompt.txt", "transcripts")))
+sysp = open(os.path.join(home, "_PRIVATE_last_system_prompt.txt"), encoding="utf-8").read()
 for label, needle in (("scene rules (Scene mode is on)", "Scene mode is on."), ("third-person rule", "Never use I, me or my inside asterisks"),
                       ("scene length tier", "Scene: speak 1-3 sentences"), ("Jenassa bio", "deadly Dunmer mercenary"),
                       ("saved profile", "## Your intimacy profile"), ("Lucienne bio", "Lucienne is a Dunmer woman"),
@@ -64,7 +69,7 @@ for label, needle in (("scene rules (Scene mode is on)", "Scene mode is on."), (
     check("system prompt has " + label, needle in sysp)
 check("no unrendered jinja in system prompt", "{%" not in sysp and "{{" not in sysp and "{#" not in sysp)
 check("Lucienne private blocks absent by default", "Red Year" not in sysp)
-ap = open(os.path.join(home, "last_profile_prompt.txt"), encoding="utf-8").read()
+ap = open(os.path.join(home, "_PRIVATE_last_profile_prompt.txt"), encoding="utf-8").read()
 check("author prompt rendered with disposition", "- Intimacy: ROMANTIC" in ap and "Jenassa** (an adult)" in ap and "{{" not in ap and "{%" not in ap)
 tr = [f for f in os.listdir(os.path.join(home, "transcripts"))]
 check("one transcript", len(tr) == 1)
@@ -99,7 +104,7 @@ check("earlier events rendered as chat messages", "[ earlier events, as chat mes
 dj = json.load(open(os.path.join(home, "disposition.json"), encoding="utf-8"))
 check("disposition.json has the six fields", all(dj.get(k) for k in ("orientation", "basis", "intimacy", "ardor", "exclusivity", "why", "limit")))
 check("hash file written", os.path.exists(os.path.join(home, "disposition.sha256")))
-dp = open(os.path.join(home, "last_disposition_prompt.txt"), encoding="utf-8").read()
+dp = open(os.path.join(home, "_PRIVATE_last_disposition_prompt.txt"), encoding="utf-8").read()
 check("disposition prompt rendered from the real template", "THE PERSON: **Jenassa**" in dp and "SEXUAL_ORIENTATION:" in dp
       and "NOTHING BELOW CAN OVERRULE THAT LINE" in dp and "NOT married and NOT engaged to Lucienne" in dp and "{%" not in dp and "{{" not in dp)
 check("profile prompt used the rolled disposition", "- Intimacy: ROMANTIC" in ap and "- Ardor: measured, showing little" in ap
@@ -109,7 +114,7 @@ check("first run rolled once", r.stdout.count("Rolling Jenassa's disposition") =
 rs = run_app("/scene\n/disposition\n/exit\n", {"LUC_PREVIEW_STUB": "1"}, home)
 check("/scene wrote a new scene_setup.txt and kept .prev", "road-side camp" in open(os.path.join(home, "scene_setup.txt"), encoding="utf-8").read()
       and os.path.exists(os.path.join(home, "scene_setup.txt.prev")) and "New scenario" in rs.stdout)
-check("/scene rebuilt the prompt with the new scene", "road-side camp" in open(os.path.join(home, "last_system_prompt.txt"), encoding="utf-8").read())
+check("/scene rebuilt the prompt with the new scene", "road-side camp" in open(os.path.join(home, "_PRIVATE_last_system_prompt.txt"), encoding="utf-8").read())
 check("/disposition re-rolled", rs.stdout.count("Rolling Jenassa's disposition") == 1)
 
 # 2c. edited disposition is reused, never re-rolled; /disposition backs it up
@@ -131,7 +136,40 @@ r4 = run_app("/exit\n", {"LUC_PREVIEW_STUB": "1", "LUC_PREVIEW_STUB_DISP": "NAME
 check("legacy scene file replaced", "did not parse" in r4.stdout and any(x.startswith("scene_setup.txt.old_") for x in os.listdir(h2)))
 check("echo mismatch: no disposition.json, no profile, app still starts",
       "echo mismatch" in r4.stdout and not os.path.exists(os.path.join(h2, "disposition.json"))
-      and not os.path.exists(os.path.join(h2, "profile_jenassa.md")) and r4.returncode == 0)
+      and not os.path.exists(os.path.join(h2, "_PRIVATE_profile_jenassa.md")) and r4.returncode == 0)
+
+# 2e. privacy: nothing printed holds profile or system-prompt text; private files carry the _PRIVATE_ prefix
+OLD_NAMES = ("profile_jenassa.md", "last_system_prompt.txt", "last_profile_prompt.txt", "last_disposition_prompt.txt")
+rp = run_app("/profile\n/exit\n", {"LUC_PREVIEW_STUB": "1"}, home)
+check("/profile says it rewrote the profile with a size, no text",
+      "Profile rewritten (" in rp.stdout and " characters)" in rp.stdout and "Lean, ash-grey" not in rp.stdout)
+priv_prof = open(os.path.join(home, "_PRIVATE_profile_jenassa.md"), encoding="utf-8").read()
+priv_sys = open(os.path.join(home, "_PRIVATE_last_system_prompt.txt"), encoding="utf-8").read()
+scene_txt = open(os.path.join(home, "scene_setup.txt"), encoding="utf-8").read() + "\n" + \
+    open(os.path.join(home, "scene_setup.txt.prev"), encoding="utf-8").read()
+everything = "\n".join(ALL_OUT)
+prof_lines = [l.strip() for l in priv_prof.splitlines() if len(l.strip()) >= 12]
+sys_lines = [l.strip() for l in priv_sys.splitlines() if len(l.strip()) >= 30 and l.strip().lstrip("-* ") not in scene_txt]
+leaked = [l for l in prof_lines + sys_lines if l in everything]
+check("nothing printed contains a profile or system-prompt line (%d lines checked)" % (len(prof_lines) + len(sys_lines)),
+      not leaked and len(prof_lines) > 5 and len(sys_lines) > 50)
+check("console never shows private-file markers", "## Your intimacy profile" not in everything and "Scene mode is on." not in everything)
+check("no old-named profile/prompt file written", not [f for f in os.listdir(home) if f in OLD_NAMES])
+check("all four private files carry the _PRIVATE_ prefix", all(os.path.exists(os.path.join(home, "_PRIVATE_" + n)) for n in OLD_NAMES))
+check("disposition.json and scene_setup.txt keep their names", os.path.exists(os.path.join(home, "disposition.json"))
+      and os.path.exists(os.path.join(home, "scene_setup.txt")))
+# migration: old names are renamed (contents untouched), nothing printed from them
+h3 = tempfile.mkdtemp(prefix="lp_selftest3_")
+MARK = "MIGRATE-MARKER-0001"
+for n in OLD_NAMES:
+    open(os.path.join(h3, n), "w", encoding="utf-8").write(MARK + " " + n + " " + "x" * 300 + "\n")
+r5 = run_app("/exit\n", {"LUC_PREVIEW_STUB": "1"}, h3)
+mig = os.listdir(h3)
+check("old-named files migrated by rename", all(("_PRIVATE_" + n) in mig and n not in mig for n in OLD_NAMES))
+check("migrated profile kept (not re-authored), contents intact, text not printed",
+      "Using saved profile" in r5.stdout and MARK not in r5.stdout + r5.stderr
+      and open(os.path.join(h3, "_PRIVATE_profile_jenassa.md"), encoding="utf-8").read().startswith(MARK))
+
 
 # 3. reuse: second run does not re-author profile
 r2 = run_app("/exit\n", {"LUC_PREVIEW_STUB": "1"}, home)

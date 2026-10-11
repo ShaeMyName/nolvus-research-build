@@ -55,15 +55,30 @@ def say(s=""):
 def paths():
     return {
         "home": HOME,
-        "profile": f"{HOME}/profile_jenassa.md",
+        "profile": f"{HOME}/_PRIVATE_profile_jenassa.md",
         "disposition": f"{HOME}/disposition.json",
         "disp_hash": f"{HOME}/disposition.sha256",
-        "disp_prompt": f"{HOME}/last_disposition_prompt.txt",
+        "disp_prompt": f"{HOME}/_PRIVATE_last_disposition_prompt.txt",
         "setup": f"{HOME}/scene_setup.txt",
-        "prompt": f"{HOME}/last_system_prompt.txt",
-        "author": f"{HOME}/last_profile_prompt.txt",
+        "prompt": f"{HOME}/_PRIVATE_last_system_prompt.txt",
+        "author": f"{HOME}/_PRIVATE_last_profile_prompt.txt",
         "transcripts": f"{HOME}/transcripts",
     }
+
+
+# Files holding the intimacy profile or a rendered prompt. Shae must not open them (DECISIONS.md:13, REVIEW_LOG RV-172),
+# and nothing in this app prints their text to the console.
+LEGACY_PRIVATE = ("profile_jenassa.md", "last_system_prompt.txt", "last_profile_prompt.txt", "last_disposition_prompt.txt")
+
+
+def migrate_private_names():
+    """Rename old-named profile/prompt files to the _PRIVATE_ names. Never reads them."""
+    for old in LEGACY_PRIVATE:
+        op, np_ = f"{HOME}/{old}", f"{HOME}/_PRIVATE_{old}"
+        if os.path.exists(op):
+            if os.path.exists(np_):
+                np_ += ".old_" + time.strftime("%Y%m%d-%H%M%S")
+            os.replace(op, np_)
 
 
 def read(path):
@@ -1016,7 +1031,7 @@ def author_profile(cfg, p, rec):
     if len(text) < 200:
         raise ApiFailure("profile too short (%d chars); not stored" % len(text))
     write_private(p["profile"], text.strip() + "\n")
-    say("Profile saved: " + p["profile"])
+    say("Profile rewritten (%d characters). Not shown." % len(text.strip()))
     return text.strip()
 
 
@@ -1107,6 +1122,7 @@ def main(argv=None):
         return 2
     p = paths()
     os.makedirs(p["transcripts"], exist_ok=True)
+    migrate_private_names()
     cfg = load_routing()
     say("Jenassa preview. Model %s, sort %s, quantizations %s%s." % (
         cfg["model"], cfg["sort"], "/".join(cfg["quantizations"]), "  [STUB: no real calls]" if STUB else ""))
@@ -1216,5 +1232,17 @@ def main(argv=None):
             say("No reply (%s). Your line was not kept; try again." % e)
 
 
+def safe_main():
+    """Last-resort guard: an unexpected error prints only its type, never a traceback or message that could
+    carry profile or prompt text."""
+    try:
+        return main()
+    except SystemExit:
+        raise
+    except BaseException as e:
+        print("The preview stopped on an unexpected %s." % type(e).__name__, flush=True)
+        return 1
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(safe_main())
