@@ -2366,6 +2366,251 @@ Function SceneProbe(Int aiFormId)
     Log("SCENEP_END " + Watcher().Hex(a) + " aliases=" + n)
 EndFunction
 
+; ============================================================================ RV-142: friendly-fire probes (tests_ff.py)
+; NFF's "No Player Damage to Teammates" ($FF_NoPTDamage, MCM page 2). VERIFIED mechanism (decompiled nff/psc, plugin read 2026-10-11):
+;   the MCM click (nwsFollowerMCMExScript.psc:828-833) adds the Perk nwsNoTeamDamagePerk (nwsFollowerFramework.esp 0x2ECA12) to the
+;   player if missing, then flips nwsFollowerControllerScript.nwsNoPlayerDamage (quest nwsFollowerController 0x434F, Int Property
+;   :152) between 0 and 1. The perk is never removed; its entry points are conditioned on GetVMQuestVariable(0x434F,
+;   ::nwsNoPlayerDamage_var) == 1 (PERK 0x2ECA12 CTDA func 629), so the property IS the switch. The same property is loaded from
+;   the settings JSON "No_PlayerTeamDamage" (nwsFollowerMCMScript.psc:3078-3084). FFSet makes exactly those two writes.
+; Log tags carry an underscore (FF_...) so Papyrus never folds them to a same-named function.
+
+Perk Function FFPerk()
+    Return Game.GetFormFromFile(0x002ECA12, "nwsFollowerFramework.esp") as Perk
+EndFunction
+
+Function FFProbe()
+    {RV-142 read-back: FF_STATE on=<nwsNoPlayerDamage> perk=<player HasPerk> unforce=<nwsNTMDNoForce>.}
+    nwsFollowerControllerScript c = IEB_NFFLib.Ctl()
+    Perk pk = FFPerk()
+    If c == None || pk == None
+        Log("FF_STATE refused: no NFF controller or perk")
+        Return
+    EndIf
+    Log("FF_STATE on=" + c.nwsNoPlayerDamage + " perk=" + (Game.GetPlayer().HasPerk(pk) as Int) + " unforce=" + c.nwsNTMDNoForce)
+EndFunction
+
+Function FFSet(Int aiOn)
+    {RV-142: what the MCM option does (AddPerk if missing, then the 0/1 property). aiOn 0/1; -1 = read only. Ends with FFProbe.}
+    nwsFollowerControllerScript c = IEB_NFFLib.Ctl()
+    Perk pk = FFPerk()
+    If c == None || pk == None
+        Log("FF_STATE refused: no NFF controller or perk")
+        Return
+    EndIf
+    If aiOn == 0 || aiOn == 1
+        Actor pl = Game.GetPlayer()
+        If !pl.HasPerk(pk)
+            pl.AddPerk(pk)
+        EndIf
+        c.nwsNoPlayerDamage = aiOn
+    EndIf
+    FFProbe()
+EndFunction
+
+Function HealthProbe(Int aiFormId)
+    {RV-142: FF_HP <ref> cur max pct dead bleed ess combat. Works for spawned refs (signed Int FormIDs).}
+    Actor a = Game.GetForm(aiFormId) as Actor
+    If a == None
+        Log("FF_HP " + PO3_SKSEFunctions.IntToString(aiFormId, True) + " none")
+        Return
+    EndIf
+    Log("FF_HP " + Watcher().Hex(a) + " cur=" + a.GetActorValue("Health") + " max=" + a.GetActorValueMax("Health") \
+        + " pct=" + (a.GetActorValuePercentage("Health") * 100.0) + " dead=" + (a.IsDead() as Int) + " bleed=" + (a.IsBleedingOut() as Int) \
+        + " ess=" + (a.IsEssential() as Int) + " combat=" + (a.IsInCombat() as Int))
+EndFunction
+
+Function SetHealthPct(Int aiFormId, Float afPct)
+    {RV-142: current health -> afPct of the max (floor 1.0) with Damage/RestoreActorValue; a dead actor is refused. Ends with HealthProbe.}
+    Actor a = Game.GetForm(aiFormId) as Actor
+    If a == None
+        Log("FF_SETHP " + PO3_SKSEFunctions.IntToString(aiFormId, True) + " none")
+        Return
+    EndIf
+    If a.IsDead()
+        Log("FF_SETHP " + Watcher().Hex(a) + " refused: dead")
+        Return
+    EndIf
+    Float mx = a.GetActorValueMax("Health")
+    Float cur = a.GetActorValue("Health")
+    Float want = mx * afPct / 100.0
+    If want < 1.0
+        want = 1.0
+    EndIf
+    If want < cur
+        a.DamageActorValue("Health", cur - want)
+    ElseIf want > cur
+        a.RestoreActorValue("Health", want - cur)
+    EndIf
+    Log("FF_SETHP " + Watcher().Hex(a) + " want=" + want)
+    HealthProbe(aiFormId)
+EndFunction
+
+Function FFCalm(Int aiFormId)
+    {RV-142 between cases: revive a dead actor (Actor.Resurrect), end combat, health back to the max. Ends with HealthProbe.
+     INFERRED: NFF may react to a death before the revive; the test reloads afterwards.}
+    Actor a = Game.GetForm(aiFormId) as Actor
+    If a == None
+        Log("FF_CALM " + PO3_SKSEFunctions.IntToString(aiFormId, True) + " none")
+        Return
+    EndIf
+    Int wasDead = a.IsDead() as Int
+    If wasDead == 1
+        a.Resurrect()
+        Utility.Wait(1.0)
+    EndIf
+    a.StopCombat()
+    a.StopCombatAlarm()
+    Float mx = a.GetActorValueMax("Health")
+    Float cur = a.GetActorValue("Health")
+    If cur < mx
+        a.RestoreActorValue("Health", mx - cur)
+    EndIf
+    Log("FF_CALM " + Watcher().Hex(a) + " wasDead=" + wasDead)
+    HealthProbe(aiFormId)
+EndFunction
+
+Function FacePlace(Int aiTargetFid, Float afDist)
+    {RV-142: put the target afDist units straight ahead of the player (MoveTo with the player's yaw; the player is not rotated),
+     then log FF_FACE <ref> dist heading (GetHeadingAngle, 0 = dead ahead).}
+    Actor pl = Game.GetPlayer()
+    ObjectReference t = Game.GetForm(aiTargetFid) as ObjectReference
+    If t == None
+        Log("FF_FACE " + PO3_SKSEFunctions.IntToString(aiTargetFid, True) + " none")
+        Return
+    EndIf
+    Float az = pl.GetAngleZ()
+    t.MoveTo(pl, Math.Sin(az) * afDist, Math.Cos(az) * afDist, 0.0, False)
+    Utility.Wait(0.5)
+    Log("FF_FACE " + Watcher().Hex(t) + " dist=" + pl.GetDistance(t) + " heading=" + pl.GetHeadingAngle(t))
+EndFunction
+
+Int Function SpawnDummy(Int aiBaseFormId, Float afDist)
+    {RV-142 cosmetic control: place one actor afDist ahead of the player with its AI disabled (it neither attacks nor flees).
+     Logs FF_SPAWN base=<hex> ref=<hex>. Remove it with DespawnRef.}
+    Actor pl = Game.GetPlayer()
+    Form b = Game.GetForm(aiBaseFormId)
+    If b == None
+        Log("FF_SPAWN none")
+        Return 0
+    EndIf
+    ObjectReference r = pl.PlaceAtMe(b, 1, False, False)
+    Actor a = r as Actor
+    If a == None
+        Log("FF_SPAWN none")
+        Return 0
+    EndIf
+    a.EnableAI(False)
+    Float az = pl.GetAngleZ()
+    r.MoveTo(pl, Math.Sin(az) * afDist, Math.Cos(az) * afDist, 0.0, False)
+    Log("FF_SPAWN base=" + Watcher().Hex(b) + " ref=" + Watcher().Hex(r))
+    Return r.GetFormID()
+EndFunction
+
+Function DoCastFF(Spell asp, ObjectReference akTarget, String asTag)
+    Actor pl = Game.GetPlayer()
+    Int dlv = -1
+    Int ix = asp.GetCostliestEffectIndex()
+    MagicEffect me = asp.GetNthEffectMagicEffect(ix)
+    If me != None
+        dlv = me.GetDeliveryType()
+    EndIf
+    String how = "cast"
+    If dlv == 1
+        pl.DoCombatSpellApply(asp, akTarget)
+        how = "apply"
+    Else
+        asp.Cast(pl, akTarget)
+    EndIf
+    Log(asTag + " spell=" + Watcher().Hex(asp) + " target=" + Watcher().Hex(akTarget) + " delivery=" + dlv + " how=" + how \
+        + " dist=" + pl.GetDistance(akTarget))
+EndFunction
+
+Function CastAt(Int aiSpellLocalId, String asPlugin, Int aiTargetFid)
+    {RV-142: the player casts the spell at the target with Spell.Cast(player, target) (a Touch-delivery spell goes through
+     Actor.DoCombatSpellApply instead: Cast would need a touch). Logs FF_CAST spell= target= delivery= how= dist=.}
+    Spell sp = Game.GetFormFromFile(aiSpellLocalId, asPlugin) as Spell
+    ObjectReference t = Game.GetForm(aiTargetFid) as ObjectReference
+    If sp == None || t == None
+        Log("FF_CAST refused: spell=" + ((sp != None) as Int) + " target=" + ((t != None) as Int) + " plugin=" + asPlugin)
+        Return
+    EndIf
+    DoCastFF(sp, t, "FF_CAST")
+EndFunction
+
+Function ShoutAt(Int aiShoutLocalId, String asPlugin, Int aiWord, Int aiTargetFid)
+    {RV-142: the player's shout spell for word aiWord (1-3; SKSE Shout.GetNthSpell) cast with Spell.Cast(player, target). The
+     cooldown and the player's knowledge of the word do not apply (no shout is "used"). Logs FF_SHOUT ... like FF_CAST.}
+    Shout sh = Game.GetFormFromFile(aiShoutLocalId, asPlugin) as Shout
+    ObjectReference t = Game.GetForm(aiTargetFid) as ObjectReference
+    If sh == None || t == None || aiWord < 1 || aiWord > 3
+        Log("FF_SHOUT refused: shout=" + ((sh != None) as Int) + " target=" + ((t != None) as Int) + " word=" + aiWord)
+        Return
+    EndIf
+    Spell sp = sh.GetNthSpell(aiWord - 1)
+    If sp == None
+        Log("FF_SHOUT refused: no spell for word " + aiWord)
+        Return
+    EndIf
+    DoCastFF(sp, t, "FF_SHOUT")
+EndFunction
+
+Function FireArrow(Int aiTargetFid)
+    {RV-142: turn the player to the target (SetAngle: yaw = own + GetHeadingAngle, level pitch) and Weapon.Fire(player, iron arrow) with a
+     Long Bow (Skyrim.esm 0x3B562, 0x1397D; VERIFIED in gamedata/Skyrim.esm). Logs FF_ARROW target= heading= dist= (heading AFTER the turn).}
+    Actor pl = Game.GetPlayer()
+    ObjectReference t = Game.GetForm(aiTargetFid) as ObjectReference
+    Weapon bow = Game.GetFormFromFile(0x0003B562, "Skyrim.esm") as Weapon
+    Ammo am = Game.GetFormFromFile(0x0001397D, "Skyrim.esm") as Ammo
+    If t == None || bow == None || am == None
+        Log("FF_ARROW refused: target=" + ((t != None) as Int) + " bow=" + ((bow != None) as Int) + " ammo=" + ((am != None) as Int))
+        Return
+    EndIf
+    pl.SetAngle(0.0, pl.GetAngleY(), pl.GetAngleZ() + pl.GetHeadingAngle(t))
+    Utility.Wait(0.4)
+    bow.Fire(pl, am)
+    Log("FF_ARROW target=" + Watcher().Hex(t) + " heading=" + pl.GetHeadingAngle(t) + " dist=" + pl.GetDistance(t))
+EndFunction
+
+Function MeleeSetup(Int aiWeaponLocalId)
+    {RV-142: add + equip + draw a Skyrim.esm weapon on the player (Iron Sword 0x12EB7, Iron Greatsword 0x1359D). The previously worn
+     weapon is NOT restored (the melee test reloads). Logs FF_MELEE setup ... equipped=<0/1> drawn=<0/1>.}
+    Actor pl = Game.GetPlayer()
+    Weapon w = Game.GetFormFromFile(aiWeaponLocalId, "Skyrim.esm") as Weapon
+    If w == None
+        Log("FF_MELEE refused: no weapon")
+        Return
+    EndIf
+    pl.AddItem(w, 1, True)
+    pl.EquipItem(w, False, True)
+    pl.DrawWeapon()
+    Utility.Wait(2.0)
+    Log("FF_MELEE setup weapon=" + Watcher().Hex(w) + " equipped=" + ((pl.GetEquippedWeapon(False) == w) as Int) \
+        + " drawn=" + (pl.IsWeaponDrawn() as Int) + " has=" + pl.GetItemCount(w))
+EndFunction
+
+Function MeleeSwing(String asEvent)
+    {RV-142: Debug.SendAnimationEvent(player, asEvent) (a power-attack start event). There is no acknowledgement; the test
+     reads the target's health.}
+    Debug.SendAnimationEvent(Game.GetPlayer(), asEvent)
+    Log("FF_MELEE swing event=" + asEvent)
+EndFunction
+
+Function MeleeEnd(Int aiWeaponLocalId)
+    {RV-142: sheathe, unequip and remove the weapon MeleeSetup added. Logs FF_MELEE end ... has=<count>.}
+    Actor pl = Game.GetPlayer()
+    Weapon w = Game.GetFormFromFile(aiWeaponLocalId, "Skyrim.esm") as Weapon
+    If w == None
+        Log("FF_MELEE refused: no weapon")
+        Return
+    EndIf
+    pl.SheatheWeapon()
+    Utility.Wait(1.5)
+    pl.UnequipItem(w, False, True)
+    pl.RemoveItem(w, 1, True, None)
+    Log("FF_MELEE end weapon=" + Watcher().Hex(w) + " has=" + pl.GetItemCount(w) + " drawn=" + (pl.IsWeaponDrawn() as Int))
+EndFunction
+
 Function Log(String asMsg)
     Debug.Trace("[IEB-TEST] " + asMsg)
 EndFunction

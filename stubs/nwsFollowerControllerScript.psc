@@ -5,6 +5,8 @@ ScriptName nwsFollowerControllerScript Extends Quest conditional
 
 Faction Property nwsFF_SparFac Auto
 Int Property nwsCombatAware Auto Conditional Hidden          ; :70 (harness TM-5)
+Int Property nwsNoPlayerDamage Auto Conditional Hidden     ; nff/psc/nwsFollowerControllerScript.psc:152 (RV-142 FFSet/FFProbe)
+Int Property nwsNTMDNoForce = 1 Auto Conditional Hidden    ; nff/psc/nwsFollowerControllerScript.psc:148 (RV-142)
 
 Function FollowerWaitHere(Actor myActor, Int notify, Int doPerm)
 EndFunction
