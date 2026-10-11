@@ -59,6 +59,7 @@ def wait_arrival(t, timeout=600):
 
 
 def main():
+    game.set_archive("RV70_probe_%s" % time.strftime("%Y%m%d-%H%M%S"))
     # 1. T0 clean?
     ctl, pap, ok = fresh("T0")
     if ok:
@@ -103,6 +104,7 @@ def main():
         say("no-load arrival lines (RV-70 (b) duplicates): %d" % len(arr))
         for l in arr:
             say("  " + l)
+    game.archive_logs("end")
     game.close(None, timeout=60, force=True)
     open(OUT + "RV70_probe_%s.txt" % time.strftime("%Y%m%d-%H%M%S"), "w", encoding="utf-8").write("\n".join(LOG) + "\n")
     say("RV70 DONE")

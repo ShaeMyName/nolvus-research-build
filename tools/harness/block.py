@@ -124,6 +124,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
     missing = [t for t in order if t not in TESTS]
     stamp = time.strftime("%Y%m%d-%H%M%S")
     summary = ["# %s %s" % (name, stamp), "", "| Test | Verdict | Seconds | Note |", "|---|---|---|---|"]
+    game.set_archive("%s_%s" % (name, stamp))
     if missing:
         print("NOT IMPLEMENTED (skipped): %s" % ", ".join(missing))
         summary.append("| %s | NOT IMPLEMENTED | | skipped |" % ", ".join(missing))
@@ -333,6 +334,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
     p = OUT + "%s_%s.md" % (name, stamp)
     open(p, "w", encoding="utf-8").write("\n".join(summary) + "\n")
     ctl.log("summary %s" % p)
+    ctl.log("raw logs archived: %d file(s) in %s" % (game.archive_logs("end"), game.ARCHIVE[0]))
     print("BLOCK DONE %s %d/%d not ALL PASS; %.0f min" % (name, sum(1 for _, v in results if v != "ALL PASS"),
                                                          len(results), (time.time() - started) / 60), flush=True)
     ctl.save()

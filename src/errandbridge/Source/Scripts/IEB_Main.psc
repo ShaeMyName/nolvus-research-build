@@ -200,7 +200,14 @@ Function Discover()
                     Else
                         Classify(a)
                     EndIf
-                ElseIf held == 2 && live != ""
+                ElseIf held == 2
+                    ; REVIEW_LOG RV-70-upd (1): an actor in a slot during the rejoin phase is a re-task whatever its type
+                    ; reads. A blank live type (seen after a load, RV-70) falls back to the bridge's own copy
+                    ; (IEB_TaskType, CopyTask above) and is logged, instead of the re-task going unseen.
+                    If live == ""
+                        live = StorageUtil.GetStringValue(a, "IEB_TaskType", "")
+                        Log(2, "TYPE_FALLBACK actor=" + a.GetDisplayName() + " phase=rejoin type=" + live)
+                    EndIf
                     If IEB_IELib.IsStoryType(live)
                         DispatchConflict(a)                          ; a story beat on a rejoin-phase follower
                     Else

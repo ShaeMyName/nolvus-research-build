@@ -1,7 +1,7 @@
 """Game control and log tails for the step-8 blocks and the soak (one machine, TASK_C step 8; D2 2026-10-09: Claude
 launches and closes the test game, test profile only). Never touches Lucienne's profile; launching goes through
 play_test_profile.ps1 -Unattended (aborts instead of asking when free commit is low)."""
-import os, re, subprocess, time
+import glob, os, re, shutil, subprocess, time
 from mcp_client import MCP
 
 DOCS = os.path.expanduser("~/Documents/My Games/Skyrim Special Edition/")
@@ -194,6 +194,38 @@ def available_ram_gb():
     return int(out) / 1024.0 if out.isdigit() else 99.0
 
 
+ARCHIVE = [None, 0.0]       # [test_runs/<run>/raw/, run start] once set_archive() is called
+
+
+def set_archive(run):
+    """REVIEW_LOG RV-70-upd (2): keep the raw logs of every block and probe run (Papyrus rotates after 4 launches and
+    test_runs kept verdicts only, so a regression could not be told from old behaviour)."""
+    ARCHIVE[0] = "C:/nolvus-research/test_runs/%s/raw/" % run
+    ARCHIVE[1] = time.time()
+    os.makedirs(ARCHIVE[0], exist_ok=True)
+
+
+def archive_logs(tag):
+    """Copy the current game session's raw logs (Papyrus.0, the user script logs, SkyrimNet.log, SA native) and every
+    timestamped SkyrimNet session log written since the run started. Call before each launch and at the end."""
+    if not ARCHIVE[0]:
+        return 0
+    stamp = time.strftime("%H%M%S")
+    n = 0
+    srcs = [DOCS + "Logs/Script/Papyrus.0.log"] + glob.glob(DOCS + "Logs/Script/User/*.0.log") + \
+        [LOGS["skyrimnet"], LOGS["sa"]]
+    for p in srcs:
+        if os.path.exists(p) and os.path.getmtime(p) >= ARCHIVE[1]:
+            shutil.copy2(p, ARCHIVE[0] + "%s_%s_%s" % (stamp, tag, os.path.basename(p)))
+            n += 1
+    for p in glob.glob(DOCS + "SKSE/SkyrimNet.*.log"):
+        d = ARCHIVE[0] + os.path.basename(p)
+        if os.path.getmtime(p) >= ARCHIVE[1] and not os.path.exists(d):
+            shutil.copy2(p, d)
+            n += 1
+    return n
+
+
 def launch(log=print, timeout=20 * 60, voices=True):
     """Start the test profile unattended (voices=False adds -NoTTS: text/state blocks only; the soak and real play
     always run with voices, Shae 2026-10-10); return when MCP answers. False on any failure."""
@@ -201,6 +233,7 @@ def launch(log=print, timeout=20 * 60, voices=True):
     if running:
         log("LAUNCH refused: already running %s" % sorted(running))
         return False
+    archive_logs("prelaunch")     # the previous session's logs rotate away on this launch
     subprocess.Popen(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden",
                       "-File", LAUNCHER, "-Unattended"] + ([] if voices else ["-NoTTS"]),
                      creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0))

@@ -1,0 +1,7 @@
+# BLD-2 RV-70-upd (1): rejoin-phase blank type falls back to IEB_TaskType + TYPE_FALLBACK log. A = 6108096 IEB_Main.pex, B = this build. Other bridge pex identical. freeze_check PASS.
+functions: A 45, B 45
+call sites: A 531, B 534
+  discover                           getdisplayname                                 2 -> 3
+  discover                           log                                            2 -> 3
+  discover                           storageutil.getstringvalue                     0 -> 1
+DIFFERENT

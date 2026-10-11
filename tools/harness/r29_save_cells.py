@@ -188,6 +188,7 @@ def load_alone(name, harness):
 
 
 def main(mode):
+    game.set_archive("R29_%s" % time.strftime("%Y%m%d-%H%M%S"))
     harness = mode == "on"
     plan = ([("c7", "console", False), ("c7p", "papyrus", False)] if not harness else
             [("c8", "console", False), ("c9", "papyrus", False), ("c2", "console", True), ("c3", "papyrus", True),
@@ -204,6 +205,7 @@ def main(mode):
             good.append(name)
     for name in good:
         load_alone(name, harness)
+    game.archive_logs("end")
     game.close(None, timeout=60, force=True)
     say("SUMMARY cell | route | errand | MENUPROBE | verdict")
     for cid, (how, errand, mp, verdict) in RESULT.items():
