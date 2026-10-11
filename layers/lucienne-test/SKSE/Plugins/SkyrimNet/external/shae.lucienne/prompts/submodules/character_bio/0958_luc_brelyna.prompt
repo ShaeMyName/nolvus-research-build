@@ -1,0 +1,9 @@
+{# TEST STUB with a PLACEHOLDER TOKEN. Real text: lucienne/staging/0958_luc_brelyna.prompt. #}
+{% if render_mode == "full" %}
+{% if papyrus_util("GetIntValue", player.UUID, "LUC_Active", 0) == 1 and not decnpc(actorUUID).isVirtual and decnpc(actorUUID).name == "Brelyna Maryon" %}
+{% set _luc_pd = distance_between(actorUUID, player.UUID) %}
+{% if _luc_pd > 0 and _luc_pd <= 1600 %}
+TKN_PRIVATE_BRELYNA_MARYON
+{% endif %}
+{% endif %}
+{% endif %}

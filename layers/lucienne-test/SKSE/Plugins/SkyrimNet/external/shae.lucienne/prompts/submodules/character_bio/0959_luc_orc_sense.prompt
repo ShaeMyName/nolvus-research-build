@@ -1,0 +1,22 @@
+{# TEST STUB with PLACEHOLDER TOKENS (one per band). Real text: lucienne/staging/0959_luc_orc_sense.prompt. Gates are copied from it verbatim. #}
+{% if render_mode == "full" %}
+{% if papyrus_util("GetIntValue", player.UUID, "LUC_Active", 0) == 1 and not is_player(actorUUID) and not decnpc(actorUUID).isVirtual %}
+{% if lower(default(decnpc(actorUUID).race, "")) == "orc" %}
+{% set _luc_pd = distance_between(actorUUID, player.UUID) %}
+{% if _luc_pd > 0 and _luc_pd <= 1600 %}
+{% set _luc_bt = -1 %}{% if is_plugin_loaded("SNRom_Integration.esl") %}{% set _luc_bt = get_faction_rank(actorUUID, "SNRom_Bond") %}{% endif %}
+TKN_ORC_SENSE_HEADING
+{% if _luc_bt >= 4 %}
+TKN_ORC_SENSE_RANK_4_5
+{% elif _luc_bt >= 2 %}
+TKN_ORC_SENSE_RANK_2_3
+{% elif _luc_bt == 1 %}
+TKN_ORC_SENSE_RANK_1
+{% else %}
+TKN_ORC_SENSE_NOT_ENROLLED_OR_0
+{% endif %}
+TKN_ORC_SENSE_CLOSING
+{% endif %}
+{% endif %}
+{% endif %}
+{% endif %}

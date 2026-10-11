@@ -10,8 +10,10 @@ TT-9, TT-13/13b, TT-14a/b and TT-12 live (build/upstream/azuratest-stub/), with 
   - variable prefix _azt_ -> _luc_; comments name the spec section;
   - G1 and G2 also hide the prayer-marker narration (luc-prayer), for every viewer (spec §11.15.5; AZ-6);
   - verbatim gate is LUC_Praying == 1 only (the "Dusk enabled" stand-in is dropped, spec §11.15.4).
-Canon-content submodules (0955 Princes, 0960 identity) and 0965 also require LUC_Active == 1 on the player (round 8 §6
-backstop). Privacy gates never depend on LUC_Active.
+Canon-content submodules (0955 Princes, 0956-0958 per-NPC entries, 0959 orc sense, 0960 identity) and 0965 also
+require LUC_Active == 1 on the player (round 8 §6 backstop). Privacy gates never depend on LUC_Active.
+RV-113 (Shae approved 2026-10-11): 0957 Teldryn Sero and 0958 Brelyna Maryon go through npc_entry() (the 0956 wrapper
+with the NPC name as a parameter); 0959 orc sense is a full template from staging (test stub: tokens, gates verbatim).
 
 [CHANGED in build 2026-10-09]
   - "How Azura answers" is 0965_luc_dusk.prompt (spec: 0960_luc_dusk.prompt) so it renders after the 0960 identity
@@ -365,15 +367,18 @@ When you decide this prayer is over, end your final line with the marker ⟦luc-
 
 # ------------------------------------------------------------------ canon-derived files
 
-def priestess(body):
-    """Shae 2026-10-10 (DECISIONS, AI behaviour): the priestess at Azura's shrine senses who Lucienne is. Gates
-    (REVIEW_LOG reviewer conditions): render_mode "full" only = her OWN prompts (dialogue, memory, diary, actions;
-    bystanders and the speaker selector get dialogue_target / short_inline / interject_inline, so nobody else reads
-    it, VERIFIED skyrimnet.base 0100_actor_bios.prompt:1-3); Lucienne within talking range (distance_between, config
-    interaction.maxDistance 1600, CONFIGPROBE 2026-10-10), so the entry is absent when she talks to anyone else. Gates
-    wrap this entry only: her own event memories and SkyrimNet's quest context are untouched."""
+def npc_entry(name, body):
+    """Per-NPC knowledge entry keyed to one display name. First used for 0956 (Shae 2026-10-10, DECISIONS, AI
+    behaviour: the priestess at Azura's shrine senses who Lucienne is); RV-113 (Shae approved 2026-10-11) reuses it for
+    0957 Teldryn Sero and 0958 Brelyna Maryon. Gates (REVIEW_LOG reviewer conditions): render_mode "full" only = the
+    NPC's OWN prompts (dialogue, memory, diary, actions; bystanders and the speaker selector get dialogue_target /
+    short_inline / interject_inline, so nobody else reads it, VERIFIED skyrimnet.base 0100_actor_bios.prompt:1-3);
+    Lucienne within talking range (distance_between, config interaction.maxDistance 1600, CONFIGPROBE 2026-10-10), so
+    the entry is absent when she talks to anyone else. Gates wrap this entry only: the NPC's own event memories and
+    SkyrimNet's quest context are untouched. The name is an exact display-name match (RV113_drafts_notes.md §1)."""
+    assert name and '"' not in name, name
     return ("""{% if render_mode == "full" %}
-{% if """ + ACTIVE + """ and not decnpc(actorUUID).isVirtual and decnpc(actorUUID).name == "Aranea Ienith" %}
+{% if """ + ACTIVE + """ and not decnpc(actorUUID).isVirtual and decnpc(actorUUID).name == \"""" + name + """\" %}
 {% set _luc_pd = distance_between(actorUUID, player.UUID) %}
 {% if _luc_pd > 0 and _luc_pd <= 1600 %}
 """ + body.strip("\n") + """
@@ -381,6 +386,32 @@ def priestess(body):
 {% endif %}
 {% endif %}
 """)
+
+
+# 0956-style per-NPC entries: (file, display name, test token). Real text: lucienne/staging/<file> (body only).
+NPC_ENTRIES = [("0956_luc_azura_priestess.prompt", "Aranea Ienith", "TKN_PRIVATE_AZURA_PRIESTESS"),
+               ("0957_luc_teldryn.prompt", "Teldryn Sero", "TKN_PRIVATE_TELDRYN_SERO"),
+               ("0958_luc_brelyna.prompt", "Brelyna Maryon", "TKN_PRIVATE_BRELYNA_MARYON")]
+
+# 0959 orc sense (RV-113): a full template with its own gates (staging file). The test stub keeps every template line
+# ({% %} tags) and replaces each prose line, in order, with these tokens, so its gates are the staging gates verbatim.
+ORC_TOKENS = ["TKN_ORC_SENSE_HEADING", "TKN_ORC_SENSE_RANK_4_5", "TKN_ORC_SENSE_RANK_2_3", "TKN_ORC_SENSE_RANK_1",
+              "TKN_ORC_SENSE_NOT_ENROLLED_OR_0", "TKN_ORC_SENSE_CLOSING"]
+
+
+def orc_sense(src, test):
+    s = src.replace("\r\n", "\n")
+    assert s.count(ACTIVE) == 1 and s.count('lower(default(decnpc(actorUUID).race, "")) == "orc"') == 1
+    assert s.count('get_faction_rank(actorUUID, "SNRom_Bond")') == 1 and s.startswith('{% if render_mode == "full" %}')
+    if not test:
+        return s
+    s = re.sub(r"\{#.*?#\}\n", "", s, count=1, flags=re.S)          # the comment describes the real text
+    out, toks = [], iter(ORC_TOKENS)
+    for line in s.split("\n"):
+        out.append(line if (not line.strip() or line.lstrip().startswith("{%")) else next(toks))
+    assert next(toks, None) is None, "0959 prose lines != ORC_TOKENS"
+    return ("{# TEST STUB with PLACEHOLDER TOKENS (one per band). Real text: lucienne/staging/0959_luc_orc_sense.prompt."
+            " Gates are copied from it verbatim. #}\n" + "\n".join(out))
 
 if MODE == "test":
     w("prompts/characters/dusk_virtual.prompt", """{# TEST STUB with PLACEHOLDER TOKENS (no canon text in the test profile). Real text: lucienne/staging/dusk_virtual.prompt. #}
@@ -435,9 +466,10 @@ TKN_SHARED_APPEARANCE
 {% endif %}
 {% endif %}
 """)
-    w("prompts/submodules/character_bio/0956_luc_azura_priestess.prompt",
-      "{# TEST STUB with a PLACEHOLDER TOKEN. Real text: lucienne/staging/0956_luc_azura_priestess.prompt. #}\n"
-      + priestess("TKN_PRIVATE_AZURA_PRIESTESS"))
+    for fn, name, tok in NPC_ENTRIES:
+        w("prompts/submodules/character_bio/" + fn,
+          "{# TEST STUB with a PLACEHOLDER TOKEN. Real text: lucienne/staging/" + fn + ". #}\n" + npc_entry(name, tok))
+    w("prompts/submodules/character_bio/0959_luc_orc_sense.prompt", orc_sense(read(STAGE + "0959_luc_orc_sense.prompt"), True))
     os.makedirs("C:/nolvus-research/build/out/lucienne", exist_ok=True)
     open("C:/nolvus-research/build/out/lucienne/player_bio_TEST.prompt", "w", encoding="utf-8", newline="\n").write(
         "{# TEST placeholder of Lucienne's per-playthrough player bio (A12). Real text: lucienne/staging/lucienne_player_bio.prompt,\n"
@@ -454,7 +486,8 @@ else:
     s = read(STAGE + "0955_luc_princes.prompt")
     s = sub1(s, "{% if not decnpc(actorUUID).isVirtual %}", "{% if " + ACTIVE + " and not decnpc(actorUUID).isVirtual %}")
     w("prompts/submodules/character_bio/0955_luc_princes.prompt", s)
-    w("prompts/submodules/character_bio/0956_luc_azura_priestess.prompt",
-      priestess(read(STAGE + "0956_luc_azura_priestess.prompt")))
+    for fn, name, tok in NPC_ENTRIES:
+        w("prompts/submodules/character_bio/" + fn, npc_entry(name, read(STAGE + fn)))
+    w("prompts/submodules/character_bio/0959_luc_orc_sense.prompt", orc_sense(read(STAGE + "0959_luc_orc_sense.prompt"), False))
 
 print("shae.lucienne (%s): %d files written" % (MODE, len(files)))

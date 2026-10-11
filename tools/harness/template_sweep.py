@@ -39,6 +39,9 @@ EXPECT = {
     "0990_ieb_sectest.prompt": {("npc", "base"): "empty", ("bystander", "base"): "nonempty"},
     "0955_luc_princes.prompt": {("npc", "base"): "empty"},
     "0956_luc_azura_priestess.prompt": {("npc", "base"): "empty"},
+    "0957_luc_teldryn.prompt": {("npc", "base"): "empty"},        # RV-113: F1 is not Teldryn
+    "0958_luc_brelyna.prompt": {("npc", "base"): "empty"},        # RV-113: F1 is not Brelyna
+    "0959_luc_orc_sense.prompt": {("npc", "base"): "empty", ("player", "base"): "empty", ("child", "base"): "empty"},
     "0960_luc_dusk_identity.prompt": {("npc", "base"): "empty"},
     "0965_luc_dusk.prompt": {("npc", "base"): "empty"},
 }
