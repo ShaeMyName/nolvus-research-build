@@ -2255,6 +2255,78 @@ Function VengProbe(Int aiFormId)
     Log("VENGPROBE " + Watcher().Hex(a) + " rmStage=" + rm.GetStage() + " rmRun=" + (rm.IsRunning() as Int) + " li="         + Watcher().Hex(li) + " wedRun=" + (wed.IsRunning() as Int) + " asked=" + asked + " maras=" + MARAS.GetNpcStatusEnum(a))
 EndFunction
 
+; --- REVIEW_LOG RV-123 (3) read-back probes (readback_sweep.md table 3, 2026-10-11). Numbers and form IDs only.
+
+Function GlobalProbe(Int aiLocalId, String asPlugin)
+    {Logs GLOBAL <plugin>:<local hex> v=<GetValue> (or "none" when the form does not resolve).}
+    GlobalVariable g = Game.GetFormFromFile(aiLocalId, asPlugin) as GlobalVariable
+    String id = asPlugin + ":" + PO3_SKSEFunctions.IntToString(aiLocalId, True)
+    If g == None
+        Log("GLOBAL " + id + " none")
+        Return
+    EndIf
+    Log("GLOBAL " + id + " v=" + g.GetValue())
+EndFunction
+
+Function RefPos(Int aiFormId)
+    {Logs REFPOS <ref> cell=<hex> ws=<hex> x= y= z= dis=<0/1> loaded=<0/1>.}
+    ObjectReference r = Game.GetForm(aiFormId) as ObjectReference
+    If r == None
+        Log("REFPOS " + PO3_SKSEFunctions.IntToString(aiFormId, True) + " none")
+        Return
+    EndIf
+    Log("REFPOS " + Watcher().Hex(r) + " cell=" + Watcher().Hex(r.GetParentCell()) + " ws=" + Watcher().Hex(r.GetWorldSpace()) \
+        + " x=" + (r.GetPositionX() as Int) + " y=" + (r.GetPositionY() as Int) + " z=" + (r.GetPositionZ() as Int) \
+        + " dis=" + (r.IsDisabled() as Int) + " loaded=" + (r.Is3DLoaded() as Int))
+EndFunction
+
+Function RaceProbe(Int aiFormId)
+    {Logs RACE <actor> race=<hex>.}
+    Actor a = A(aiFormId)
+    If a != None
+        Log("RACE " + Watcher().Hex(a) + " race=" + Watcher().Hex(a.GetRace()))
+    EndIf
+EndFunction
+
+Function OwnerProbe(Int aiFormId)
+    {Logs OWNER <ref> actorOwner=<hex> factionOwner=<hex> isPlayer=<0/1>.}
+    ObjectReference r = Game.GetForm(aiFormId) as ObjectReference
+    If r == None
+        Log("OWNER " + PO3_SKSEFunctions.IntToString(aiFormId, True) + " none")
+        Return
+    EndIf
+    ActorBase ab = r.GetActorOwner()
+    Log("OWNER " + Watcher().Hex(r) + " actorOwner=" + Watcher().Hex(ab) + " factionOwner=" + Watcher().Hex(r.GetFactionOwner()) \
+        + " isPlayer=" + ((ab == Game.GetPlayer().GetActorBase()) as Int))
+EndFunction
+
+Function FactionRankProbe(Int aiFormId, Int aiFactionLocalId, String asPlugin)
+    {Logs FACRANK <actor> <plugin>:<local hex> rank=<GetFactionRank> in=<IsInFaction> (rank -1 = removed, -2 = never).}
+    Actor a = A(aiFormId)
+    Faction f = Game.GetFormFromFile(aiFactionLocalId, asPlugin) as Faction
+    If a == None || f == None
+        Log("FACRANK " + PO3_SKSEFunctions.IntToString(aiFormId, True) + " none")
+        Return
+    EndIf
+    Log("FACRANK " + Watcher().Hex(a) + " " + asPlugin + ":" + PO3_SKSEFunctions.IntToString(aiFactionLocalId, True) \
+        + " rank=" + a.GetFactionRank(f) + " in=" + (a.IsInFaction(f) as Int))
+EndFunction
+
+Function DespawnProbe(Int aiFormId)
+    {Logs DESPAWN <ref> dis=<0/1> dead=<0/1> deleted-or-none.}
+    ObjectReference r = Game.GetForm(aiFormId) as ObjectReference
+    If r == None
+        Log("DESPAWN " + PO3_SKSEFunctions.IntToString(aiFormId, True) + " none")
+        Return
+    EndIf
+    Int dead = 0
+    Actor a = r as Actor
+    If a != None
+        dead = a.IsDead() as Int
+    EndIf
+    Log("DESPAWN " + Watcher().Hex(r) + " dis=" + (r.IsDisabled() as Int) + " dead=" + dead + " loaded=" + (r.Is3DLoaded() as Int))
+EndFunction
+
 Function Log(String asMsg)
     Debug.Trace("[IEB-TEST] " + asMsg)
 EndFunction
