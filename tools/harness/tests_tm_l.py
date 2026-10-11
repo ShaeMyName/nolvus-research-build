@@ -314,6 +314,26 @@ def tm1(r):
         check_inv(r, F1)
 
 
+@test("H-1", "H")
+def h1(r):
+    """Harness mod-event smoke (consumer proof (c), first in U1): the IEB_TestDoor and IEB_TestSneak events must arrive.
+    A miss here is a FAIL (TM-2 / L-2 / TM-4 keep INCONCLUSIVE for later misses). DoorUse out of and back into
+    Arcadia's (the exact door's line, dest != None), then SneakRun(F1, 5 s, sneak 0): START..END with >= 3 rt rows."""
+    moveto(r, HOME_REF, 10)
+    for door in (DOOR_ARCADIA_EXT, DOOR_ARCADIA_INT):
+        m = ctl_wait(r, "DoorUse", [door], r"(?i)\[IEB-TEST\] DoorUse(?: %s dest=(?P<dest>\S+) destCell=\S+|: [^\n]*)"
+                     % fid_rx(door), 15)
+        r.check(bool(m) and bool(m.group("dest")) and m.group("dest").lower() != "none",
+                "IEB_TestDoor arrived for door %08X (%s)" % (door, m.group(0).strip() if m else "no DoorUse line"))
+        time.sleep(8)
+    moveto(r, HOME_REF, 10)
+    s = ctl_wait(r, "SneakRun", [F1, 5.0, 0],
+                 r"(?i)\[IEB-TEST\] SNEAK START[\s\S]*?\[IEB-TEST\] SNEAK END[^\n]*|\[IEB-TEST\] SneakRun: [^\n]*", 30)
+    rows = len(re.findall(r"(?i)SNEAK rt=", s.group(0))) if s else 0
+    r.check(bool(s) and re.search(r"(?i)SNEAK END", s.group(0)) is not None and rows >= 3,
+            "IEB_TestSneak arrived: SNEAK START..END with %d rt rows (%s)" % (rows, "seen" if s else "no line"))
+
+
 @test("TM-2", "TM")
 def tm2(r):
     """Start a task; within 3 s the player goes through a load door; repeat with F between the door and its
@@ -358,7 +378,10 @@ def tm2(r):
             r.check(bool(f) and f.get("ieSlot", -1) >= 0 and f.get("wfp") == 1.0,
                     "%s: F1 still on the errand and parked (slot %s, wfp %s)" % (label, f and f.get("ieSlot"), f and f.get("wfp")))
         finally:
-            r.ctl("DoorUse", [door_int])
+            back = ctl_wait(r, "DoorUse", [door_int], r"(?i)\[IEB-TEST\] DoorUse %s dest=[^\n]*" % fid_rx(door_int), 10)
+            if not back:
+                r.log("  WARN %s: return DoorUse line not seen; moving the player out" % label)
+                moveto(r, HOME_REF, 10)
             time.sleep(10)
             release_f(r, F1)
     moveto(r, HOME_REF, 10)
@@ -377,7 +400,7 @@ def tm4(r):
         time.sleep(3)
         windows = {}
         for secs, sneak in ((10.0, 0), (20.0, 1)):
-            m = ctl_wait(r, "SneakRun", [F1, secs, sneak], r"\[IEB-TEST\] SNEAK START[\s\S]*?\[IEB-TEST\] SNEAK END[^\n]*",
+            m = ctl_wait(r, "SneakRun", [F1, secs, sneak], r"(?i)\[IEB-TEST\] SNEAK START[\s\S]*?\[IEB-TEST\] SNEAK END[^\n]*",
                          secs + 20)
             if not m:
                 return inconclusive(r, "SneakRun (sneak=%d) produced no SNEAK START..END" % sneak)

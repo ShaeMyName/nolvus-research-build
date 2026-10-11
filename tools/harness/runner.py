@@ -92,7 +92,7 @@ class Run:
         "SUGetInt": "SU \\S+ \\S+ get=",
         "DespawnRef": "(?i:DESPAWN(?:REF)?) ",   # case_folding_audit.md: the installed pex prints "Despawn "
         "Dispatch": "Dispatch",
-        "DoorUse": "DoorUse|DoorUse:\\ ModEvent\\.Create\\ failed|DoorUse:\\ no\\ door",
+        "DoorUse": "DoorUse\\ 0x[0-9A-F]+\\ dest=|DoorUse:\\ ModEvent\\.Create\\ failed|DoorUse:\\ no\\ door",
         "ExpectLend": "ExpectLend",
         "FastTravelTo": "FastTravelTo|FastTravelTo:\\ no\\ ref",
         "FurnState": "FurnState",
@@ -132,7 +132,7 @@ class Run:
         "SitNearest": "SitNearest",
         "SkipProbe": "SkipProbe:\\ no\\ StoryEngine|SkipProbe\\ goto=",
         "Snapshot": "snapshot",
-        "SneakRun": "SNEAK\\ END|SNEAK\\ START|SNEAK\\ rt=|SneakRun:\\ ModEvent\\.Create\\ failed",
+        "SneakRun": "SNEAK\\ END|SNEAK\\ START|SNEAK\\ rt=|SneakRun:\\ ModEvent\\.Create\\ failed|SneakRun:\\ no\\ actor",
         "Spawn": "SPAWN\\ base=|SPAWN\\ none",
         "SpawnHostile": "SpawnHostile|SpawnHostile:\\ no\\ base\\ form",
         "Speak": "Speak",

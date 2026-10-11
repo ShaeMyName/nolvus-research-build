@@ -814,6 +814,7 @@ Function SneakRun(Int aiFormId, Float afSeconds, Int aiSneak)
     {TM-4: optional player sneak; samples player/actor sneak + actor pos every 0.5 s. Async.}
     Actor a = A(aiFormId)
     If a == None
+        Log("SneakRun: no actor")             ; consumer proof (c): no silent return
         Return
     EndIf
     RegisterForModEvent("IEB_TestSneak", "OnIEBSneak")
