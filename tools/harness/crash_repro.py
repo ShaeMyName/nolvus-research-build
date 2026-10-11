@@ -5,6 +5,8 @@
 Every load's IEB_LOADKEYS lines (with the f7ddfff sibling fields) are copied into the result (RV-79 (2): blank key
 + crash correlation). An arm stops at its first crash (game gone / MCP refused): the crash log name, time since
 load and time since arrival are recorded, and the next arm starts after the memory gate.
+RV-82: every arm logs CRASHCTX (game hour, days passed, Saffir's package + 3D) at start and every ~60 s;
+R2/R3 set R1's game hour (+-0.25 h) as well as its spot, else INCONCLUSIVE.
 Usage: crash_repro.py [arms, e.g. R1 or R1,R2,R3]   (game and MO2 closed; not run until Shae decides the reaper)"""
 import glob, os, re, sys, time
 sys.path.insert(0, os.path.dirname(__file__))
@@ -26,6 +28,18 @@ def say(m):
 
 
 POSF = OUT + "crash_repro_R1_pos.txt"
+HOURF = OUT + "crash_repro_R1_hour.txt"
+SAFFIR = 0x0001A66C   # RV-82: the actor processed in both crash logs (AI Overhaul package 0xCF001957)
+CTX_RX = r"(?i)CRASHCTX hour=(-?[\d.]+) days=(-?[\d.]+)[^\r\n]*"
+
+
+def ctx(ctl, label, op="CrashCtx", args=None):
+    """RV-82: game hour + days passed + Saffir's package / 3D state; returns the hour or None."""
+    t = game.Tail(game.LOGS["papyrus"])
+    ctl.ctl(op, args if args is not None else [SAFFIR], sync=False)
+    m = t.wait(CTX_RX, 30)
+    say("%s: %s" % (label, m.group(0) if m else "no CRASHCTX line"))
+    return float(m.group(1)) if m else None
 
 
 def where(ctl, label):
@@ -41,11 +55,17 @@ def crash_files():
     return set(glob.glob(CRASHES + "crash-*.log"))
 
 
-def idle(label, t_load, t_arr, before):
-    """Watch for WATCH s; True if the game survived."""
-    t0 = time.time()
+def idle(label, t_load, t_arr, before, ctl=None):
+    """Watch for WATCH s; True if the game survived. CRASHCTX every ~60 s (RV-82)."""
+    t0, last = time.time(), 0.0
     while time.time() - t0 < WATCH:
         time.sleep(15)
+        if "SkyrimSE.exe" in game.procs() and ctl and time.time() - last >= 60:
+            last = time.time()
+            try:
+                ctx(ctl, "%s idle +%ds" % (label, time.time() - t0))
+            except Exception as e:
+                say("%s ctx failed: %s" % (label, e))
         if "SkyrimSE.exe" not in game.procs():
             new = sorted(crash_files() - before)
             say("%s CRASH after %d s idle; %d s since load%s; crash log %s"
@@ -90,6 +110,19 @@ def arm(name):
         if not pos2 or pos2[0] != r1[0] or abs(float(pos2[2]) - float(x)) > 300 or abs(float(pos2[3]) - float(y)) > 300:
             say("%s INCONCLUSIVE: player not at R1's spot (R1 %s, now %s)" % (name, r1, pos2))
             return None
+    if name == "R1":
+        h = ctx(ctl, "R1 start")
+        if h is not None:
+            open(HOURF, "w").write("%.4f" % h)
+    else:
+        if not os.path.exists(HOURF):
+            say("%s INCONCLUSIVE: no R1 hour recorded (%s)" % (name, HOURF))
+            return None
+        want = float(open(HOURF).read())
+        h = ctx(ctl, name + " hour set", "SetHour", [want, SAFFIR])
+        if h is None or abs(h - want) > 0.25:
+            say("%s INCONCLUSIVE: game hour %s, R1 had %.2f" % (name, h, want))
+            return None
     text = pap.read()
     for l in text.splitlines():
         if "IEB_LOADKEYS" in l or "TASKTYPE_RESTORED" in l:
@@ -109,7 +142,7 @@ def arm(name):
         else:
             say("%s INCONCLUSIVE: no arrival in 900 s" % name)
             return None
-    survived = idle(name, t_load, t_arr, before)
+    survived = idle(name, t_load, t_arr, before, ctl)
     if survived:
         game.archive_logs(name)
         game.close(None, timeout=60, force=True)
@@ -124,6 +157,10 @@ def main():
     run_id = "CRASH_repro_%s" % time.strftime("%Y%m%d-%H%M%S")
     game.set_archive(run_id)
     arms = sys.argv[1].split(",") if len(sys.argv) > 1 else ["R1", "R2", "R3"]
+    if "R1" in arms:                      # a fresh R1 sets the spot and hour the controls must match
+        for f in (POSF, HOURF):
+            if os.path.exists(f):
+                os.remove(f)
     res = {}
     for a in arms:
         try:

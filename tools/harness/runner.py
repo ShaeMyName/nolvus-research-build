@@ -80,6 +80,8 @@ class Run:
         "HeadStartOp": "HSOP ",
         "PlayerWhere": "PLAYERPOS ",
         "PlayerPlace": "PLAYERPOS ",
+        "CrashCtx": "CRASHCTX ",
+        "SetHour": "CRASHCTX ",
         "AutoSaveNow": "AUTOSAVE requested",
         "NFFGuardOn": "NFFGuardOn",
         "NFFStaleFac": "NFFStaleFac",

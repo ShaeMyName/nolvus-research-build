@@ -175,6 +175,29 @@ Function PlayerWhere()
         + " y=" + p.GetPositionY() + " z=" + p.GetPositionZ())
 EndFunction
 
+Function CrashCtx(Int aiFormId)
+    {REVIEW_LOG RV-82: in-game time (packages are scheduled) plus one actor's current package and 3D state.
+     hour = GameHour, days = GameDaysPassed (day of week derived offline).}
+    GlobalVariable hr = Game.GetFormFromFile(0x38, "Skyrim.esm") as GlobalVariable
+    GlobalVariable dp = Game.GetFormFromFile(0x39, "Skyrim.esm") as GlobalVariable
+    Actor a = Game.GetForm(aiFormId) as Actor
+    String s = "CRASHCTX hour=" + hr.GetValue() + " days=" + dp.GetValue()
+    If a
+        s += " actor=" + a.GetDisplayName() + " pkg=" + Watcher().Hex(a.GetCurrentPackage()) + " loaded=" + a.Is3DLoaded() \
+            + " cell=" + Watcher().Hex(a.GetParentCell())
+    Else
+        s += " actor=none"
+    EndIf
+    Log(s)
+EndFunction
+
+Function SetHour(Float afHour, Int aiFormId)
+    {REVIEW_LOG RV-82: match R1's in-game hour (same as console set gamehour), then log CrashCtx.}
+    (Game.GetFormFromFile(0x38, "Skyrim.esm") as GlobalVariable).SetValue(afHour)
+    Utility.Wait(2.0)
+    CrashCtx(aiFormId)
+EndFunction
+
 Function PlayerPlace(Float afX, Float afY, Float afZ)
     {REVIEW_LOG RV-79-upd: put the player at a position in the current (exterior) worldspace, then log it.}
     Game.GetPlayer().SetPosition(afX, afY, afZ)
