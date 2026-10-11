@@ -2327,6 +2327,45 @@ Function DespawnProbe(Int aiFormId)
     Log("DESPAWN " + Watcher().Hex(r) + " dis=" + (r.IsDisabled() as Int) + " dead=" + dead + " loaded=" + (r.Is3DLoaded() as Int))
 EndFunction
 
+Function SceneProbe(Int aiFormId)
+    {RV-137 (S3bp F1): what holds an actor in StoryAliasHeld, by numbers only (no quest or scene names). Scene: its FormID,
+     IsPlaying, owning quest FormID + plugin, whether that quest is in quest_integrity story_quests, running, and has a
+     displayed-not-completed objective (0..63). Then one line per reference alias the actor holds: owning quest FormID,
+     plugin, running, in story list, open objective. Logs SCENEP <actor> ... and SCENEP_ALIAS <actor> i=<n> ...}
+    Actor a = A(aiFormId)
+    If a == None
+        Return
+    EndIf
+    String qi = "../ErrandBridge/quest_integrity"
+    Scene sc = a.GetCurrentScene()
+    String s = "SCENEP " + Watcher().Hex(a) + " scene=" + Watcher().Hex(sc)
+    If sc != None
+        Quest q = sc.GetOwningQuest()
+        s += " playing=" + (sc.IsPlaying() as Int) + " q=" + Watcher().Hex(q)
+        If q != None
+            s += " plugin=" + PO3_SKSEFunctions.GetFormModName(q, False) + " story=" + (JsonUtil.FormListHas(qi, "story_quests", q) as Int) \
+                + " run=" + (q.IsRunning() as Int) + " openObj=" + (IEB_EssLib.HasOpenObjective(q) as Int)
+        EndIf
+    EndIf
+    Log(s)
+    Int n = a.GetNumReferenceAliases()
+    Int i = 0
+    While i < n
+        ReferenceAlias ra = a.GetNthReferenceAlias(i)
+        Quest q = None
+        If ra != None
+            q = ra.GetOwningQuest()
+        EndIf
+        If q != None
+            Log("SCENEP_ALIAS " + Watcher().Hex(a) + " i=" + i + " q=" + Watcher().Hex(q) + " plugin=" + PO3_SKSEFunctions.GetFormModName(q, False) \
+                + " run=" + (q.IsRunning() as Int) + " story=" + (JsonUtil.FormListHas(qi, "story_quests", q) as Int) \
+                + " openObj=" + (IEB_EssLib.HasOpenObjective(q) as Int))
+        EndIf
+        i += 1
+    EndWhile
+    Log("SCENEP_END " + Watcher().Hex(a) + " aliases=" + n)
+EndFunction
+
 Function Log(String asMsg)
     Debug.Trace("[IEB-TEST] " + asMsg)
 EndFunction
