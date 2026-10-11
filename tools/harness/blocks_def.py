@@ -54,12 +54,31 @@ block("U2", "T0", ["tests_u2", "tests_u2_e", "tests_u2_wh", "tests_u2_len", "tes
     # saves/reloads last before the block's end
     "IP-5", "T10-2", "LEN-4",
 ], est={"W/WE/E/RE": 45, "DA": 30, "WH/PV": 75, "LEN/SEC": 60, "SC": 70, "IP": 40, "H": 2},
-   harness=True, voices=False, gamemaster=True)  # GameMaster stays on (several U2 checks are reaction-based; Shae 2026-10-10 'if unsure, keep it on')
+   harness=True, voices=False, gamemaster=True,  # GameMaster stays on (several U2 checks are reaction-based; Shae 2026-10-10 'if unsure, keep it on')
+   early_stop=(8, 0.4))   # REVIEW_LOG RV-153 (2): >= 40% of the first 8 counted tests INCONCLUSIVE -> HALT ("EARLY STOP: k of N INCONCLUSIVE"); by-design stubs/judgement tests are not counted (block.early_stop_class)
 # REVIEW_LOG RV-90 (5): the two voice-dependent tests run in a short voiced sub-block after U2, started only with
 # >= 12 GB available (the voice server pushed the 31 GB machine to the edge on 10-10); memory gates stay on.
 block("U2V", "T0", ["tests_u2", "tests_u2_e", "tests_u2_len"], ["H-2", "E-2", "LEN-7"],
       est={"H": 2, "E": 5, "LEN": 10}, harness=True, voices=True, gamemaster=True, launch_min_avail_gb=12.0)
 # U2 written 2026-10-11 (RV-86): every U2 ID of the time plan has a test or a stub with its route.
+
+# U2SMOKE: the U2 INTERFACE SMOKE (REVIEW_LOG RV-153 (1)). One FULL (not setup-only) run of the fewest U2-A tests that between them reach
+# every distinct GUESSED interface item (investigation/round10/u2_interface_inventory.md; the same inventory is data in
+# u2_interface_report.py, which turns this block's results into "guessed name -> WORKED / FAILED / NOT REACHED"). No early_stop:
+# the smoke runs to the end whatever comes back. GameMaster off (NT-2, the one GM test of U2-A, is not in the set).
+# Order: the two no-reload tests first (T0 as loaded), then the LLM/harness-HTTP tests, then the world tests. `fixed` = the U2 block's
+# own effective per-test estimate (its family minutes spread over the family), except NT-4 (4 waits + 1 save/load: 8) and CS-2 (two
+# LLM replies: 4), which U2 only carries at the 2-minute default. Every reload=True test adds ~3 min of reload+settle that `fixed`
+# does not include (U1 measured 170-200 s/test), shown by the ETA's overhead term.
+block("U2SMOKE", "T0", ["tests_u2", "tests_u2_da", "tests_u2_wh", "tests_u2_len", "tests_u2_sc", "tests_u2_misc", "tests_u2_nt"], [
+    "H-2", "DA-1",
+    "DA-3", "SEC-3", "SEC-2", "SEC-4",
+    "WE-1", "X-6", "CS-2", "SC-9",
+    "W-3", "PV-3", "PV-4",
+    "NT-4",
+], fixed={"H-2": 2, "DA-1": 3.75, "DA-3": 3.75, "SEC-3": 5.45, "SEC-2": 5.45, "SEC-4": 5.45, "WE-1": 3.46, "X-6": 2, "CS-2": 4,
+          "SC-9": 5.38, "W-3": 3.46, "PV-3": 5.36, "PV-4": 5.36, "NT-4": 8},
+      harness=True, voices=False, gamemaster=False)
 
 # U3 "restarts + watches" (time plan §5 :380), written 2026-10-11 (tests_u3*.py). One time-plan block, five sub-blocks,
 # run in U3_SEQUENCE order:

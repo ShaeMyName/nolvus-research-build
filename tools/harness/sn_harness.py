@@ -12,7 +12,7 @@ Endpoints VERIFIED as strings in the 25.1 DLL (tools/skyrimnet_b25_1_dll_strings
 Body field names come from the DLL's own validation messages; anything not named there is INFERRED and marked so.
 Never sends keys; the dashboard needs no token in the test config (Auth access_token empty). Requests and responses
 are logged by length and status only, never their text (spoiler / prose rules)."""
-import json, urllib.error, urllib.parse, urllib.request
+import json, re, time, urllib.error, urllib.parse, urllib.request
 
 BASE = "http://127.0.0.1:8080/harness"
 HEADERS = {"Content-Type": "application/json", "Origin": "http://127.0.0.1:8080"}   # 'refused: foreign origin' guard
@@ -22,12 +22,50 @@ class HarnessError(Exception):
     pass
 
 
+TRACE = "C:/nolvus-research/test_runs/iface_trace.jsonl"     # u2_interface_report.py reads this (REVIEW_LOG RV-153)
+_ENUM_KEYS = ("kind", "timeout_s", "event_type", "pacing_governor", "button", "menu", "say", "defer", "api")   # values kept as is (no text, no ids)
+
+
+def _shape(v, depth=0):
+    """Field NAMES and value types of a response, never text: a bool/number keeps its value, a string only its length (or
+    'hex<len>' when it looks like an id), a list its length and its first items' shapes. No prose or event text is stored."""
+    if isinstance(v, bool) or isinstance(v, (int, float)):
+        return v
+    if isinstance(v, str):
+        return ("hex%d" % len(v)) if re.fullmatch(r"[0-9A-Fa-fxX{}\-]{6,40}", v) else "str%d" % len(v)
+    if v is None:
+        return None
+    if depth >= 3:
+        return type(v).__name__
+    if isinstance(v, dict):
+        return {str(k): _shape(x, depth + 1) for k, x in list(v.items())[:40]}
+    if isinstance(v, list):
+        return {"list": len(v), "items": [_shape(x, depth + 1) for x in v[:3]]}
+    return type(v).__name__
+
+
+def _trace(method, api, params, body, status, ms, out, err):
+    """One JSON line per /harness call to TRACE: endpoint, parameter and body field names, HTTP status, duration, response shape.
+    Never raises (a failed trace must not change a test)."""
+    try:
+        rec = {"t": round(time.time(), 3), "m": method, "api": api,
+               "params": {k: (v if k in _ENUM_KEYS else "set") for k, v in (params or {}).items()},
+               "body": {k: (v if k in _ENUM_KEYS else _shape(v)) for k, v in body.items()} if isinstance(body, dict) else None,
+               "status": status, "ms": int(ms),
+               "resp": _shape(out) if out is not None else None, "err": (err or None) and str(err)[:160]}
+        with open(TRACE, "a", encoding="utf-8") as f:
+            f.write(json.dumps(rec) + "\n")
+    except Exception:
+        pass
+
+
 def _call(method, api, params=None, body=None, timeout=30):
     q = {"api": api}
     q.update({k: v for k, v in (params or {}).items() if v is not None})
     url = BASE + "?" + urllib.parse.urlencode(q)
     data = json.dumps(body).encode("utf-8") if body is not None else None
     req = urllib.request.Request(url, data=data, method=method, headers=HEADERS)
+    t0 = time.time()
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             raw = resp.read().decode("utf-8", "replace")
@@ -35,11 +73,14 @@ def _call(method, api, params=None, body=None, timeout=30):
     except urllib.error.HTTPError as e:
         raw, status = e.read().decode("utf-8", "replace"), e.code
     except (urllib.error.URLError, OSError) as e:
+        _trace(method, api, q, body, None, (time.time() - t0) * 1000, None, "%s: %s" % (type(e).__name__, e))
         raise HarnessError("%s %s: %s" % (method, api, e))
     try:
         out = json.loads(raw) if raw.strip() else {}
     except ValueError:
         out = {"_raw_len": len(raw)}
+    _trace(method, api, q, body, status, (time.time() - t0) * 1000, out,
+           (out.get("error", "") if isinstance(out, dict) else "") if status >= 400 else None)
     if status >= 400:
         raise HarnessError("%s %s -> HTTP %d (%s)" % (method, api, status, out.get("error", "") if isinstance(out, dict) else ""))
     return out

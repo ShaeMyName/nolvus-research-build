@@ -155,7 +155,7 @@ BLOCKS = {}     # name -> dict(save, order: [ids], modules: [module names], est:
 
 
 def block(name, save, modules, order, est=None, fixed=None, harness=False, voices=True, relaunch_avail_gb=3.0,
-          gamemaster=True, launch_min_avail_gb=None):
+          gamemaster=True, launch_min_avail_gb=None, early_stop=None):
     """voices=False only for text/state blocks; the soak must run with voices (real-play config, SK-7 memory is the
     point: Shae 2026-10-10), enforced here. relaunch_avail_gb: relaunch between tests when Windows' available physical
     memory drops below this [CHANGED 2026-10-10, Shae: total system memory near 31 GB is the concern, not the game's own
@@ -164,10 +164,32 @@ def block(name, save, modules, order, est=None, fixed=None, harness=False, voice
     if name.upper().startswith("SOAK") and not voices:
         raise ValueError("the soak must run with the voice server on (Shae 2026-10-10)")
     """est: unpadded estimate in minutes per family (time plan), spread evenly over that family's tests;
-    fixed: {test id: minutes} for known long tests (B-20). Used only for the live ETA."""
+    fixed: {test id: minutes} for known long tests (B-20). Used only for the live ETA.
+    early_stop: None (default, off) or (n, frac) (REVIEW_LOG RV-153 (2)): after the first n counted tests, if at least frac of
+    them are INCONCLUSIVE the block HALTs (see early_stop_class)."""
+    if early_stop is not None and not (len(early_stop) == 2 and int(early_stop[0]) >= 1 and 0 < float(early_stop[1]) <= 1):
+        raise ValueError("early_stop must be (n >= 1, 0 < fraction <= 1), got %r" % (early_stop,))
     BLOCKS[name] = dict(save=save, modules=modules, order=order, est=est or {}, fixed=fixed or {}, harness=harness, gamemaster=gamemaster,
-                        voices=voices, launch_min_avail_gb=launch_min_avail_gb,
+                        voices=voices, launch_min_avail_gb=launch_min_avail_gb, early_stop=early_stop,
                         relaunch_avail_gb=None if name.upper().startswith("SOAK") else relaunch_avail_gb)
+
+
+# RV-153 (2) early stop. A test whose only INCONCLUSIVE lines are "by design" (a judgement left to Shae / the reviewer, a stub that
+# names its route) says nothing about the interface guesses, so it is not counted as INCONCLUSIVE; with no PASS line (a pure stub)
+# it is left out of the first-n window altogether.
+EARLY_BY_DESIGN = re.compile(r"judgement|Shae.s (?:reading|check)|Shae reads it|left for the reviewer|\(S-C\)|S-C with|no test-build sentinel|"
+                             r"deferred to the forced-state|needs the MARAS candidate route|needs a fiance|needs Shae.s choice|"
+                             r"reported from the block|two playthroughs", re.I)
+
+
+def early_stop_class(r, verdict):
+    """True = counts as INCONCLUSIVE, False = counts as informative, None = not counted (pure by-design stub)."""
+    if not str(verdict).startswith("INCONCLUSIVE"):
+        return False
+    inc_lines = [l for l in r.lines if l.startswith("INCONCLUSIVE")]
+    if inc_lines and all(EARLY_BY_DESIGN.search(l) for l in inc_lines):
+        return False if any(l.startswith("PASS ") for l in r.lines) else None
+    return True
 
 
 def test_estimates(b, order):
@@ -416,6 +438,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
     est = {t: SETUP_EST_S for t in order} if setup_only else test_estimates(b, order)
     setup_set = setup_reloads() if setup_only else set()
     crashes = 0
+    es_seen, es_done = [], False        # early_stop: [(tid, is_inconclusive)] of the first n counted tests
     started, done_est, done_real = time.time(), 0.0, 0.0
     for i, tid in enumerate(order, 1):
         meta = TESTS[tid]
@@ -533,6 +556,23 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
             print("BLOCK HALT %s after %s" % (name, tid), flush=True)
             ctl.save()
             return 1
+        if b.get("early_stop") and not setup_only and not es_done:      # RV-153 (2): HALT line carries "EARLY STOP: k of N INCONCLUSIVE"
+            cls = early_stop_class(r, verdict)
+            if cls is not None:
+                es_seen.append((tid, cls))
+            en, efrac = b["early_stop"]
+            if len(es_seen) >= en:
+                es_done = True
+                k = sum(1 for _, c in es_seen if c)
+                if k >= efrac * len(es_seen):
+                    why = "EARLY STOP: %d of %d INCONCLUSIVE (limit %.0f%%; %s)" % (
+                        k, len(es_seen), efrac * 100, ", ".join(t for t, c in es_seen if c))
+                    summary.append("| HALT | %s | | game left running |" % why)
+                    open(OUT + "%s_%s.md" % (name, stamp), "w", encoding="utf-8").write("\n".join(summary) + "\n")
+                    ctl.log("HALT after %s: %s" % (tid, why))
+                    print("BLOCK HALT %s after %s: %s" % (name, tid, why), flush=True)
+                    ctl.save()
+                    return 1
         if crashed:
             crashes += 1
             if crashes > MAX_CRASHES:
