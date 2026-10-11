@@ -164,7 +164,9 @@ def check_world(base):
     # step 5's DoorUse does); run 7 aborted on == 1
     need((iv(w, "hpVar") or 0) >= 1 and (iv(w, "key") or 0) >= 1 and is_fid(w.get("own"), PLAYER_FACTION),
          "house purchase state lost (hpVar=%s key=%s own=%s)" % (w.get("hpVar"), w.get("key"), w.get("own")))
-    need(iv(w, "f25") == 1 and iv(w, "hcDis") == 0, "housecarl state lost (f25=%s hcDis=%s)" % (w.get("f25"), w.get("hcDis")))
+    # RV-116 (7): with TRY_QUEST_START off the quest is never started, so only the enabled housecarl is checked
+    need((iv(w, "f25") == 1 or not TRY_QUEST_START) and iv(w, "hcDis") == 0,
+         "housecarl state lost (f25=%s hcDis=%s)" % (w.get("f25"), w.get("hcDis")))
     need(w.get("bzMarker") not in (None, "None"), "Breezehome has no MARAS house marker")
     return w
 
