@@ -333,10 +333,11 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False):
                    % (", ".join("%s=%d" % kv for kv in sorted(TRANSIENTS.items())) or "none"))
     narch = game.archive_logs("end")
     lf = game.log_findings()      # REVIEW_LOG RV-76 (3)/(5): any count above 0 is a finding
-    summary.append("| IE key/array findings (%d session(s)) | %s | | blank-key LOADKEYS=%d TASKTYPE_RESTORED=%d array errors=%d |"
+    summary.append("| IE key/array findings (%d session(s)) | %s | | blank-key LOADKEYS fac=TRUE=%d TASKTYPE_RESTORED=%d array errors=%d (info: teardown-at-save blanks fac=False=%d) |"
                    % (lf.get("sessions", 0), "FINDING" if any(lf.get(k) for k in ("blank_key_loadkeys",
                       "tasktype_restored", "array_errors")) else "none", lf.get("blank_key_loadkeys", 0),
-                      lf.get("tasktype_restored", 0), lf.get("array_errors", 0)))
+                      lf.get("tasktype_restored", 0), lf.get("array_errors", 0),
+                      lf.get("blank_key_teardown_info", 0)))
     p = OUT + "%s_%s.md" % (name, stamp)
     open(p, "w", encoding="utf-8").write("\n".join(summary) + "\n")
     ctl.log("summary %s" % p)

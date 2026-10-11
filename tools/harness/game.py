@@ -286,11 +286,15 @@ def log_findings():
             head = f.readline()
         if head not in best or os.path.getsize(p) > os.path.getsize(best[head]):
             best[head] = p
-    c = {"sessions": len(best), "blank_key_loadkeys": 0, "tasktype_restored": 0, "array_errors": 0}
+    # RV-76-upd: a blank key with fac=False is a teardown in progress at save (legitimate) -> information only;
+    # blank_key_loadkeys counts fac=TRUE blanks (the finding)
+    c = {"sessions": len(best), "blank_key_loadkeys": 0, "blank_key_teardown_info": 0, "tasktype_restored": 0,
+         "array_errors": 0}
     err = re.compile(r"Error: (?:Cannot cast from None|[^\r\n]*non-array|[^\r\n]*None array)[^\r\n]*((?:\r?\n[^\r\n]*){0,4})")
     for p in best.values():
         text = open(p, encoding="utf-8", errors="replace").read()
-        c["blank_key_loadkeys"] += len(re.findall(r"IEB_LOADKEYS [^\r\n]* key= fac=", text))
+        c["blank_key_loadkeys"] += len(re.findall(r"(?i)IEB_LOADKEYS [^\r\n]* key= fac=TRUE", text))
+        c["blank_key_teardown_info"] += len(re.findall(r"(?i)IEB_LOADKEYS [^\r\n]* key= fac=FALSE", text))
         c["tasktype_restored"] += text.count("TASKTYPE_RESTORED")
         c["array_errors"] += sum(1 for m in err.finditer(text) if re.search(r"IntelEngine_|IEB_", m.group(0)))
     return c
