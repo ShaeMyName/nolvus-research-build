@@ -26,7 +26,10 @@ import argparse, glob, json, os, re, sys, tempfile, time
 OUT = "C:/nolvus-research/test_runs/"
 TRACE = OUT + "iface_trace.jsonl"
 SMOKE_BLOCK = "U2SMOKE"
-SMOKE_TESTS = ["H-2", "DA-1", "DA-3", "SEC-3", "SEC-2", "SEC-4", "WE-1", "X-6", "CS-2", "SC-9", "W-3", "PV-3", "PV-4", "NT-4"]
+SMOKE_TESTS = ["H-2", "DA-1", "DA-3", "SEC-3", "SEC-2", "WE-1", "X-6", "CS-2", "SC-9", "W-3", "PV-3", "PV-4", "NT-4"]
+# RV-160: tests taken out of U2SMOKE. An item only a dropped test reaches is reported "N/A: <reason>" (not NOT REACHED); the others
+# simply lose that test from their list. SEC-4: inline thoughts are OFF for the start, so it is N/A and nothing switches them on.
+DROPPED_TESTS = {"SEC-4": "N/A: inline thoughts off (SEC-4 dropped from U2SMOKE, RV-160; no config write)"}
 TEXT_KEYS = ("text", "line", "content", "subtitle", "message")        # tests_u2_len._UTT_TEXT_KEYS
 
 # ------------------------------------------------------------------------------------------------ rule shorthand
@@ -46,7 +49,11 @@ def ALL(*rules):
     return {"all": list(rules)}
 
 def I(id, cat, name, cls, where, tests, marked, ok=(), bad=(), note=""):
-    return dict(id=id, cat=cat, name=name, cls=cls, where=list(where), tests=list(tests), marked=marked, ok=list(ok), bad=list(bad), note=note)
+    tests, na = list(tests), None
+    if tests and all(t in DROPPED_TESTS for t in tests):
+        na = DROPPED_TESTS[tests[0]]
+    tests = [t for t in tests if t not in DROPPED_TESTS]
+    return dict(id=id, cat=cat, name=name, cls=cls, where=list(where), tests=tests, marked=marked, ok=list(ok), bad=list(bad), note=note, na=na)
 
 # Common failure signatures that sink any item that relies on the harness API / render route.
 HARNESS_DOWN = R(r"^INCONCLUSIVE \S+ SkyrimNet /harness API not reachable")
@@ -506,6 +513,8 @@ def raw_pred(name, m):
 def judge(item, ctx):
     """(verdict, evidence) for one inventory item."""
     ran = [t for t in item["tests"] if t in ctx.results]
+    if item.get("na"):
+        return "N/A", item["na"]
     if not item["tests"]:
         return "NOT REACHED", "no U2SMOKE test covers it. %s" % item["note"]
     bad = next(((True, e) for r in item["bad"] for h, e in [eval_rule(r, ctx)] if h), (False, ""))
@@ -557,7 +566,7 @@ def report(ctx, md_path=None, out=sys.stdout):
     for it, v, ev in rows:
         cnt[(it["cls"], v)] = cnt.get((it["cls"], v), 0) + 1
     p("Totals: %d items. %s" % (len(rows), "; ".join("%s: %s" % (v, ", ".join("%s %d" % (c, n) for (c, vv), n in sorted(cnt.items()) if vv == v))
-                                                       for v in ("WORKED", "FAILED", "NOT REACHED"))))
+                                                       for v in ("WORKED", "FAILED", "NOT REACHED", "N/A") if any(vv == v for (c, vv) in cnt))))
     p("Mark VERIFIED (code comment / docs) only the WORKED rows; FAILED rows need a harness fix, NOT REACHED rows a rerun of the named test.")
     if md_path:
         with open(md_path, "w", encoding="utf-8") as f:
@@ -585,14 +594,15 @@ STATIC_NOTES = [
     "dismiss-ui validates 'button must be a non-negative integer' (:58335): an INDEX; which index is Allow is HT-13 (NT-4 reads the scheduling result ok=True afterwards).",
     "Tests that end INCONCLUSIVE by design and so never come back ALL PASS: PV-1, PV-2 ('judgement part left for the reviewer'), SEC-1, SEC-2 (Shae's reading), DA-2, DA-7 (stubs), SC-1, SC-3. "
     "block.early_stop_class does not count them (a by-design-only test with no PASS line is left out of the first-n window; with PASS lines it counts as informative).",
-    "SEC-4 needs the inline-thoughts setting on (allow_inline_internal_thoughts in the 0500 template, not set in any config file of the test profile): if it is off the test is "
-    "INCONCLUSIVE after its render and TP-08 is the item that stays NOT REACHED; switch the setting and rerun SEC-4 alone (--only SEC-4).",
+    "SEC-4 is DROPPED from the smoke (RV-160): inline thoughts (allow_inline_internal_thoughts in the 0500 template) are off for the start and nothing here writes the setting, so the "
+    "items only SEC-4 reaches (MC-04, TP-08) are reported N/A: inline thoughts off. Switch the setting and run SEC-4 alone (block U2 or --only SEC-4) if they are ever wanted.",
     "SEC-1/2/4 need the 'SkyrimNet Test - SEC Bio' layer and the Discretion layer rescanned in the running game (Content Library -> Rescan); without it they are INCONCLUSIVE at _sec_ready "
     "and the length/utterance items (HT-05..07, TP-09..11) stay NOT REACHED.",
     "NT-2 is in block.GM_TESTS (a GameMaster-off block refuses to start with it), takes three loads and polls up to 600 s per load: not a smoke test. Its guessed items "
     "(TP-12 template name components/actions_list, TP-13 the N1 notice / IEB_ReadyProbe) are left to U2-A itself.",
-    "Time: each reload=True test adds ~170-200 s of reload and settle (U1 PROGRESS lines), so the 14 smoke tests cost roughly 12 reloads x 3 min + about 37 min of test bodies + 9 min of "
-    "launch and first load = about 80 min, not 20-30. Dropping W-3, PV-4 and NT-4 (the three most expensive per item) gives roughly 45 min and leaves PL-08, PL-09, GD-02, HT-03, HT-13, PL-15, PL-16 NOT REACHED.",
+    "Time (RV-160): the U2SMOKE block runs the 13 tests with no_reload=True (reload kept only after SC-9 and PV-4; none after the last test) and a Content Library rescan at its start. "
+    "Bottom-up: about 34 min of test bodies (the earlier 37 for 14 tests less SEC-4) + 9 min launch and first load + ~1 min rescan + 2 kept reloads x 3 min "
+    "(170-200 s each, U1 PROGRESS lines) = about 50 min; it was about 80 min with 12 reloads. The harness ETA starts higher (it pads each test with the U2 block's per-test figure, 57 min in all) and converges as the pace factor measures.",
 ]
 
 
@@ -616,8 +626,12 @@ def inventory_md(path):
         f.write("| Test | Items it reaches |\n|---|---|\n")
         for t in SMOKE_TESTS:
             f.write("| %s | %s |\n" % (t, ", ".join(cover[t]) or "-"))
-        unreached = [it["id"] for it in INVENTORY if not it["tests"]]
-        f.write("\nNot reachable by any smoke test: %s (reasons in the table).\n\n" % ", ".join(unreached))
+        unreached = [it["id"] for it in INVENTORY if not it["tests"] and not it.get("na")]
+        f.write("\nNot reachable by any smoke test: %s (reasons in the table).\n" % ", ".join(unreached))
+        nas = ["%s (%s)" % (it["id"], it["na"]) for it in INVENTORY if it.get("na")]
+        if nas:
+            f.write("\nN/A (only reached by a test dropped from the smoke): %s.\n" % "; ".join(nas))
+        f.write("\n")
         f.write("## Static findings made while building the inventory\n\n")
         for n in STATIC_NOTES:
             f.write("- %s\n" % n)
@@ -630,7 +644,7 @@ def inventory_md(path):
             for it in [x for x in INVENTORY if x["cat"] == cat]:
                 f.write("- **%s** [%s] %s\n" % (it["id"], it["cls"], it["name"]))
                 f.write("  - where: %s\n" % "; ".join(it["where"]))
-                f.write("  - used by: %s\n" % (", ".join(it["tests"]) or "-- (no smoke test)"))
+                f.write("  - used by: %s\n" % (", ".join(it["tests"]) or ("-- (%s)" % it["na"] if it.get("na") else "-- (no smoke test)")))
                 f.write("  - marked: %s\n" % it["marked"])
                 if it["ok"]:
                     f.write("  - WORKED when: %s\n" % " | ".join(rule_text(r) for r in it["ok"]))

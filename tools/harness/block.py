@@ -155,7 +155,7 @@ BLOCKS = {}     # name -> dict(save, order: [ids], modules: [module names], est:
 
 
 def block(name, save, modules, order, est=None, fixed=None, harness=False, voices=True, relaunch_avail_gb=3.0,
-          gamemaster=True, launch_min_avail_gb=None, early_stop=None):
+          gamemaster=True, launch_min_avail_gb=None, early_stop=None, no_reload=False, reload_keep=(), rescan=False):
     """voices=False only for text/state blocks; the soak must run with voices (real-play config, SK-7 memory is the
     point: Shae 2026-10-10), enforced here. relaunch_avail_gb: relaunch between tests when Windows' available physical
     memory drops below this [CHANGED 2026-10-10, Shae: total system memory near 31 GB is the concern, not the game's own
@@ -166,11 +166,19 @@ def block(name, save, modules, order, est=None, fixed=None, harness=False, voice
     """est: unpadded estimate in minutes per family (time plan), spread evenly over that family's tests;
     fixed: {test id: minutes} for known long tests (B-20). Used only for the live ETA.
     early_stop: None (default, off) or (n, frac) (REVIEW_LOG RV-153 (2)): after the first n counted tests, if at least frac of
-    them are INCONCLUSIVE the block HALTs (see early_stop_class)."""
+    them are INCONCLUSIVE the block HALTs (see early_stop_class).
+    no_reload (REVIEW_LOG RV-160 (1), default off): skip the per-test T0 reload after tests declared reload=True, for a block that
+    checks interface shape, not correctness. Exceptions: the ids in reload_keep keep their reload (one test's leftover state
+    would break the next), and the last test of the run never reloads (nothing follows). Setup-only mode is unaffected
+    (it has its own rule, SETUP_RELOAD_EXTRA). rescan: Content Library rescan (MCP reload_content, read back) once at the
+    block's start, after the first save load and the smoke, so layers added since the game started are live."""
+    if no_reload is False and reload_keep:
+        raise ValueError("reload_keep only means something with no_reload=True")
     if early_stop is not None and not (len(early_stop) == 2 and int(early_stop[0]) >= 1 and 0 < float(early_stop[1]) <= 1):
         raise ValueError("early_stop must be (n >= 1, 0 < fraction <= 1), got %r" % (early_stop,))
     BLOCKS[name] = dict(save=save, modules=modules, order=order, est=est or {}, fixed=fixed or {}, harness=harness, gamemaster=gamemaster,
                         voices=voices, launch_min_avail_gb=launch_min_avail_gb, early_stop=early_stop,
+                        no_reload=bool(no_reload), reload_keep=frozenset(reload_keep), rescan=bool(rescan),
                         relaunch_avail_gb=None if name.upper().startswith("SOAK") else relaunch_avail_gb)
 
 
@@ -253,6 +261,43 @@ def load_block_save(ctl, b):
     if not game.load(ctl, b["save"], settle_probe(ctl)):
         return False
     return ie_test_settings(ctl)
+
+
+RESCAN_OK = re.compile(r"reloaded successfully", re.I)
+RESCAN_LOG = re.compile(r"ReloadAllContent: (\d+) trigger\(s\), (\d+) action\(s\), (\d+) template\(s\)")
+
+
+def rescan_content(ctl, wait=45):
+    """Content Library -> Rescan through the MCP tool reload_content (RV-160 (1)). Strings VERIFIED in the DLL dump
+    (C:/nolvus-research/tools/skyrimnet_b25_1_dll_strings.txt): tool :54061-54063; its reply 'Content reloaded successfully (requested
+    type: ...)' :54290, 'Content reload partially failed' :54291, 'An install is in progress ... queued' :54289; log summary
+    'ReloadAllContent: N trigger(s), N action(s), N template(s)...' :50380. Which of them this call really returns/logs is
+    INFERRED (no run has called the tool yet, no log line seen in test_runs). 'all' is passed when the tool has exactly one
+    parameter (every value reloads everything). OK = no error AND the reply says 'reloaded successfully' (not 'partially
+    failed', not 'queued'); the log summary line is read back and reported but is NOT required (log level unobserved).
+    (ok, why)."""
+    t = game.Tail(game.LOGS["skyrimnet"])
+    props = set()
+    try:
+        resp = ctl.c.request("tools/list", {})
+        for tl in resp.get("result", {}).get("tools", []):
+            if tl.get("name") == "reload_content":
+                props = set(((tl.get("inputSchema") or {}).get("properties") or {}).keys())
+    except Exception as e:      # noqa: BLE001
+        ctl.log("  tools/list failed: %r" % e)
+    args = {sorted(props)[0]: "all"} if len(props) == 1 else {}
+    res = ctl.tool("reload_content", args)
+    if isinstance(res, dict) and res.get("error"):
+        return False, "reload_content error: %s" % str(res.get("error"))[:160]
+    text = str(res.get("text", res)) if isinstance(res, dict) else str(res)
+    if re.search(r"queued", text, re.I):        # install in flight: the reload runs when it finishes
+        t.wait(RESCAN_LOG.pattern, 120)
+    m = t.wait(RESCAN_LOG.pattern, wait)
+    time.sleep(3)
+    ok_text = bool(RESCAN_OK.search(text)) and not re.search(r"partially failed", text, re.I)
+    return ok_text, "reload_content(%s) -> %r; reply %s; log summary line %s" % (
+        args, text[:100], "OK" if ok_text else "NOT a clean 'reloaded successfully'",
+        m.group(0) if m else "not seen in %ds (informational)" % wait)
 
 
 def settle_probe(r):
@@ -434,6 +479,21 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
         print("BLOCK ABORT %s: smoke failed" % name, flush=True)
         ctl.save()
         return 1
+    if b.get("rescan"):
+        phase("RESCAN")
+        ok_rs, why_rs = rescan_content(ctl)
+        ctl.log("Content Library rescan: %s (%s)" % ("OK" if ok_rs else "FAILED", why_rs))
+        if not ok_rs:       # one retry: an install in flight queues the reload
+            time.sleep(20)
+            ok_rs, why_rs = rescan_content(ctl)
+            ctl.log("Content Library rescan retry: %s (%s)" % ("OK" if ok_rs else "FAILED", why_rs))
+        summary.append("| Content Library rescan (reload_content) | %s | | %s |" % ("OK" if ok_rs else "FAILED", why_rs))
+        print("RESCAN %s" % ("OK" if ok_rs else "FAILED: " + why_rs), flush=True)
+        if not ok_rs:
+            print("BLOCK ABORT %s: Content Library rescan not confirmed" % name, flush=True)
+            open(OUT + "%s_%s.md" % (name, stamp), "w", encoding="utf-8").write("\n".join(summary) + "\n")
+            ctl.save()
+            return 1
     fam, fam_start, results = None, time.strftime("%Y-%m-%d %H:%M:%S"), []
     est = {t: SETUP_EST_S for t in order} if setup_only else test_estimates(b, order)
     setup_set = setup_reloads() if setup_only else set()
@@ -622,6 +682,9 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
             ctl = recover(ctl, name, b, "after a failed console save in " + tid, summary, why="SAVE FAILED")
             if ctl is None:
                 return 1
+        elif meta["reload"] and not skip_reload and b.get("no_reload") and not setup_only and (
+                tid not in b["reload_keep"] or i == len(order)):
+            print("NO RELOAD after %s (%s)" % (tid, "last test" if i == len(order) else "block no_reload"), flush=True)
         elif meta["reload"] and not skip_reload:
             if not load_block_save(ctl, b):     # never run the next test on a game that didn't load
                 ctl = recover(ctl, name, b, "after a failed reload in " + tid, summary, why="RELOAD FAILED")

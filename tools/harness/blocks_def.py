@@ -66,19 +66,37 @@ block("U2V", "T0", ["tests_u2", "tests_u2_e", "tests_u2_len"], ["H-2", "E-2", "L
 # every distinct GUESSED interface item (investigation/round10/u2_interface_inventory.md; the same inventory is data in
 # u2_interface_report.py, which turns this block's results into "guessed name -> WORKED / FAILED / NOT REACHED"). No early_stop:
 # the smoke runs to the end whatever comes back. GameMaster off (NT-2, the one GM test of U2-A, is not in the set).
+# SEC-4 dropped (RV-160, coordinator 2026-10-11): inline thoughts are OFF at the start, so SEC-4 is N/A and nothing is written to
+# switch them on. 13 tests.
+# RV-160 (1): no_reload=True. The smoke checks interface SHAPE, not correctness, so the per-test T0 reload (170-200 s each, U1) is
+# skipped; every test here already undoes its own state in a finally (scene off, whisper off, items re-equipped, NPCs brought back).
+# A test that goes wrong after another's leftover shows as INCONCLUSIVE / FAIL, never as a false PASS. reload_keep = the only two
+# reloads kept, where the leftover is what the NEXT test asserts on:
+#  - SC-9: the last scene-stack test (SceneOn with F1 and the child placed, JoinScene call) and the next three, W-3 / PV-3 / PV-4, assert a
+#    public / no-scene baseline (PV-3/PV-4 need IEB_SceneMode 0 before their own SceneOn and 'nobody within 200 u'); a scene-off that
+#    did not take, or the child left beside the player, would poison all three.
+#  - PV-4: the home case moves F1 and the housecarl inside a house, leaves whisper/private state set by the rule engine, and the next
+#    test NT-4 counts confirmation boxes exactly, jumps game time and does a mid-task save/load; it needs F1 free of scene/whisper state,
+#    no IE slot, and the player back at the T0 spot.
+# The last test (NT-4) never reloads (nothing follows). Reload NOT kept, with why: DA-3 (player left in the inn; SEC-3's market() moves
+# it), SEC-2/SEC-3 (render + in-place chat; sess() brings the NPC back), WE-1 / X-6 / CS-2 (player undressed or a worn item removed;
+# each re-equips in finally; a dress that failed shows as INCONCLUSIVE 'wears nothing' in the next, not a false PASS; CS-2 leaves the child
+# beside the player, harmless until SC-9 which re-places it), W-3 (whisper forced on; its finally turns it off with a read-back),
+# PV-3 (owned furniture in the inn, scene off in back_to_market; PV-4 works in another cell with its own SceneOn).
+# rescan=True: Content Library -> Rescan (MCP reload_content, read back) once after the first load + smoke, so the SEC Bio and
+# Discretion layers are live for SEC-2/SEC-3 (they stay live across the save reloads: it is a process-level rescan).
 # Order: the two no-reload tests first (T0 as loaded), then the LLM/harness-HTTP tests, then the world tests. `fixed` = the U2 block's
 # own effective per-test estimate (its family minutes spread over the family), except NT-4 (4 waits + 1 save/load: 8) and CS-2 (two
-# LLM replies: 4), which U2 only carries at the 2-minute default. Every reload=True test adds ~3 min of reload+settle that `fixed`
-# does not include (U1 measured 170-200 s/test), shown by the ETA's overhead term.
+# LLM replies: 4), which U2 only carries at the 2-minute default. These are the ETA's pad figures; the pace factor corrects them.
 block("U2SMOKE", "T0", ["tests_u2", "tests_u2_da", "tests_u2_wh", "tests_u2_len", "tests_u2_sc", "tests_u2_misc", "tests_u2_nt"], [
     "H-2", "DA-1",
-    "DA-3", "SEC-3", "SEC-2", "SEC-4",
+    "DA-3", "SEC-3", "SEC-2",
     "WE-1", "X-6", "CS-2", "SC-9",
     "W-3", "PV-3", "PV-4",
     "NT-4",
-], fixed={"H-2": 2, "DA-1": 3.75, "DA-3": 3.75, "SEC-3": 5.45, "SEC-2": 5.45, "SEC-4": 5.45, "WE-1": 3.46, "X-6": 2, "CS-2": 4,
+], fixed={"H-2": 2, "DA-1": 3.75, "DA-3": 3.75, "SEC-3": 5.45, "SEC-2": 5.45, "WE-1": 3.46, "X-6": 2, "CS-2": 4,
           "SC-9": 5.38, "W-3": 3.46, "PV-3": 5.36, "PV-4": 5.36, "NT-4": 8},
-      harness=True, voices=False, gamemaster=False)
+      harness=True, voices=False, gamemaster=False, no_reload=True, reload_keep=("SC-9", "PV-4"), rescan=True)
 
 # U3 "restarts + watches" (time plan §5 :380), written 2026-10-11 (tests_u3*.py). One time-plan block, five sub-blocks,
 # run in U3_SEQUENCE order:
