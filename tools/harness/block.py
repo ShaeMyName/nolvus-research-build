@@ -187,6 +187,22 @@ def settle_probe(r):
     return ("__any__", lambda: r.uuid(0xE1BA9)[0])
 
 
+# REVIEW_LOG RV-87 (2): in setup-only mode reload only after the tests whose SETUP dirties the save (DECISIONS:411
+# "between groups", 30-45 min target). A test that later fails setup in a real block is added to SETUP_RELOAD_EXTRA
+# (one ID per line) and reloads in the setup pass from then on. Others report "SETUP OK (no reload)".
+SETUP_RELOAD = {"B-6b", "B-6d", "X-1", "X-3", "X-7", "L-6", "K-2", "RS-4", "RS-8", "REL-2"}
+SETUP_RELOAD_EXTRA = "C:/nolvus-research/test_runs/setup_reload_extra.txt"
+
+
+def setup_reloads():
+    extra = set()
+    try:
+        extra = {l.strip() for l in open(SETUP_RELOAD_EXTRA, encoding="utf-8") if l.strip() and not l.startswith("#")}
+    except OSError:
+        pass
+    return SETUP_RELOAD | extra
+
+
 SETUP_EST_S = 45.0     # setup-only ETA per test (base/moveto/probe/settle); the pace factor corrects it
 
 
@@ -251,6 +267,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
         return 1
     fam, fam_start, results = None, time.strftime("%Y-%m-%d %H:%M:%S"), []
     est = {t: SETUP_EST_S for t in order} if setup_only else test_estimates(b, order)
+    setup_set = setup_reloads() if setup_only else set()
     crashes = 0
     started, done_est, done_real = time.time(), 0.0, 0.0
     for i, tid in enumerate(order, 1):
@@ -328,8 +345,11 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
         for l in inv:
             r.check(False, "watcher invariant: " + l.strip())
         verdict = r.save()
+        skip_reload = setup_only and meta["reload"] and tid not in setup_set
         if setup_only:
             verdict, why = setup_verdict(r)
+            if skip_reload:
+                why = "no reload" + ("; " + why if why else "")
             print(setup_line(tid, verdict, why), flush=True)
             summary.append(setup_row(tid, verdict, why, time.time() - t0))
         else:
@@ -395,7 +415,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
             ctl = recover(ctl, name, b, "after a failed console save in " + tid, summary, why="SAVE FAILED")
             if ctl is None:
                 return 1
-        elif meta["reload"]:
+        elif meta["reload"] and not skip_reload:
             if not load_block_save(ctl, b):     # never run the next test on a game that didn't load
                 ctl = recover(ctl, name, b, "after a failed reload in " + tid, summary, why="RELOAD FAILED")
                 if ctl is None:
