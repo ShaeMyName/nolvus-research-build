@@ -798,6 +798,89 @@ elif G == "child-r55":   # round 10 (investigation/round10/child_lock_failure.md
 """),
     ])
 
+elif G == "headstart":   # Shae 2026-10-10 (REVIEW_LOG RV-69-dec): priestess head start, options A + B
+    edit(B, [
+("""    AuthorDisposition(akActor)
+EndFunction
+
+String Function EnrollByHand""",
+"""    IEB_HeadStartFloor(akActor)   ; Patch (RV-69-dec A): once, Lucienne's game only, adults only
+    AuthorDisposition(akActor)
+EndFunction
+
+String Function EnrollByHand"""),
+("""    Int magnitude = ScaleAward(clamped)
+""",
+"""    Int magnitude = ScaleAward(clamped)
+    magnitude += IEB_HeadStartBonus(akActor, magnitude)   ; Patch (RV-69-dec B): positive only, stops below Lover
+"""),
+("""    ; CHECK THE RETURN. In 1.x Romantasy rejected points""",
+"""    awarded += IEB_HeadStartBonus(akActor, awarded)   ; Patch (RV-69-dec B): after the daily cap, so the cap never undoes it
+
+    ; CHECK THE RETURN. In 1.x Romantasy rejected points"""),
+("""    ApplyDepth(akActor, ScaleAward(25), asMoment, False, "spark")
+""",
+"""    Int sparkPts = ScaleAward(25)
+    sparkPts += IEB_HeadStartBonus(akActor, sparkPts)   ; Patch (RV-69-dec B)
+    ApplyDepth(akActor, sparkPts, asMoment, False, "spark")
+"""),
+    ])
+    append(B, """
+; =============================================================================
+; Patch (Shae 2026-10-10, REVIEW_LOG RV-69-dec): Relationships head start for the priestess at Azura's shrine (ref
+; 0x00028AD1), Lucienne's game only (LUC_Active, the key the Lucienne layer gates on), adults only.
+;  A: once, at enrolment (EnrollNow, every route: by hand, AutoEnroll, M4'), points = max(current, 999). 999 is the
+;     top of Acquaintance: below Friend 1000 (CASUAL physical gate), the 1500 out-of-turn spark and Lover 2000.
+;     Latched by IEB_HeadStartUsed before the write (UnenrollActor does not clear it), so it is never paid twice.
+;     Writes only SNRom_Points (through ApplyDepth, kind "seed"); SeedTarget/SeedAssessed/ReseedActor are untouched
+;     and only top up from their own read.
+;  B: a positive award (talk, MarkMoment, spark) counts double while she is below Lover. The extra never lifts her
+;     to 2000 or into the bank: HoldShortOfLover banks a whole delta that would cross, so the extra stops at
+;     UNANSWERED_MAX - points - award, and is 0 once anything is banked. Negative awards, the bank release
+;     (AcceptRomance), DeclineRomance and EndRomance never see it. The consent gate (R1-R10/R10a, RankSync,
+;     HoldShortOfLover, CheckRomanceQuestion) is unchanged.
+; =============================================================================
+Bool Function IEB_HeadStartFor(Actor a)
+    If a == None || a.IsChild() || a.IsDead()
+        Return False
+    EndIf
+    If a.GetFormID() != 0x00028AD1
+        Return False
+    EndIf
+    Return StorageUtil.GetIntValue(Game.GetPlayer(), "LUC_Active", 0) == 1
+EndFunction
+
+Function IEB_HeadStartFloor(Actor a)
+    If !IEB_HeadStartFor(a) || StorageUtil.GetIntValue(a, "IEB_HeadStartUsed", 0) != 0
+        Return
+    EndIf
+    StorageUtil.SetIntValue(a, "IEB_HeadStartUsed", 1)
+    Int delta = 999 - PointsOf(a)
+    If delta > 0
+        ApplyDepth(a, delta, "head start", False, "seed")
+    EndIf
+    Diag(LOG_INFO(), "IEB_HEADSTART floor " + a.GetDisplayName() + " delta=" + delta + " points=" + PointsOf(a))
+EndFunction
+
+Int Function IEB_HeadStartBonus(Actor a, Int aiAward)
+    If aiAward <= 0 || !IEB_HeadStartFor(a)
+        Return 0
+    EndIf
+    If StorageUtil.GetIntValue(a, "SNRom_BankedPoints", 0) > 0
+        Return 0
+    EndIf
+    Int extra = UNANSWERED_MAX() - PointsOf(a) - aiAward
+    If extra <= 0
+        Return 0
+    EndIf
+    If aiAward < extra
+        extra = aiAward
+    EndIf
+    Diag(LOG_INFO(), "IEB_HEADSTART bonus " + a.GetDisplayName() + " award=" + aiAward + " extra=" + extra)
+    Return extra
+EndFunction
+""")
+
 else:
     raise SystemExit("unknown group " + G)
 print("applied", G)

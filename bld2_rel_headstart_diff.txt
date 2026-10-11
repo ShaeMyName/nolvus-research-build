@@ -1,0 +1,132 @@
+# BLD-2 head start (RV-69-dec A+B), group headstart in tools/apply_patch_f.py. A = HEAD SNRom_Bridge.pex (installed 0bfaa30 build), B = this build. Expect: 3 new functions (IEB_HeadStartFor/Floor/Bonus), one new call each in EnrollNow (floor), MarkMoment, ApplyTalkAward, ApplySpark (bonus); no variable/property changes; nothing else.
+functions: A 233, B 236
+  FUNC only in B: <auto>.ieb_headstartbonus(('actor', 'int'), 'int')
+  FUNC only in B: <auto>.ieb_headstartfloor(('actor',), 'none')
+  FUNC only in B: <auto>.ieb_headstartfor(('actor',), 'bool')
+call sites: A 2105, B 2130
+  applyspark                         ieb_headstartbonus                             0 -> 1
+  applytalkaward                     ieb_headstartbonus                             0 -> 1
+  enrollnow                          ieb_headstartfloor                             0 -> 1
+  ieb_headstartbonus                 diag                                           0 -> 1
+  ieb_headstartbonus                 getdisplayname                                 0 -> 1
+  ieb_headstartbonus                 ieb_headstartfor                               0 -> 1
+  ieb_headstartbonus                 snrom_bridge.log_info                          0 -> 1
+  ieb_headstartbonus                 snrom_bridge.pointsof                          0 -> 1
+  ieb_headstartbonus                 snrom_bridge.unanswered_max                    0 -> 1
+  ieb_headstartbonus                 storageutil.getintvalue                        0 -> 1
+  ieb_headstartfloor                 applydepth                                     0 -> 1
+  ieb_headstartfloor                 diag                                           0 -> 1
+  ieb_headstartfloor                 getdisplayname                                 0 -> 1
+  ieb_headstartfloor                 ieb_headstartfor                               0 -> 1
+  ieb_headstartfloor                 snrom_bridge.log_info                          0 -> 1
+  ieb_headstartfloor                 snrom_bridge.pointsof                          0 -> 2
+  ieb_headstartfloor                 storageutil.getintvalue                        0 -> 1
+  ieb_headstartfloor                 storageutil.setintvalue                        0 -> 1
+  ieb_headstartfor                   game.getplayer                                 0 -> 1
+  ieb_headstartfor                   getformid                                      0 -> 1
+  ieb_headstartfor                   ischild                                        0 -> 1
+  ieb_headstartfor                   isdead                                         0 -> 1
+  ieb_headstartfor                   storageutil.getintvalue                        0 -> 1
+  markmoment                         ieb_headstartbonus                             0 -> 1
+DIFFERENT
+## source diff
+diff --git a/src/relationships/src/scripts/SNRom_Bridge.psc b/src/relationships/src/scripts/SNRom_Bridge.psc
+index 2600e6f..c23ee7f 100644
+--- a/src/relationships/src/scripts/SNRom_Bridge.psc
++++ b/src/relationships/src/scripts/SNRom_Bridge.psc
+@@ -939,6 +939,7 @@ Function EnrollNow(Actor akActor, String asHow)
+     Diag(LOG_INFO(), asHow + " " + akActor.GetDisplayName() + " at Stranger/0" + \
+         " (platonic until sparked)")
+ 
++    IEB_HeadStartFloor(akActor)   ; Patch (RV-69-dec A): once, Lucienne's game only, adults only
+     AuthorDisposition(akActor)
+ EndFunction
+ 
+@@ -1093,6 +1094,7 @@ Function MarkMoment(Actor akActor, Int aiMagnitude, String asReason, String asAc
+         clamped = -cap
+     EndIf
+     Int magnitude = ScaleAward(clamped)
++    magnitude += IEB_HeadStartBonus(akActor, magnitude)   ; Patch (RV-69-dec B): positive only, stops below Lover
+ 
+     ; EARNED: the consent gate inside ApplyDepth may withhold it.
+     Int result = ApplyDepth(akActor, magnitude, asReason, True, "moment")
+@@ -7251,6 +7253,8 @@ Function ApplyTalkAward(Actor akActor, Int aiPoints, String asWeight, String asW
+         StorageUtil.SetIntValue(akActor, "SNRom_TalkToday", spent + used)
+     EndIf
+ 
++    awarded += IEB_HeadStartBonus(akActor, awarded)   ; Patch (RV-69-dec B): after the daily cap, so the cap never undoes it
++
+     ; CHECK THE RETURN. In 1.x Romantasy rejected points for an actor it did not
+     ; yet consider enrolled - it snapshotted its roster at LOAD, so every NPC
+     ; enrolled during a session was invisible to it until the next one.
+@@ -7610,7 +7614,9 @@ Function ApplySpark(Actor akActor, String asMoment)
+         Diag(LOG_INFO(), "Spark confirmed for " + akActor.GetDisplayName() +             " with " + StorageUtil.GetIntValue(akActor, "SNRom_BankedPoints", 0) +             " pts already held - raising the question now.")
+     EndIf
+ 
+-    ApplyDepth(akActor, ScaleAward(25), asMoment, False, "spark")
++    Int sparkPts = ScaleAward(25)
++    sparkPts += IEB_HeadStartBonus(akActor, sparkPts)   ; Patch (RV-69-dec B)
++    ApplyDepth(akActor, sparkPts, asMoment, False, "spark")
+ 
+     ; A SPARK IS HERS ALONE, SO IT IS A THOUGHT, NOT AN EVENT. This used to be
+     ; RegisterPersistentEvent("<her> and <player> have reached an understanding
+@@ -8965,3 +8971,57 @@ Bool Function IEB_IntimacyOn() Global
+       and the rank-sync hook are not affected. }
+     Return StorageUtil.GetIntValue(Game.GetPlayer(), "IEB_IntimacyEnabled", 0) == 1
+ EndFunction
++
++; =============================================================================
++; Patch (Shae 2026-10-10, REVIEW_LOG RV-69-dec): Relationships head start for the priestess at Azura's shrine (ref
++; 0x00028AD1), Lucienne's game only (LUC_Active, the key the Lucienne layer gates on), adults only.
++;  A: once, at enrolment (EnrollNow, every route: by hand, AutoEnroll, M4'), points = max(current, 999). 999 is the
++;     top of Acquaintance: below Friend 1000 (CASUAL physical gate), the 1500 out-of-turn spark and Lover 2000.
++;     Latched by IEB_HeadStartUsed before the write (UnenrollActor does not clear it), so it is never paid twice.
++;     Writes only SNRom_Points (through ApplyDepth, kind "seed"); SeedTarget/SeedAssessed/ReseedActor are untouched
++;     and only top up from their own read.
++;  B: a positive award (talk, MarkMoment, spark) counts double while she is below Lover. The extra never lifts her
++;     to 2000 or into the bank: HoldShortOfLover banks a whole delta that would cross, so the extra stops at
++;     UNANSWERED_MAX - points - award, and is 0 once anything is banked. Negative awards, the bank release
++;     (AcceptRomance), DeclineRomance and EndRomance never see it. The consent gate (R1-R10/R10a, RankSync,
++;     HoldShortOfLover, CheckRomanceQuestion) is unchanged.
++; =============================================================================
++Bool Function IEB_HeadStartFor(Actor a)
++    If a == None || a.IsChild() || a.IsDead()
++        Return False
++    EndIf
++    If a.GetFormID() != 0x00028AD1
++        Return False
++    EndIf
++    Return StorageUtil.GetIntValue(Game.GetPlayer(), "LUC_Active", 0) == 1
++EndFunction
++
++Function IEB_HeadStartFloor(Actor a)
++    If !IEB_HeadStartFor(a) || StorageUtil.GetIntValue(a, "IEB_HeadStartUsed", 0) != 0
++        Return
++    EndIf
++    StorageUtil.SetIntValue(a, "IEB_HeadStartUsed", 1)
++    Int delta = 999 - PointsOf(a)
++    If delta > 0
++        ApplyDepth(a, delta, "head start", False, "seed")
++    EndIf
++    Diag(LOG_INFO(), "IEB_HEADSTART floor " + a.GetDisplayName() + " delta=" + delta + " points=" + PointsOf(a))
++EndFunction
++
++Int Function IEB_HeadStartBonus(Actor a, Int aiAward)
++    If aiAward <= 0 || !IEB_HeadStartFor(a)
++        Return 0
++    EndIf
++    If StorageUtil.GetIntValue(a, "SNRom_BankedPoints", 0) > 0
++        Return 0
++    EndIf
++    Int extra = UNANSWERED_MAX() - PointsOf(a) - aiAward
++    If extra <= 0
++        Return 0
++    EndIf
++    If aiAward < extra
++        extra = aiAward
++    EndIf
++    Diag(LOG_INFO(), "IEB_HEADSTART bonus " + a.GetDisplayName() + " award=" + aiAward + " extra=" + extra)
++    Return extra
++EndFunction
+## gate
+ARRAY_NONE_GATE PASS: 2 pex, 0 ours, 0 stock upstream

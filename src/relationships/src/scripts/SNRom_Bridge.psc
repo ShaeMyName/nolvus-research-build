@@ -939,6 +939,7 @@ Function EnrollNow(Actor akActor, String asHow)
     Diag(LOG_INFO(), asHow + " " + akActor.GetDisplayName() + " at Stranger/0" + \
         " (platonic until sparked)")
 
+    IEB_HeadStartFloor(akActor)   ; Patch (RV-69-dec A): once, Lucienne's game only, adults only
     AuthorDisposition(akActor)
 EndFunction
 
@@ -1093,6 +1094,7 @@ Function MarkMoment(Actor akActor, Int aiMagnitude, String asReason, String asAc
         clamped = -cap
     EndIf
     Int magnitude = ScaleAward(clamped)
+    magnitude += IEB_HeadStartBonus(akActor, magnitude)   ; Patch (RV-69-dec B): positive only, stops below Lover
 
     ; EARNED: the consent gate inside ApplyDepth may withhold it.
     Int result = ApplyDepth(akActor, magnitude, asReason, True, "moment")
@@ -7251,6 +7253,8 @@ Function ApplyTalkAward(Actor akActor, Int aiPoints, String asWeight, String asW
         StorageUtil.SetIntValue(akActor, "SNRom_TalkToday", spent + used)
     EndIf
 
+    awarded += IEB_HeadStartBonus(akActor, awarded)   ; Patch (RV-69-dec B): after the daily cap, so the cap never undoes it
+
     ; CHECK THE RETURN. In 1.x Romantasy rejected points for an actor it did not
     ; yet consider enrolled - it snapshotted its roster at LOAD, so every NPC
     ; enrolled during a session was invisible to it until the next one.
@@ -7610,7 +7614,9 @@ Function ApplySpark(Actor akActor, String asMoment)
         Diag(LOG_INFO(), "Spark confirmed for " + akActor.GetDisplayName() +             " with " + StorageUtil.GetIntValue(akActor, "SNRom_BankedPoints", 0) +             " pts already held - raising the question now.")
     EndIf
 
-    ApplyDepth(akActor, ScaleAward(25), asMoment, False, "spark")
+    Int sparkPts = ScaleAward(25)
+    sparkPts += IEB_HeadStartBonus(akActor, sparkPts)   ; Patch (RV-69-dec B)
+    ApplyDepth(akActor, sparkPts, asMoment, False, "spark")
 
     ; A SPARK IS HERS ALONE, SO IT IS A THOUGHT, NOT AN EVENT. This used to be
     ; RegisterPersistentEvent("<her> and <player> have reached an understanding
@@ -8964,4 +8970,58 @@ Bool Function IEB_IntimacyOn() Global
       setting it to 1 is a mid-save step after IP-1..IP-7 pass. The load-time mirror of profiles already on disk
       and the rank-sync hook are not affected. }
     Return StorageUtil.GetIntValue(Game.GetPlayer(), "IEB_IntimacyEnabled", 0) == 1
+EndFunction
+
+; =============================================================================
+; Patch (Shae 2026-10-10, REVIEW_LOG RV-69-dec): Relationships head start for the priestess at Azura's shrine (ref
+; 0x00028AD1), Lucienne's game only (LUC_Active, the key the Lucienne layer gates on), adults only.
+;  A: once, at enrolment (EnrollNow, every route: by hand, AutoEnroll, M4'), points = max(current, 999). 999 is the
+;     top of Acquaintance: below Friend 1000 (CASUAL physical gate), the 1500 out-of-turn spark and Lover 2000.
+;     Latched by IEB_HeadStartUsed before the write (UnenrollActor does not clear it), so it is never paid twice.
+;     Writes only SNRom_Points (through ApplyDepth, kind "seed"); SeedTarget/SeedAssessed/ReseedActor are untouched
+;     and only top up from their own read.
+;  B: a positive award (talk, MarkMoment, spark) counts double while she is below Lover. The extra never lifts her
+;     to 2000 or into the bank: HoldShortOfLover banks a whole delta that would cross, so the extra stops at
+;     UNANSWERED_MAX - points - award, and is 0 once anything is banked. Negative awards, the bank release
+;     (AcceptRomance), DeclineRomance and EndRomance never see it. The consent gate (R1-R10/R10a, RankSync,
+;     HoldShortOfLover, CheckRomanceQuestion) is unchanged.
+; =============================================================================
+Bool Function IEB_HeadStartFor(Actor a)
+    If a == None || a.IsChild() || a.IsDead()
+        Return False
+    EndIf
+    If a.GetFormID() != 0x00028AD1
+        Return False
+    EndIf
+    Return StorageUtil.GetIntValue(Game.GetPlayer(), "LUC_Active", 0) == 1
+EndFunction
+
+Function IEB_HeadStartFloor(Actor a)
+    If !IEB_HeadStartFor(a) || StorageUtil.GetIntValue(a, "IEB_HeadStartUsed", 0) != 0
+        Return
+    EndIf
+    StorageUtil.SetIntValue(a, "IEB_HeadStartUsed", 1)
+    Int delta = 999 - PointsOf(a)
+    If delta > 0
+        ApplyDepth(a, delta, "head start", False, "seed")
+    EndIf
+    Diag(LOG_INFO(), "IEB_HEADSTART floor " + a.GetDisplayName() + " delta=" + delta + " points=" + PointsOf(a))
+EndFunction
+
+Int Function IEB_HeadStartBonus(Actor a, Int aiAward)
+    If aiAward <= 0 || !IEB_HeadStartFor(a)
+        Return 0
+    EndIf
+    If StorageUtil.GetIntValue(a, "SNRom_BankedPoints", 0) > 0
+        Return 0
+    EndIf
+    Int extra = UNANSWERED_MAX() - PointsOf(a) - aiAward
+    If extra <= 0
+        Return 0
+    EndIf
+    If aiAward < extra
+        extra = aiAward
+    EndIf
+    Diag(LOG_INFO(), "IEB_HEADSTART bonus " + a.GetDisplayName() + " award=" + aiAward + " extra=" + extra)
+    Return extra
 EndFunction
