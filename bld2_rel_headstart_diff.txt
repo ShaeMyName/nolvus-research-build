@@ -130,3 +130,54 @@ index 2600e6f..c23ee7f 100644
 +EndFunction
 ## gate
 ARRAY_NONE_GATE PASS: 2 pex, 0 ours, 0 stock upstream
+
+## RV-77 update (group headstart-spark): BeginSpark gets the bonus on its +25 and the floor AFTER it (floor first would give 999+25+25 = 1049 = Friend at enrolment). HEAD-before-headstart vs this build:
+functions: A 233, B 236
+  FUNC only in B: <auto>.ieb_headstartbonus(('actor', 'int'), 'int')
+  FUNC only in B: <auto>.ieb_headstartfloor(('actor',), 'none')
+  FUNC only in B: <auto>.ieb_headstartfor(('actor',), 'bool')
+call sites: A 2105, B 2132
+  applyspark                         ieb_headstartbonus                             0 -> 1
+  applytalkaward                     ieb_headstartbonus                             0 -> 1
+  beginspark                         ieb_headstartbonus                             0 -> 1
+  beginspark                         ieb_headstartfloor                             0 -> 1
+  enrollnow                          ieb_headstartfloor                             0 -> 1
+  ieb_headstartbonus                 diag                                           0 -> 1
+  ieb_headstartbonus                 getdisplayname                                 0 -> 1
+  ieb_headstartbonus                 ieb_headstartfor                               0 -> 1
+  ieb_headstartbonus                 snrom_bridge.log_info                          0 -> 1
+  ieb_headstartbonus                 snrom_bridge.pointsof                          0 -> 1
+  ieb_headstartbonus                 snrom_bridge.unanswered_max                    0 -> 1
+  ieb_headstartbonus                 storageutil.getintvalue                        0 -> 1
+  ieb_headstartfloor                 applydepth                                     0 -> 1
+  ieb_headstartfloor                 diag                                           0 -> 1
+  ieb_headstartfloor                 getdisplayname                                 0 -> 1
+  ieb_headstartfloor                 ieb_headstartfor                               0 -> 1
+  ieb_headstartfloor                 snrom_bridge.log_info                          0 -> 1
+  ieb_headstartfloor                 snrom_bridge.pointsof                          0 -> 2
+  ieb_headstartfloor                 storageutil.getintvalue                        0 -> 1
+  ieb_headstartfloor                 storageutil.setintvalue                        0 -> 1
+  ieb_headstartfor                   game.getplayer                                 0 -> 1
+  ieb_headstartfor                   getformid                                      0 -> 1
+  ieb_headstartfor                   ischild                                        0 -> 1
+  ieb_headstartfor                   isdead                                         0 -> 1
+  ieb_headstartfor                   storageutil.getintvalue                        0 -> 1
+  markmoment                         ieb_headstartbonus                             0 -> 1
+DIFFERENT
+## BeginSpark source diff
+diff --git a/src/relationships/src/scripts/SNRom_Bridge.psc b/src/relationships/src/scripts/SNRom_Bridge.psc
+index c23ee7f..a24a1e1 100644
+--- a/src/relationships/src/scripts/SNRom_Bridge.psc
++++ b/src/relationships/src/scripts/SNRom_Bridge.psc
+@@ -437,7 +437,10 @@ Function BeginSpark(Actor akActor, String asReason)
+ 
+     ; Authored beats land immediately regardless of the load-time constraint,
+     ; so the bond is never sitting at a bare zero after a real moment.
+-    ApplyDepth(akActor, ScaleAward(25), asReason, False, "began")
++    Int beganPts = ScaleAward(25)
++    beganPts += IEB_HeadStartBonus(akActor, beganPts)   ; Patch (RV-69-dec B, RV-77)
++    ApplyDepth(akActor, beganPts, asReason, False, "began")
++    IEB_HeadStartFloor(akActor)   ; Patch (RV-69-dec A, RV-77): after the +25, so she stays at 999, below Friend
+ 
+     ; Patch (IEB §11.4): an internal state, private to this NPC and the player (trigger ieb_snrom_status_private)
+     akActor.SendModEvent("IEB_SNRomStatus", \

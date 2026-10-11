@@ -881,6 +881,20 @@ Int Function IEB_HeadStartBonus(Actor a, Int aiAward)
 EndFunction
 """)
 
+elif G == "headstart-spark":   # REVIEW_LOG RV-77 (1): BeginSpark enrols without EnrollNow
+    # The floor goes AFTER the +25 (not right after the roster add): floor first would give 999 + 25 + 25 = 1049 =
+    # Friend at enrolment, opening the CASUAL physical gate that the 999 floor exists to stay below. +25 (with the
+    # bonus) first, then max(current, 999) = 999.
+    edit(B, [
+("""    ApplyDepth(akActor, ScaleAward(25), asReason, False, "began")
+""",
+"""    Int beganPts = ScaleAward(25)
+    beganPts += IEB_HeadStartBonus(akActor, beganPts)   ; Patch (RV-69-dec B, RV-77)
+    ApplyDepth(akActor, beganPts, asReason, False, "began")
+    IEB_HeadStartFloor(akActor)   ; Patch (RV-69-dec A, RV-77): after the +25, so she stays at 999, below Friend
+"""),
+    ])
+
 else:
     raise SystemExit("unknown group " + G)
 print("applied", G)

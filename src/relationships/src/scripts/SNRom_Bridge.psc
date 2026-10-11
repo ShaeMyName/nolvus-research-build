@@ -437,7 +437,10 @@ Function BeginSpark(Actor akActor, String asReason)
 
     ; Authored beats land immediately regardless of the load-time constraint,
     ; so the bond is never sitting at a bare zero after a real moment.
-    ApplyDepth(akActor, ScaleAward(25), asReason, False, "began")
+    Int beganPts = ScaleAward(25)
+    beganPts += IEB_HeadStartBonus(akActor, beganPts)   ; Patch (RV-69-dec B, RV-77)
+    ApplyDepth(akActor, beganPts, asReason, False, "began")
+    IEB_HeadStartFloor(akActor)   ; Patch (RV-69-dec A, RV-77): after the +25, so she stays at 999, below Friend
 
     ; Patch (IEB §11.4): an internal state, private to this NPC and the player (trigger ieb_snrom_status_private)
     akActor.SendModEvent("IEB_SNRomStatus", \
