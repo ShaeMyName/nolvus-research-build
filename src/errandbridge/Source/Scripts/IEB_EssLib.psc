@@ -19,7 +19,7 @@ Scriptname IEB_EssLib Hidden
    re-assert; 1 = active removal: suspend bridge-set flags), "w_lo", "w_hi" (open while the quest runs and
    w_lo <= stage < w_hi; w_hi < 0 = open from w_lo for as long as the quest runs). All lists N long.
    [CHANGED 2026-10-11, REVIEW_LOG RV-101] optional lists, each either absent or N long (a mismatch pauses the feature):
-   intList "w_done" (1 = stage-done semantics: open once IsStageDone(w_lo) and until IsStageDone(w_hi), so skipped or
+   intList "w_done" (1 = stage-done semantics: open once IsStageDone(w_lo) OR GetStage() >= w_lo, until IsStageDone(w_hi), so skipped or
    out-of-order stages never close a row early), intList "w_after" (1 = the row stays open after its quest stops; needs
    w_done = 1), formList "w_fac" (a Faction, or the row's own quest form as "no condition": the row then covers an actor
    only while the actor is in that faction). Errs toward staying open (unprotected longer), never toward closing early.
@@ -630,7 +630,8 @@ Bool Function LoadWindows() Global
         Int lo = JsonUtil.IntListGet(f, "w_lo", i)
         If q != None && OptInt(f, "w_done", i) == 1
             ; RV-101: stage-done semantics; w_after keeps it open once the quest has stopped
-            If (q.IsRunning() || OptInt(f, "w_after", i) == 1) && q.IsStageDone(lo) && (hi < 0 || !q.IsStageDone(hi))
+            ; RV-101-review: opens on lo done OR a current stage at/after lo (lo may be skipped); closes only when hi is done
+            If (q.IsRunning() || OptInt(f, "w_after", i) == 1) && (q.IsStageDone(lo) || q.GetStage() >= lo) && (hi < 0 || !q.IsStageDone(hi))
                 open = JsonUtil.IntListGet(f, "w_mode", i)
             EndIf
         ElseIf q != None && q.IsRunning()

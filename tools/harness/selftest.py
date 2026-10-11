@@ -394,4 +394,22 @@ _nocp = [t for t, d in block.TESTS.items() if not _helpers.search(inspect.getsou
 check(not _nocp, "setup-only wiring: every registered test has a checkpoint (missing: %s)" % _nocp)
 for _h in (tests_b.rejoin_setup, tests_b.in_rejoin, tests_b.dismiss_case, tests_tm_l.lend):
     check("checkpoint(r)" in inspect.getsource(_h), "setup-only wiring: shared setup %s has a checkpoint" % _h.__name__)
+# ---- REVIEW_LOG RV-101-review: the essential window open/close rule (Python mirror of IEB_EssLib.LoadWindows, w_done = 1)
+def _win_open(running, after, done, stage, lo, hi):
+    """done = set of stages marked done; stage = current stage. Mirrors the Papyrus expression checked below."""
+    return (running or after) and ((lo in done) or stage >= lo) and (hi < 0 or hi not in done)
+
+
+check(_win_open(True, False, {0, 10}, 10, 10, 50), "window: lo done -> open")
+check(_win_open(True, False, {0, 20}, 20, 10, 50), "window: lo SKIPPED (story jumped past it) -> still open (no stall)")
+check(not _win_open(True, False, {0, 10, 50}, 50, 10, 50), "window: hi done -> closed")
+check(_win_open(True, False, {0, 10, 60}, 60, 10, 50), "window: hi SKIPPED -> stays open (errs to unprotected, not stall)")
+check(not _win_open(True, False, {0, 10, 50}, 30, 10, 50), "window: out of order (hi done, current stage lower) -> closed by hi")
+check(not _win_open(True, False, {0}, 5, 10, 50), "window: before lo -> closed")
+check(not _win_open(False, False, {0, 10}, 10, 10, -1), "window: quest stopped, no w_after -> closed")
+check(_win_open(False, True, {0, 10}, 10, 10, -1), "window: quest stopped, w_after -> stays open")
+_ess = open("C:/nolvus-research/build/src/errandbridge/Source/Scripts/IEB_EssLib.psc", encoding="utf-8").read()
+check('(q.IsRunning() || OptInt(f, "w_after", i) == 1) && (q.IsStageDone(lo) || q.GetStage() >= lo) && '
+      '(hi < 0 || !q.IsStageDone(hi))' in _ess, "IEB_EssLib carries the same open/close expression as the mirror")
+
 sys.exit(0 if ok else 1)
