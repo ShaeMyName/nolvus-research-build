@@ -103,7 +103,8 @@ def s0():
     if not smoke("S0", chk):
         return False
     rc, out = sh([H + "block.py", "U1", "--only", "H-1"], timeout=3600)
-    ok = "H-1" in out and "ALL PASS" in out
+    m = re.search(r"BLOCK DONE U1 (\d+)/(\d+) not", out)       # 'N/M not ALL PASS': N tests did not pass
+    ok = bool(m) and m.group(1) == "0" and m.group(2) == "1"
     say("S0 H-1 harness smoke: %s" % ("PASS" if ok else "FAIL/INCONCLUSIVE (see the block summary)"))
     return ok
 
