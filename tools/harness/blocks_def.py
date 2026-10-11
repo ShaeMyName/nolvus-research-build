@@ -87,6 +87,7 @@ block("U3M", "T0-M", ["tests_u3", "tests_u3_m"], [
     "MA-2a", "MA-2b",                    # the boxes are the pass, never dismissed: last, each followed by a reload
 ], fixed={"MA-3": 5, "MA-4": 17, "MA-5": 1, "MA-6": 8, "K-M3": 6, "RS-2": 2, "RS-5": 3, "RS-8d": 3, "RS-10be": 4,
           "DA-9": 5, "MA-2a": 4, "MA-2b": 4}, harness=True, voices=False, gamemaster=False)
+# U3G runs with GameMaster ON (X-9 and RE-2 are GameMaster-dependent): allowed under DECISIONS:412(2), REVIEW_LOG RV-100 (2)
 block("U3G", "T0", ["tests_u3", "tests_u3_g"], ["X-9", "X-10", "RE-2"],
       fixed={"X-9": 30, "X-10": 1, "RE-2": 1}, harness=True, voices=False, gamemaster=True)
 block("U3E", "T0-ENT4", ["tests_u3", "tests_u3_m"], ["ENT-4"],

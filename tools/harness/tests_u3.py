@@ -57,7 +57,7 @@ Q10_SWAP_APPROVED = False
 # CS-27 needs (1) SNRom_Sparked = 1 written on an enrolled CHILD (the harness's own SUSetInt guard refuses that key on a
 # child by design) and (2) a session of STOCK Relationships (no child gates: R10 adult prompts possible) with that child
 # enrolled. Both are child-safety calls for Shae, so CS-27 is a stub; no code path writes either.
-CS27_SETUP_APPROVED = False
+# CS-27: static proof only (RV-100 (4)); no setup gate.
 
 # T0-M cast (step8_time_plan.md:369). build_t0m.py fills these in; a None entry makes the tests that need it
 # INCONCLUSIVE. Reference FormIDs (ints).
@@ -364,7 +364,9 @@ def d3(r):
     """Patch B disabled, repeat D-1: F1 held on an errand, Dispatch(F1, story). Pass: the bridge's DISPATCH_CONFLICT for
     F1 (IEB_Main.DispatchConflict :428-439, VERIFIED log text), F1 holds no IE slot afterwards ('both slots cancelled'),
     and the watcher's slotCount for F1 is back to <= 1 within 2 ticks (I1; ticks ~3 s, held_gap note in block.py).
-    INFERRED: (1) stock IntelEngine (patch B's mod unticked, see D3_BASELINE_MOD) stands in for the Caprica baseline;
+    [CHANGED vs spec, REVIEW_LOG RV-100 (3)] stock IntelEngine (patch B's mod unticked in the TEST modlist only, backup
+    + restore asserted) stands in for the spec's Caprica baseline (no baseline mod installed; building one is outside
+    the write list). INFERRED: (1) stock IntelEngine (patch B's mod unticked, see D3_BASELINE_MOD) stands in for the Caprica baseline;
     (2) the TAKE still happens without patch B's TaskStarted event (the bridge's tick scan finds the agent alias);
     (3) 2 ticks = 10 s of wall time. Restart: one patch-off launch + the restore launch. reload=False (ends on a fresh
     T0 load)."""
@@ -493,15 +495,21 @@ def en4(r):
 
 @test("CS-27", "CS")
 def cs27(r):
-    """Save with a sparked child (pre-patch), load with the patch: the child sweep un-sparks, locks intimacy, keeps the
-    enrolment (SNRom_Bridge.psc:8738-8757 'Child sweep: un-sparked ...', VERIFIED). STUB: building the pre-patch state
-    needs SNRom_Sparked = 1 written on an enrolled child (IEB_TestCtl.SUSetInt refuses that key on a child by design) and
-    a stock-Relationships session with the child enrolled (no child gates). Both are child-safety calls for Shae."""
+    """[CHANGED 2026-10-11, REVIEW_LOG RV-100 (4)] Romance state is NEVER written onto a child, not even in a test, so
+    CS-27 is a STATIC proof plus a promotion known gap ("not live-tested by design"): the built Relationships patch must
+    contain the child sweep that un-sparks a child, locks intimacy and keeps the enrolment (SNRom_Bridge.psc child sweep,
+    'Child sweep: un-sparked' log), and the installed pex must equal the build. Mechanics only: line presence and hashes."""
     checkpoint(r)
-    if not CS27_SETUP_APPROVED:
-        return inc(r, "child-safety ruling needed (FOR_SHAE): the pre-patch sparked-child state can't be built without "
-                      "writing SNRom_Sparked on a child and running stock Relationships with the child enrolled")
-    inc(r, "CS27_SETUP_APPROVED is set but no setup route is written yet")
+    import hashlib, os
+    src = "C:/nolvus-research/build/src/relationships/src/scripts/SNRom_Bridge.psc"
+    text = open(src, encoding="utf-8", errors="replace").read()
+    r.check("Child sweep: un-sparked" in text, "the child sweep's un-spark path is in the built patch source")
+    r.check(bool(re.search(r"IsChild\(\)", text)), "the patch source gates on IsChild")
+    b = "C:/nolvus-research/build/bin/rel_patched/SNRom_Bridge.pex"
+    i = "C:/Nolvus/Instances/Nolvus Awakening/MODS/mods/SkyrimNet Relationships - Private Patch/Scripts/SNRom_Bridge.pex"
+    h = lambda p: hashlib.sha256(open(p, "rb").read()).hexdigest()[:16] if os.path.exists(p) else None
+    r.check(h(b) is not None and h(b) == h(i), "installed SNRom_Bridge.pex equals the build (%s / %s)" % (h(b), h(i)))
+    r.log("  CS-27: not live-tested by design (promotion_known_gaps.md row 3)")
 
 
 # ============================================================================ Q-10 (spec :1537)
