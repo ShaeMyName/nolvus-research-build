@@ -32,7 +32,7 @@ import contextlib, os, re, statistics, time
 import game
 import sn_harness as SH
 from block import test, checkpoint, settle_probe
-from tests_misc import (PLAYER, F1, con, ctl_line, hx, inc, render, truthy, who, su_get, REQLOG, near_player, rank, iv)
+from tests_misc import (PLAYER, F1, con, ctl_line, hx, inc, render, truthy, who, su_get, REQLOG, rank, iv)
 from tests_u2 import A_NPC, B_NPC, market, uuids, place, bring_back, force_line, harness_ready, nonce, los
 
 WORDS_CASUAL_MAX = 60
@@ -271,7 +271,9 @@ def sess(r, scene=False, npc=F1, calib=True):
     """Common setup. Yields dict(fu, pu, ovh) or None (INCONCLUSIVE already recorded). The test calls checkpoint(r) first
     thing inside the with. Undo in finally: SceneOff + witness flag back on if the scene was started, partner back
     beside the player, pacing back to normal."""
-    market(r)
+    if not market(r):                                   # RV-123 (3): market() reads the player's spot back
+        yield None
+        return
     scene_started = False
     placed = False
     pace = False
@@ -284,12 +286,12 @@ def sess(r, scene=False, npc=F1, calib=True):
             inc(r, "partner %08X or the player has no uuid (not loaded)" % npc)
             yield None
             return
-        place(r, npc, 150, 0, 0)
+        ok = place(r, npc, 150, 0, 0)                   # RV-123 (3): place() reads the distance back
         placed = True
-        time.sleep(2)
-        if not near_player(r, npc, "PlaceRel 150"):        # RV-123 (3): los() alone does not show the distance
+        if not ok:
             yield None
             return
+        time.sleep(2)
         if los(r, fu, pu) is not True:
             inc(r, "partner is not near and in view of the player")
             yield None
@@ -331,7 +333,7 @@ def sess(r, scene=False, npc=F1, calib=True):
             ctl_line(r, "SceneOff", [], r"\[IEB-TEST\] SCENE off")
             con(r, "set IEB_WitnessEnabled to 1")
         if placed:
-            bring_back(r, npc)
+            bring_back(r, npc, readback=False)
         if pace:
             try:
                 SH.pacing(False)
@@ -417,8 +419,7 @@ def len3(r):
         checkpoint(r)
         t = game.Tail(game.LOGS["papyrus"])
         try:
-            place(r, A_NPC, 400, 0, 0)
-            if not near_player(r, A_NPC, "PlaceRel 400", maxd=900):     # RV-123 (3)
+            if not place(r, A_NPC, 400, 0, 0):                         # RV-123 (3): place() reads back
                 return
             con(r, "%s.startcombat player" % hx(A_NPC))
             time.sleep(2)
@@ -438,7 +439,7 @@ def len3(r):
         finally:
             con(r, "%s.stopcombat" % hx(A_NPC))
             con(r, "%s.stopcombatalarm" % hx(A_NPC))
-            bring_back(r, A_NPC)
+            bring_back(r, A_NPC, readback=False)
 
 
 @test("LEN-4", "LEN", reload=True)
@@ -707,7 +708,8 @@ def sec3(r):
     render (B_NPC target), absent from player_dialogue (actor = player) and npc_thoughts (INFERRED template names).
     A missing rule in dialogue_response or a template that fails to render = INCONCLUSIVE (absence elsewhere would be
     vacuous). Text is searched in memory only."""
-    market(r)
+    if not market(r):
+        return
     if not harness_ready(r):
         return
     fu, bu, pu = uuids(r, SEC_NPC, B_NPC, PLAYER)

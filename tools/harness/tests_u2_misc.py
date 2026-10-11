@@ -16,7 +16,8 @@ def x6(r):
     """equip/unequip event audience: the player takes off a worn non-body item (feet first, else hands) with A 300 u in
     view and B ~500 u without line of sight: A's history gains an equip-type event (type contains 'equip', INFERRED name),
     B's does not."""
-    market(r)
+    if not market(r):
+        return
     au, bu, pu = uuids(r, A_NPC, B_NPC, PLAYER)
     if not (au and bu and pu):
         return inc(r, "actors not loaded")
@@ -26,11 +27,9 @@ def x6(r):
         return inc(r, "the player wears nothing on feet or hands to take off")
     item = pick[0]
     try:
-        place(r, A_NPC, 300, 0, 0)
-        place(r, B_NPC, 300, 0, -400)
+        if not (place(r, A_NPC, 300, 0, 0) and place(r, B_NPC, 300, 0, -400)):
+            return                              # RV-123 (3): place() reads the distance back (los() does not)
         time.sleep(2)
-        if not (near_player(r, A_NPC, "PlaceRel 300") and near_player(r, B_NPC, "PlaceRel 300,0,-400", maxd=800)):
-            return                              # RV-123 (3): placements read back (los() does not show distance)
         if not los(r, au, pu) or los(r, bu, pu) is not False:
             return inc(r, "line-of-sight setup not as wanted")
         a0, b0 = [render_equip(r, u) for u in (au, bu)]
@@ -49,8 +48,8 @@ def x6(r):
         r.check(b1 == b0, "B (no line of sight) gets no equip event")
     finally:
         con(r, "player.equipitem %08X" % item)
-        bring_back(r, A_NPC)
-        bring_back(r, B_NPC)
+        bring_back(r, A_NPC, readback=False)
+        bring_back(r, B_NPC, readback=False)
 
 
 def render_equip(r, uuid):
@@ -64,7 +63,8 @@ def render_equip(r, uuid):
 def cs2(r):
     """Address a child directly, also while the player is exposed: the child gives a normal AI reply (children keep AI).
     Mechanics only: the child's dialogue-event count rises after each injected line. 2 LLM calls."""
-    market(r)
+    if not market(r):
+        return
     if not harness_ready(r):
         return
     cu, _, child = who(r, CHILD)
@@ -82,9 +82,8 @@ def cs2(r):
                 item, m = fire_exposure(r)
                 if not item:
                     return inc(r, "could not take off the player's body item")
-                wr = worn_rows(r, uuids(r, PLAYER)[0])                  # RV-123 (3): the body item is off
-                if wr is None or item in [to_formid(x[1]) for x in wr]:
-                    return inc(r, "unequipitem read-back: %08X %s" % (item, "worn list render failed" if wr is None else "still worn"))
+                if m is False:                  # RV-123 (3): fire_exposure read the torso slot back (INCONCLUSIVE logged)
+                    return
             d0 = hist_hits(r, cu, etype="dialogue") or 0
             SH.inject_player_input("Hello there. Are you all right?", cu)
             SH.await_idle(90)
@@ -120,7 +119,8 @@ def t10_2(r):
     """Save A (IEB_T10A), talk to F1 (3 injected lines with a nonce: events + chance of a memory), load A: harness mode
     clears the timeline (= Delete History, 'auto-cleared the timeline'); afterwards F1's history holds none of the
     nonce lines. Memories/diaries: count of nonce hits in the memory route is the dashboard check (S-C). 3 LLM calls."""
-    market(r)
+    if not market(r):
+        return
     if not harness_ready(r):
         return
     fu, = uuids(r, F1)

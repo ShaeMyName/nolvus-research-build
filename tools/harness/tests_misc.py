@@ -462,17 +462,23 @@ def su_get(r, uuid, key, dflt=-99, fid=None):
 
 
 # ---------------------------------------------------------------------------- RV-123 (3) write read-backs
-# Every console / MCP state write is read back before the test goes on. Positions: the existing reads
-# tests_u2_wh.dist (CombatProbe dPlayer, actors only) and tests_u2_wh.where (PlayerWhere), imported lazily
-# (tests_u2_wh imports this module).
+# Every console / MCP state write is read back before the test goes on. Positions: the same reads as
+# tests_u2_wh.dist (CombatProbe dPlayer, actors only) and tests_u2_wh.where (PlayerWhere), inlined here so a call
+# never imports a test module (an import registers its tests in block.TESTS; selftest's wiring check saw them).
+
+
+def _dist(r, fid):
+    m = ctl_line(r, "CombatProbe", [s32(fid)], r"\[IEB-TEST\] CombatProbe .*? combat=(\d).*? dPlayer=(\d+)", 10)
+    return int(m.group(2)) if m else None
+
 
 def near_player(r, fid, what, maxd=600, tries=3):
     """Read-back for '<ref>.moveto player', 'player.moveto <actor>', PlaceRel/MoveRel onto the player: the actor's
-    distance to the player (tests_u2_wh.dist). True, or INCONCLUSIVE (inc) and False. Logs the distance read."""
-    from tests_u2_wh import dist
+    distance to the player (CombatProbe dPlayer, as tests_u2_wh.dist). True, or INCONCLUSIVE (inc) and False. Logs the
+    distance read."""
     d = None
     for i in range(tries):
-        d = dist(r, fid)
+        d = _dist(r, fid)
         if d is not None and d <= maxd:
             r.log("  read-back %s: %s at %d u from the player" % (what, hx(fid), d))
             return True
@@ -483,9 +489,11 @@ def near_player(r, fid, what, maxd=600, tries=3):
 
 
 def player_pos(r):
-    """PlayerWhere -> dict(cell, ws, x, y, z) or None (tests_u2_wh.where)."""
-    from tests_u2_wh import where
-    return where(r)
+    """PlayerWhere -> dict(cell, ws, x, y, z) or None (the same read as tests_u2_wh.where)."""
+    m = ctl_line(r, "PlayerWhere", [], r"\[IEB-TEST\] PLAYERPOS cell=(\S+) ws=(\S+) x=(-?[\d.]+) y=(-?[\d.]+) z=(-?[\d.]+)", 15)
+    if not m:
+        return None
+    return {"cell": m.group(1), "ws": m.group(2), "x": float(m.group(3)), "y": float(m.group(4)), "z": float(m.group(5))}
 
 
 def player_moved(r, w0, what, mind=300.0):
@@ -979,6 +987,15 @@ def rel1(r):
                 % (w and w.get("dPlayer")))
         dropped = st.wait(r"Dropped the question for %s|Question on screen for %s" % (re.escape(name), re.escape(name)), timeout=20)
         con(r, "%s.enable" % hx(F1))
+        for _ in range(3):                  # RV-123 (3): enable read-back (Recall and Check below need F1 back)
+            time.sleep(2)
+            ld = ctl_line(r, "Probe", [s32(F1)], r"\[IEB-TEST\] probe .*%s cell=\S* loaded=(\d)" % fid_any_rx(F1), 10)
+            if ld and ld.group(1) == "1":
+                break
+        else:
+            inc(r, "read-back %s.enable: F1 not loaded again (loaded=%s)" % (hx(F1), ld.group(1) if ld else "no probe"))
+        if not dropped:                     # RV-123 (3): the disable's effect (the box dropped) read back
+            inc(r, "read-back %s.disable: neither 'Dropped the question' nor 'Question on screen' within 20 s" % hx(F1))
         if dropped and "on screen" in dropped.group(0):
             r.log("  BOX ON SCREEN: one key press needed (the game is paused until answered)")
             inc(r, "box opened before the disable landed")
@@ -1104,7 +1121,8 @@ def cs20(r):
     r.check(e is False, "RomanceBeginSpark not eligible for the child")
     t = tail("snrom")
     rel(r, "BeginSpark", [ah(CHILD), "ieb test"])
-    t.wait(r"BeginSpark (on already-enrolled|declined for) %s" % re.escape(name), timeout=15)
+    if not t.wait(r"BeginSpark (on already-enrolled|declined for) %s" % re.escape(name), timeout=15):
+        inc(r, "BeginSpark: no 'on already-enrolled / declined' line, the call is not confirmed (RV-123 (3))")
     rom = romance(r, u)
     r.check(rom is not None and iv(rom, "sparked", 0) == 0, "child still not sparked")
     r.check(su_get(r, u, "SNRom_PlayerStance", -99) in (-99, 0), "no player stance on the child")
@@ -1168,6 +1186,8 @@ def cs22(r):
         time.sleep(6)
         r.check(su_get(r, u, "SNRom_PhysMinTier", fid=CHILD) == -1, "store back to -1 after the sweep")
         su_set(r, CHILD, "SNRom_PhysMinTier", 4)
+        if su_get(r, u, "SNRom_PhysMinTier", fid=CHILD) != 4:     # RV-123 (3): else the -1 below proves nothing
+            return inc(r, "read-back: second SNRom_PhysMinTier = 4 write did not land; R5 repair not judged")
         rel(r, "SetCharacterField", [ah(CHILD), 0, 0])
         time.sleep(3)
         r.check(su_get(r, u, "SNRom_PhysMinTier", fid=CHILD) == -1, "repair request (SetCharacterField intimacy casual) leaves -1")
@@ -1175,6 +1195,8 @@ def cs22(r):
     finally:
         rel(r, "SweepFollowers", [])
         time.sleep(3)
+        if su_get(r, u, "SNRom_PhysMinTier", fid=CHILD) != -1:   # RV-123 (3): CS-22 is reload=False
+            inc(r, "read-back cleanup: child SNRom_PhysMinTier not -1 after the final sweep")
         con(r, "set IEB_TestWatch to 1")
 
 
@@ -1193,6 +1215,8 @@ def cs12(r):
     try:
         if not ctl_line(r, "SceneOn", [F1], r"\[IEB-TEST\] SCENE on partner="):
             return inc(r, "SceneOn wrapper gave no line")
+        if su_get(r, au, "IEB_IsScenePartner", 0, fid=F1) != 1:   # RV-123 (3): the wrapper line only echoes
+            return inc(r, "read-back SceneOn: F1 IEB_IsScenePartner is not 1")
         checkpoint(r)
         head_c = render(r, cu, '{{ render_subcomponent("system_head", "full") }}')
         fin_c = render(r, cu, '{{ render_subcomponent("user_final_instructions", "full") }}')
@@ -1218,6 +1242,8 @@ def cs12(r):
             r.log("  NOTE adult 0760 scene block absent (0760 also needs is_narration_enabled(), 0760:36)")
     finally:
         ctl_line(r, "SceneOff", [], r"\[IEB-TEST\] SCENE off")
+        if su_get(r, au, "IEB_IsScenePartner", 0, fid=F1) != 0:   # RV-123 (3): CS-12 is reload=False
+            inc(r, "read-back SceneOff: F1 IEB_IsScenePartner still set")
         con(r, "set IEB_WitnessEnabled to 1")
 
 
@@ -1329,11 +1355,14 @@ def rs8(r):
     if ka and iv(ka, "r") == 2 and iv(ka, "tier") == 3:
         checkpoint(r)
         t = tail("papyrus")
-        _set_pts(r, F2, 1100)
+        ks = _set_pts(r, F2, 1100)
         hits = _ranksync(t.read(), name)
         k = rank(r, F2)
-        r.check(any(h["f"] == "2" and h["t"] == "1" and h["why"] == "drop" for h in hits) and k and iv(k, "r") == 1,
-                "(a) Confidant -> Friend: rank 2 -> 1, why=drop")
+        if not ks or iv(ks, "pts") != 1100:        # RV-123 (3): the points write read back before judging the drop
+            inc(r, "(a) read-back: points not 1100 after ApplyDepth (pts=%s)" % (ks and ks.get("pts")))
+        else:
+            r.check(any(h["f"] == "2" and h["t"] == "1" and h["why"] == "drop" for h in hits) and k and iv(k, "r") == 1,
+                    "(a) Confidant -> Friend: rank 2 -> 1, why=drop")
     else:
         inc(r, "(a) setup: Confidant at rank 2 not reached (tier %s rank %s)" % (ka and ka.get("tier"), ka and ka.get("r")))
         checkpoint(r)   # setup-only: stop on the (a) miss too (SETUP FAIL with its reason)
@@ -1346,11 +1375,14 @@ def rs8(r):
     if kb and iv(kb, "track") == 1 and iv(kb, "r") == 4:
         t = tail("papyrus")
         su_set(r, F2, "SNRom_Sparked", 0)
-        ctl_line(r, "RankApply", [F2], r"\[IEB-TEST\] RANKAPPLY")
-        hits = _ranksync(t.read(), name)
-        k = rank(r, F2)
-        r.check(any(h["f"] == "4" and h["t"] == "3" and h["why"] == "drop" for h in hits) and k and iv(k, "r") == 3,
-                "(b) romantic Lover -> friendship at tier 4: rank 4 -> 3, why=drop")
+        if su_get(r, u, "SNRom_Sparked", fid=F2) != 0:     # RV-123 (3): the un-spark write read back first
+            inc(r, "(b) read-back: SNRom_Sparked not 0 after the write")
+        else:
+            ctl_line(r, "RankApply", [F2], r"\[IEB-TEST\] RANKAPPLY")
+            hits = _ranksync(t.read(), name)
+            k = rank(r, F2)
+            r.check(any(h["f"] == "4" and h["t"] == "3" and h["why"] == "drop" for h in hits) and k and iv(k, "r") == 3,
+                    "(b) romantic Lover -> friendship at tier 4: rank 4 -> 3, why=drop")
     else:
         inc(r, "(b) setup: romantic track at rank 4 not reached (track %s rank %s; orientation may foreclose)"
             % (kb and kb.get("track"), kb and kb.get("r")))
@@ -1361,22 +1393,36 @@ def rs8(r):
     su_unset(r, F2, "IEB_RankSyncTier")
     su_unset(r, F2, "IEB_RankSyncRom")
     ctl_line(r, "SetRank", [F2, 3], r"\[IEB-TEST\] SETRANK")
-    t = tail("papyrus")
-    for _ in range(3):
-        ctl_line(r, "RankApply", [F2], r"\[IEB-TEST\] RANKAPPLY")
-    k = rank(r, F2)
-    r.check(k is not None and iv(k, "r") == 3 and not any(h["why"] == "drop" for h in _ranksync(t.read(), name)),
-            "(c) Stranger at rank 3: three sweeps, rank stays 3")
+    kc = rank(r, F2)                                # RV-123 (3): read back every (c) setup write (-99/-1 = unset)
+    cs = (su_get(r, u, "SNRom_Sparked", fid=F2), su_get(r, u, "SNRom_PlayerStance", fid=F2))
+    if (not kc or iv(kc, "pts") != 100 or iv(kc, "r") != 3 or iv(kc, "hasSync") != 0 or iv(kc, "syncRom") != -1
+            or cs[0] != 0 or cs[1] != -99):
+        inc(r, "(c) setup read-back: pts=%s r=%s hasSync=%s syncRom=%s sparked/stance=%s, want 100/3/0/-1/(0, unset)"
+            % (kc and kc.get("pts"), kc and kc.get("r"), kc and kc.get("hasSync"), kc and kc.get("syncRom"), cs))
+    else:
+        t = tail("papyrus")
+        for _ in range(3):
+            ctl_line(r, "RankApply", [F2], r"\[IEB-TEST\] RANKAPPLY")
+        k = rank(r, F2)
+        r.check(k is not None and iv(k, "r") == 3 and not any(h["why"] == "drop" for h in _ranksync(t.read(), name)),
+                "(c) Stranger at rank 3: three sweeps, rank stays 3")
     # (e) Friend at rank 1 -> Stranger: 1 -> 0, never below
     _set_pts(r, F2, 1100)
     ctl_line(r, "SetRank", [F2, 1], r"\[IEB-TEST\] SETRANK")
     ctl_line(r, "RankApply", [F2], r"\[IEB-TEST\] RANKAPPLY")
-    t = tail("papyrus")
-    _set_pts(r, F2, 100)
-    hits = _ranksync(t.read(), name)
-    k = rank(r, F2)
-    r.check(any(h["f"] == "1" and h["t"] == "0" and h["why"] == "drop" for h in hits) and k and iv(k, "r") == 0,
-            "(e) Friend -> Stranger: rank 1 -> 0, why=drop, not below 0")
+    ke = rank(r, F2)                                # RV-123 (3): read back the (e) setup
+    if not ke or iv(ke, "pts") != 1100 or iv(ke, "r") != 1:
+        inc(r, "(e) setup read-back: pts=%s r=%s, want 1100 / 1" % (ke and ke.get("pts"), ke and ke.get("r")))
+    else:
+        t = tail("papyrus")
+        ks = _set_pts(r, F2, 100)
+        hits = _ranksync(t.read(), name)
+        k = rank(r, F2)
+        if not ks or iv(ks, "pts") != 100:
+            inc(r, "(e) read-back: points not 100 after ApplyDepth (pts=%s)" % (ks and ks.get("pts")))
+        else:
+            r.check(any(h["f"] == "1" and h["t"] == "0" and h["why"] == "drop" for h in hits) and k and iv(k, "r") == 0,
+                    "(e) Friend -> Stranger: rank 1 -> 0, why=drop, not below 0")
     partial(r, "(d) MARAS spouse whose tier drops stays 4: needs save T0-M")
 
 
@@ -1452,6 +1498,8 @@ def k2(r):
     if not u:
         con(r, "%s.moveto player" % hx(LISBET))
         time.sleep(5)
+        if not near_player(r, LISBET, "Lisbet moveto player"):
+            return
         u, _, _ = who(r, LISBET)
     if not u:
         return inc(r, "no UUID for 0x%s" % hx(LISBET))
@@ -1479,6 +1527,8 @@ def k3(r):
     if not gu:
         con(r, "%s.moveto player" % hx(WR_GUARDS[0]))
         time.sleep(5)
+        if not near_player(r, WR_GUARDS[0], "Whiterun guard moveto player"):
+            return
         gu, _, _ = who(r, WR_GUARDS[0])
         gid = WR_GUARDS[0]
     if not gu:
@@ -1512,10 +1562,14 @@ def _strip_body(r, fid, uuid):
     return rows, body
 
 
-def _stripped_or_inc(r, fid, body, label):
-    """True if a body garment was actually found and unequipped; else INCONCLUSIVE (never a vacuous PASS)."""
+def _stripped_or_inc(r, fid, body, label, uuid=None):
+    """True if a body garment was actually found and unequipped; else INCONCLUSIVE (never a vacuous PASS).
+    RV-123 (3): with `uuid`, the unequip is read back (body_flag 0) before the test goes on."""
     if not body:
         inc(r, "%s: no body garment found to strip (slot 32 / torso)" % label)
+        return False
+    if uuid is not None and body_flag(r, uuid) != 0:
+        inc(r, "%s: read-back %s.unequipitem: 0x%s still wears a body garment" % (label, hx(fid), hx(fid)))
         return False
     return True
 
@@ -1530,7 +1584,7 @@ def x1(r):
             inc(r, "%s 0x%s not loaded" % (label, hx(fid)))
             continue
         rows0, body = _strip_body(r, fid, u)
-        if not _stripped_or_inc(r, fid, body, label):
+        if not _stripped_or_inc(r, fid, body, label, u):
             continue
         if setup_skip(r):
             continue
@@ -1579,7 +1633,7 @@ def x2(r):
             inc(r, "%s not loaded" % label)
             continue
         rows0, _b = _strip_body(r, fid, u)
-        if not _stripped_or_inc(r, fid, _b, label):
+        if not _stripped_or_inc(r, fid, _b, label, u):
             continue
         rows1 = worn_rows(r, u) or []
         r.log("  stripped %s: slots %s" % (label, ",".join(sorted(x[0] for x in rows1))))
@@ -1626,6 +1680,11 @@ def x3(r):
         time.sleep(1)
     if not worn:
         return
+    got = {to_formid(x[1]) for x in (worn_rows(r, pu) or [])}     # RV-123 (3): unequipall + equipitem read back
+    want = {fid_norm(f) for f, _ in worn}
+    if got != want:
+        return inc(r, "read-back unequipall/equipitem: player wears %d forms, %d of the %d equipped (extra %d)"
+                   % (len(got), len(got & want), len(want), len(got - want)))
     checkpoint(r)
     out = render(r, fu, '{{ render_character_profile("dialogue_target", responseTarget.UUID) }}', target=pu)
     sec = equip_section(out)

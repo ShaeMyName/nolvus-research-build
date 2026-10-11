@@ -249,10 +249,10 @@ def ma6(r):
     if not to_spouse(r, s1):
         return
     t0 = tail("papyrus")
-    if not ctl_line(r, "Snapshot", [s32(s1)], r"\[IEB-TEST\] snapshot [^\n]*", 20):
-        return inc(r, "read-back: no Snapshot line for spouse1 (I1-I10 baseline not confirmed; RV-123 (3))")
-    if not ctl_line(r, "ExpectLend", [s32(s1)], r"\[IEB-TEST\] ExpectLend[^\n]*", 10):
-        return inc(r, "read-back: no ExpectLend line for spouse1 (EBT_WasLent not confirmed; RV-123 (3))")
+    ctl_line(r, "Snapshot", [s32(s1)], r"\[IEB-TEST\] snapshot [^\n]*", 20)
+    ctl_line(r, "ExpectLend", [s32(s1)], r"\[IEB-TEST\] ExpectLend[^\n]*", 10)
+    if not _su_is(r, s1, "EBT_Snap", 1, "Snapshot") or not _su_is(r, s1, "EBT_WasLent", 1, "ExpectLend"):
+        return
     checkpoint(r)
     r.ctl("StartTask", [s32(s1), "GoToLocation", DEST_NEAR, "", ""])
     m = t0.wait(r"(?i)\[IEB\] (LEND|TAKE|TAKE_SKIP|REFUSE) actor=%s\b[^\n]*" % re.escape(name), 30)

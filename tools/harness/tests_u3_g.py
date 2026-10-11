@@ -96,7 +96,8 @@ def x_arm(r, label):
     latency = seconds from inject to the first new non-player utterance (polled every 0.5 s); bystander lines = new
     utterances whose speaker is neither the player nor F1, over the 3 lines + X_WINDOW_S each. Dressed again after.
     Returns a dict of counts or None (INCONCLUSIVE logged)."""
-    market(r)
+    if not market(r):
+        return None
     if not harness_ready(r):
         return None
     fu, au, bu, cu, pu = uuids(r, F1, A_NPC, B_NPC, C_NPC, PLAYER)
@@ -164,7 +165,7 @@ def x_arm(r, label):
     finally:
         dress(r, item)
         for fid in placed:
-            bring_back(r, fid)
+            bring_back(r, fid, readback=False)
 
 
 def _rename(r, src, dst, tag):
@@ -232,7 +233,7 @@ def _x_run(r):
                     inc(r, "restore: read-back: the player is not exposed (unequipitem; RV-123 (3))")
                 mk = marker_count(r, au, fu)
                 dress(r, item)
-                bring_back(r, A_NPC)
+                bring_back(r, A_NPC, readback=False)
             _X["restored_marker"] = mk
     return _X
 

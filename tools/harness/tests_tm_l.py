@@ -96,11 +96,33 @@ def console(r, cmd):
 DOOR_REFS = {0x0001A6F7, DOOR_ARCADIA_EXT, DOOR_ARCADIA_INT, DOOR_MARE_EXT, DOOR_MARE_INT, DOOR_BELETHOR_EXT, DOOR_BELETHOR_INT}
 
 
-def moveto(r, ref, settle=6):
+NON_ACTOR_REFS = {AWAY_REF}     # map marker: no actor to measure from, so the player's own position is read instead
+
+
+def moveto(r, ref, settle=6, maxd=600):
+    """player.moveto + REVIEW_LOG RV-123 (3) read-back (Probe). Actor target: its dPlayer <= maxd. Non-actor target
+    (NON_ACTOR_REFS): the player's cell changed or the position moved > 300 u. True, or INCONCLUSIVE and False."""
     if ref in DOOR_REFS:
         raise ValueError("harness: player.moveto onto a door ref %08X puts the player inside the wall" % ref)
+    p0 = probe(r, PLAYER) if ref in NON_ACTOR_REFS else None
     console(r, "player.moveto %08X" % ref)
     time.sleep(settle)
+    if ref in NON_ACTOR_REFS:
+        p1 = probe(r, PLAYER)
+        a, b = (p0 or {}).get("xyz"), (p1 or {}).get("xyz")
+        moved = ((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2) ** 0.5 if a and b else None
+        if moved is not None and (moved > 300 or p1.get("cell") != p0.get("cell")):
+            r.log("  read-back player.moveto %08X: moved %d u, cell %s -> %s" % (ref, moved, p0.get("cell"), p1.get("cell")))
+            return True
+        inconclusive(r, "read-back player.moveto %08X: player did not move (%s u; RV-123 (3))" % (ref, moved))
+        return False
+    p = probe(r, ref)
+    d = p.get("dPlayer_n") if p else None
+    if d is not None and d <= maxd:
+        r.log("  read-back player.moveto %08X: %d u from it" % (ref, d))
+        return True
+    inconclusive(r, "read-back player.moveto %08X: %s u from it (want <= %d; RV-123 (3))" % (ref, d, maxd))
+    return False
 
 
 def ctl_wait(r, fn, args, pattern, timeout=15):
@@ -221,6 +243,8 @@ def restore_lend(r, fid, timeout=40):
     r.ctl("Cancel", [fid])
     m = t.wait(r"(?i)\[IEB\] LEND_RESTORE(?:_SKIP)? actor=%s\b[^\n]*" % re.escape(nm(fid)), timeout=timeout)
     r.log("  restore %s: %s" % (nm(fid), m.group(0).split("[IEB] ")[-1] if m else "no LEND_RESTORE"))
+    if not m:       # RV-123 (3): the Cancel is read back by the restore line (L-1/L-2 are reload=False)
+        inconclusive(r, "read-back Cancel %s: no LEND_RESTORE line in %d s" % (nm(fid), timeout))
     return m
 
 
@@ -297,7 +321,8 @@ def tm1(r):
         r.check(d.startswith("[IEB] TAKE") and "mode=1" in d, "F1 taken and parked (TAKE mode=1)")
         if dest != DEST_TM1[0]:
             r.log("NOTE TM-1: fell back to %s (closer than 2 cells)" % dest)
-        moveto(r, AWAY_REF)        # INFERRED: moveto stands in for "the player walks the other way" (time plan:127)
+        if not moveto(r, AWAY_REF):    # INFERRED: moveto stands in for "the player walks the other way" (time plan:127)
+            return
         arrived = wait_arrival(r.tails["papyrus"], F1, 240)
         samples = actor_lines(w.read(), F1)
         held = [s for s in samples if s.get("iebHeld") == 1]
@@ -356,14 +381,16 @@ def tm2(r):
             # A door ref is never a moveto target (inside the wall). To stand AT the exterior door: go inside to its
             # shopkeeper (Belethor 0x0001A672, a non-door ref in the interior), then use the interior door, which
             # drops the player on the exterior door's own teleport marker.
-            moveto(r, 0x0001A672, 8)
+            if not moveto(r, 0x0001A672, 8):
+                continue
             back = ctl_wait(r, "DoorUse", [door_int], r"(?i)\[IEB-TEST\] DoorUse %s dest=[^\n]*" % fid_rx(door_int), 10)
             if not back:
                 inconclusive(r, "%s: could not walk out of the interior door to stand at the exterior door" % label)
                 continue
             time.sleep(10)                              # F1 (following, WFP 0) catches up meanwhile
         else:
-            moveto(r, first if first else HOME_REF, 10)  # F1 (following, WFP 0) catches up meanwhile
+            if not moveto(r, first if first else HOME_REF, 10):  # F1 (following, WFP 0) catches up meanwhile
+                continue
         snapshot(r, F1)
         if setup_skip(r):       # setup-only: each run's own setup, no StartTask
             continue
@@ -464,7 +491,10 @@ def tm5(r):
     original = int(m.group(1))
     try:
         for aware in (0, 1):
-            ctl_wait(r, "NFFCombatAware", [aware], r"\[IEB-TEST\] NFFCombatAware was=", 10)
+            ca = ctl_wait(r, "NFFCombatAware", [aware], r"\[IEB-TEST\] NFFCombatAware was=(-?\d+) now=(-?\d+)", 10)
+            if not ca or int(ca.group(2)) != aware:     # RV-123 (3): the wrapper logs the property read after the write
+                inconclusive(r, "read-back NFFCombatAware: now=%s, want %d" % (ca.group(2) if ca else "no line", aware))
+                continue
             moveto(r, HOME_REF, 10)
             snapshot(r, F1)
             if setup_skip(r):   # setup-only: both passes' setup, no errand; the outer finally restores Combat Aware
@@ -498,7 +528,9 @@ def tm5(r):
                 ctl_wait(r, "Despawn", [], r"\[IEB-TEST\] Despawn", 5)     # idempotent (no-op without a spawn)
                 release_f(r, F1)
     finally:
-        ctl_wait(r, "NFFCombatAware", [original], r"\[IEB-TEST\] NFFCombatAware was=", 10)
+        ca = ctl_wait(r, "NFFCombatAware", [original], r"\[IEB-TEST\] NFFCombatAware was=(-?\d+) now=(-?\d+)", 10)
+        r.check(bool(ca) and int(ca.group(2)) == original, "NFF Combat Aware restored to %d (now=%s)"
+                % (original, ca.group(2) if ca else "no line"))      # RV-123 (3): TM-5 is reload=False
         moveto(r, HOME_REF, 10)
         check_inv(r, F1)
 
@@ -545,7 +577,8 @@ def tm8(r):
         if not d or not d.startswith("[IEB] TAKE"):
             return inconclusive(r, "no TAKE for F1")
         phase("mid-errand (Held 1)", "held1")
-        moveto(r, AWAY_REF)
+        if not moveto(r, AWAY_REF):         # RV-123 (3): away (> 1000 u) or the linger path runs
+            return
         if not timeout_at_dest(r, F1):
             return inconclusive(r, "F1 never reached its errand's timeout (arrival or Accelerate)")
         rj = r.tails["papyrus"].wait(r"(?i)\[IEB\] (REJOIN_WAIT|RELEASE_FOLLOW|RELEASE_STAY|RELEASE) actor=%s\b" % nmF, 20)
@@ -570,7 +603,8 @@ def tm10(r):
     try:
         if not d or not d.startswith("[IEB] TAKE"):
             return inconclusive(r, "no TAKE for F1")
-        moveto(r, AWAY_REF)
+        if not moveto(r, AWAY_REF):         # RV-123 (3): away (> 1000 u) or the linger path runs
+            return
         if not timeout_at_dest(r, F1):
             return inconclusive(r, "no plain-ClearSlot exit observed (arrival or Accelerate failed)")
         rel = r.tails["papyrus"].wait(r"(?i)\[IEB\] (REJOIN_WAIT|RELEASE_FOLLOW|RELEASE_STAY|RELEASE) actor=%s\b" % nmF, 20)
@@ -687,7 +721,8 @@ def tm13(r):
         r.check(not re.search(r"IntelEngine: Kept follower as teammate for task: %s\b" % nmF, pap), "A/B: no 'Kept follower'")
         held = [s for s in actor_lines(w.read(), F1) if s.get("iebHeld") == 1]
         r.check(bool(held) and all(s.get("tm") == 0 for s in held), "A/B: flag off while held (%d samples)" % len(held))
-        moveto(r, AWAY_REF)
+        if not moveto(r, AWAY_REF):         # RV-123 (3): away (> 1000 u) or the linger path runs
+            return
         if not timeout_at_dest(r, F1):
             return inconclusive(r, "no plain-ClearSlot exit observed")
         r.check(bool(r.tails["papyrus"].wait(r"(?i)\[IEB\] TEAMMATE_WAS_OFF actor=%s\b" % nmF, 20)),
@@ -710,6 +745,9 @@ def lend(r, fid, dests=DEST_NEAR):
     4 relax, 8 guard, 16 track-only home, 32 retainer, 64 steward, 128 sleeping)."""
     snapshot(r, fid)
     ctl_wait(r, "ExpectLend", [fid], r"\[IEB-TEST\] ExpectLend", 10)
+    el = ctl_wait(r, "SUGetInt", [fid, "EBT_WasLent", -99], r"\[IEB-TEST\] SU (?:%s|none) EBT_WasLent get=(\S+)" % fid_rx(fid), 10)
+    if not el or el.group(1) != "1":    # RV-123 (3): without EBT_WasLent = 1 the I4 checks pass vacuously
+        inconclusive(r, "read-back ExpectLend: EBT_WasLent=%s on %s (want 1)" % (el.group(1) if el else "no line", nm(fid)))
     checkpoint(r)
     dest, d = start_errand(r, fid, dests)
     m = re.search(r"(?i)\[IEB\] LEND actor=\S.*? kind=(\d+)", d or "")
@@ -769,6 +807,10 @@ def l2(r):
             if not m:
                 return inconclusive(r, "DoorUse wrapper did not run")
             time.sleep(10)
+            pl = probe(r, PLAYER)       # RV-123 (3): the player really went through (inside after EXT, outside after INT)
+            inside = bool(pl) and re.search(fid_rx(CELL_BELETHOR), pl.get("cell", ""), re.I) is not None
+            if not pl or inside != (door == DOOR_BELETHOR_EXT):
+                return inconclusive(r, "read-back DoorUse %08X: player cell %s" % (door, pl and pl.get("cell")))
         time.sleep(5)       # SA's TESCellFullyLoaded handler (FM:1660) after the return to the exterior
         p = probe(r, H)
         samples = actor_lines(w.read(), H) + ([p] if p else [])
@@ -790,7 +832,8 @@ def l3(r):
     try:
         if not d or not d.startswith("[IEB] LEND"):
             return inconclusive(r, "H not lent (%s)" % (d or "no decision"))
-        moveto(r, AWAY_REF)
+        if not moveto(r, AWAY_REF):         # RV-123 (3): away (> 1000 u) or the linger path runs
+            return
         if not timeout_at_dest(r, H):
             return inconclusive(r, "H's errand never reached its end")
         rs = r.tails["papyrus"].wait(r"(?i)\[IEB\] LEND_RESTORE actor=%s kind=\d+ why=(\S+)" % nm(H), 20)
@@ -833,7 +876,8 @@ def l4(r):
         if not d or not d.startswith("[IEB] LEND"):
             return inconclusive(r, "G not lent (%s); is Anoriath on shift (08-17)?" % (d or "no decision"))
         r.check(kind is not None and kind & 8 == 8, "LEND kind=%s has the guard bit (8)" % kind)
-        moveto(r, AWAY_REF)
+        if not moveto(r, AWAY_REF):         # RV-123 (3): away (> 1000 u) or the linger path runs
+            return
         done = timeout_at_dest(r, G)
         r.check(bool(done), "G's errand completed (arrival, then the linger deadline)")
         lines = actor_lines(w.read(), G)
@@ -870,7 +914,11 @@ def l6(r):
     for f in (F1, F2):
         sa_call(r, "SeverActions_FollowerManager", "CompanionWait", [hexarg(f)])     # FM:8755
     time.sleep(3)
-    moveto(r, CHIEF, 20)
+    for f in (F1, F2):                  # RV-123 (3): both told to wait (WFP 1) before the player leaves
+        pw = probe(r, f)
+        if not pw or pw.get("wfp") != 1.0:
+            return inconclusive(r, "read-back CompanionWait %s: wfp=%s, want 1" % (nm(f), pw and pw.get("wfp")))
+    moveto(r, CHIEF, 20, maxd=2000)     # RV-123 (3) read-back inside; the UUID wait below is the gate
     for _ in range(6):
         u, _info = r.uuid(CHIEF)
         if u:
@@ -959,7 +1007,8 @@ def l10(r):
         r.check(bool(p) and p.get("iebLent") == 1 and p.get("ieSlot", -1) >= 0, "after load: H still lent and in its slot")
         r.check(bool(p) and p.get("wfp") == 1.0, "after load: H WFP 1 (wfp=%s)" % (p and p.get("wfp")))
         r.check(bool(p) and p.get("sched") == (-1, -1, -1), "after load: no schedule alias (schedIdx=%s)" % ((p and p.get("sched")),))
-        moveto(r, AWAY_REF)
+        if not moveto(r, AWAY_REF):         # RV-123 (3): away (> 1000 u) or the linger path runs
+            return
         if not timeout_at_dest(r, H):
             return inconclusive(r, "H's errand never reached its end after the load")
         rs = r.tails["papyrus"].wait(r"(?i)\[IEB\] LEND_RESTORE actor=%s\b[^\n]*" % nm(H), 20)
@@ -986,6 +1035,8 @@ def l9(r):
     m = ctl_wait(r, "KillAndSave", [H, "IEB_L9"], r"\[IEB-TEST\] KillAndSave %s dead=(\w+) lent=(\d+) save=IEB_L9" % nm(H), 15)
     if not m:
         return inconclusive(r, "KillAndSave wrapper missing")
+    if m.group(1).lower() != "true":      # RV-123 (3): the kill read back (dead=) before the save is used
+        return inconclusive(r, "H not dead at the save (dead=%s)" % m.group(1))
     if m.group(2) != "1":
         return inconclusive(r, "H was no longer lent at the save (lent=%s)" % m.group(2))
     time.sleep(8)

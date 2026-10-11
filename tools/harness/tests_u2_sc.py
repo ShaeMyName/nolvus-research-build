@@ -15,7 +15,7 @@ import game
 import sn_harness as SH
 from block import test, checkpoint
 from tests_misc import (PLAYER, F1, F2, CHILD, FRALIA, YSOLDA, CARLOTTA, con, ctl_line, hx, inc, qf, ah, su_get, su_set,
-                        who, eligible, near_player, player_pos, player_moved)
+                        who, eligible, player_pos, player_moved)
 from fidnorm import fid_any_rx
 from tests_u2 import market, uuids, place, bring_back, radius, hist_hits, harness_ready
 
@@ -69,22 +69,21 @@ def scene_on_checked(r, fid):
 
 def _setup_scene(r, a_fid, extra=()):
     """Market, partner A beside the player with scene mode on, extra NPCs placed 300 u away. Returns uuids or None."""
-    market(r)
+    if not market(r):                           # RV-123 (3): market() / place() read back
+        return False
     for i, f in enumerate((a_fid,) + tuple(extra)):
         con(r, "%08X.moveto player" % f)
         time.sleep(1)
-        place(r, f, 150 if i == 0 else 300, 60 * i, 0)
-    time.sleep(2)
-    for f in (a_fid,) + tuple(extra):           # RV-123 (3): moveto + PlaceRel read back
-        if not near_player(r, f, "moveto player + PlaceRel"):
+        if not place(r, f, 150 if i == 0 else 300, 60 * i, 0):
             return False
+    time.sleep(2)
     return scene_on_checked(r, a_fid)
 
 
 def _cleanup(r, fids):
     scene_off(r)
     for f in fids:
-        bring_back(r, f)
+        bring_back(r, f, readback=False)        # cleanup; every SC test is reload=True
 
 
 # ---------------------------------------------------------------------------- joins / leaves / caps
@@ -174,12 +173,9 @@ def sc11(r):
         r.check(partner_flag(r, B) in (0, -99), "B's partner flag cleared at once")
         t = pap()
         dd = 2 * radius(r) + 400
-        place(r, A, dd, 0, 0)
+        if not place(r, A, dd, 0, 0):           # RV-123 (3): place() reads the distance back
+            return
         t0 = time.time()
-        from tests_u2_wh import dist
-        da = dist(r, A)                         # RV-123 (3): PlaceRel read back (its PLACE line only echoes the offset)
-        if da is None or da < dd / 2:
-            return inc(r, "PlaceRel read-back: A at %s u from the player, wanted ~%d" % (da, dd))
         am = t.wait(r"\[IEB-SC\] PARTNER_LEFT [^\n]*", 40)
         r.check(bool(am), "A removed after walking beyond 2x the radius")
         if am:
@@ -263,11 +259,9 @@ def sc10(r):
         for f, d in ((A, 120), (B, 160)):
             con(r, "%08X.moveto player" % f)
             time.sleep(1)
-            place(r, f, d, 0, 0)
-        time.sleep(2)
-        for f, d in ((A, 120), (B, 160)):       # RV-123 (3): moveto + PlaceRel read back
-            if not near_player(r, f, "moveto player + PlaceRel", maxd=d + 150):
+            if not place(r, f, d, 0, 0):        # RV-123 (3): place() reads the distance back
                 return
+        time.sleep(2)
         if not scene_on_checked(r, A):
             return
         m = join(r, B)
@@ -318,7 +312,8 @@ def _scene_20(r, npc):
     """One 20-reply scene with partner npc; returns a list of reply texts (memory only) or None. Cached per partner."""
     if npc in _CACHE:
         return _CACHE[npc]
-    market(r)
+    if not market(r):
+        return None
     if not harness_ready(r):
         return None
     fu, pu = uuids(r, npc, PLAYER)
@@ -326,12 +321,11 @@ def _scene_20(r, npc):
         inc(r, "partner %08X not loaded" % npc)
         return None
     con(r, "%08X.moveto player" % npc)
-    place(r, npc, 150, 0, 0)
+    if not place(r, npc, 150, 0, 0):            # RV-123 (3): place() reads the distance back
+        return None
     con(r, "set IEB_WitnessEnabled to 0")
     replies = []
     try:
-        if not near_player(r, npc, "moveto player + PlaceRel"):    # RV-123 (3)
-            return None
         if not scene_on_checked(r, npc):
             return None
         SH.pacing(True)
@@ -355,7 +349,7 @@ def _scene_20(r, npc):
             SH.pacing(False)
         except SH.HarnessError:
             pass
-        bring_back(r, npc)
+        bring_back(r, npc, readback=False)
     r.log("  scene with %08X: %d of %d replies captured (texts kept in memory only)" % (npc, len(replies), len(_SCENE_LINES)))
     _CACHE[npc] = replies
     return replies

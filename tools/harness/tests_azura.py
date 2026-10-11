@@ -812,8 +812,8 @@ def form_of(r, plugin, local):
 
 
 def _dist(r, fid):
-    from tests_u2_wh import dist        # lazy: tests_u2_wh imports tests_u2 (house pattern, tests_misc.near_player)
-    return dist(r, fid)
+    from tests_misc import _dist        # CombatProbe dPlayer (as tests_u2_wh.dist); importing a test module would register its tests
+    return _dist(r, fid)
 
 
 def runtime_base(rid):

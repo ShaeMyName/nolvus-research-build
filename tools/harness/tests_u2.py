@@ -65,9 +65,9 @@ def far(r):
 
 def place(r, fid, dx, dy, dz):
     """PlaceRel onto the player, read back (RV-123 (3)): the PLACE line only echoes the offsets, so the actor's distance
-    to the player (tests_u2_wh.dist, CombatProbe dPlayer) must be within max(250, 15 %) of |offset|. Returns the PLACE
+    to the player (CombatProbe dPlayer, as tests_u2_wh.dist) must be within max(250, 15 %) of |offset|. Returns the PLACE
     match, or None (INCONCLUSIVE logged)."""
-    from tests_u2_wh import dist
+    from tests_misc import _dist as dist      # same CombatProbe read as tests_u2_wh.dist; no test-module import
     m = ctl_line(r, "PlaceRel", [fid, PLAYER, float(dx), float(dy), float(dz)], r"\[IEB-TEST\] PLACE")
     want = (float(dx) ** 2 + float(dy) ** 2 + float(dz) ** 2) ** 0.5
     d = dist(r, fid)

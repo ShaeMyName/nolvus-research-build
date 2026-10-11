@@ -19,7 +19,7 @@ from datetime import datetime
 import game
 import sn_harness as SH
 from block import test, checkpoint, settle_probe
-from tests_misc import PLAYER, F1, CARLOTTA, FRALIA, YSOLDA, WR_GUARDS, con, ctl_line, hx, inc, su_get, near_player, player_moved
+from tests_misc import PLAYER, F1, CARLOTTA, FRALIA, YSOLDA, WR_GUARDS, con, ctl_line, hx, inc, su_get, player_moved
 from tests_u2 import (radius, market, uuids, place, bring_back, los, hist_hits, force_line, harness_ready, nonce,
                       witness_wait, _LAST_WITNESS)
 
@@ -141,7 +141,8 @@ def flag(r):
 
 def unit_place(r, fid, dx, dy, dz, want_lo, want_hi, what):
     """PlaceRel at the player, then check the 3D distance is within [want_lo, want_hi]. Distance or None (INCONCLUSIVE)."""
-    place(r, fid, dx, dy, dz)
+    if not place(r, fid, dx, dy, dz):           # place() reads back and logs INCONCLUSIVE itself
+        return None
     time.sleep(2)
     d = dist(r, fid)
     if d is None or not (want_lo <= d <= want_hi):
@@ -155,9 +156,10 @@ def back_to_market(r, fids):
     try:
         scene_off(r)
     finally:
-        market(r)
+        con(r, "player.moveto %08X" % CARLOTTA)        # market() without its read-back: cleanup, every caller is reload=True
+        time.sleep(8)
         for f in fids:
-            bring_back(r, f)
+            bring_back(r, f, readback=False)
 
 
 def hysteresis_events(text):
@@ -214,7 +216,8 @@ def move_away(r, w_player, furn, min_d=520.0):
 def inn_with_partner(r, rent=True, partner=True):
     """Shared setup for the inn tests: market, uuids, coc Mare, F1 at 100 u, optionally an owned (rented) furniture and
     whisper settled ON. Returns ctx dict or None. Caller must clean up (back_to_market) in `finally`."""
-    market(r)
+    if not market(r):
+        return None
     pu, fu, nu = uuids(r, PLAYER, F1, NEWCOMER)
     if not (pu and fu):
         inc(r, "player or F1 has no uuid")
@@ -225,7 +228,7 @@ def inn_with_partner(r, rent=True, partner=True):
         return None
     ctx = {"pu": pu, "fu": fu, "nu": nu, "w0": w0, "w1": w1, "furn": None}
     if partner:
-        bring_back(r, F1)
+        bring_back(r, F1, readback=False)               # unit_place below reads F1's position back
         if unit_place(r, F1, 100, 0, 0, 40, 160, "F1 (partner)") is None:
             return None
     if rent:
@@ -248,7 +251,8 @@ def wh1(r):
     (TriggerToggleWhisperMode, INFERRED same as the key). Mechanical part: the three GetConfigFloat reads are real (no sentinel),
     off => maxDistance == normalMaxDistance, on => maxDistance == whisperMaxDistance, and WHISPERSET agrees. NOT automatable: that
     the on-screen notification text matches the values (logged as a note, no INCONCLUSIVE: the config name is what WH-1 confirms)."""
-    market(r)
+    if not market(r):
+        return
     c0 = cfg(r)
     if not c0:
         return
@@ -300,7 +304,8 @@ def wh3(r):
     still within the live radius): off again."""
     fids = []
     try:
-        market(r)
+        if not market(r):
+            return
         w0 = where(r)
         w1 = enter(r, MARE, w0)
         if not w1:
@@ -352,7 +357,8 @@ def _home_case(r, tid, scene):
     try:
         if not harness_ready(r):
             return
-        market(r)
+        if not market(r):
+            return
         pu, fu, hu = uuids(r, PLAYER, F1, HOUSECARL)
         if not (pu and fu and hu):
             return inc(r, "%s: player, F1 or housecarl has no uuid" % tid)
@@ -361,10 +367,11 @@ def _home_case(r, tid, scene):
         w1 = enter(r, HOME, w0)
         if not w1:
             return
-        bring_back(r, F1)
+        bring_back(r, F1, readback=False)               # unit_place below reads F1's position back
         if unit_place(r, F1, 100, 0, 0, 40, 160, "F1") is None:
             return
-        place(r, HOUSECARL, 300, 0, 0)
+        if not place(r, HOUSECARL, 300, 0, 0):          # RV-123 (3): place() reads back
+            return
         time.sleep(2)
         d = dist(r, HOUSECARL)
         if d is None or not (250 <= d <= 350):
@@ -426,13 +433,13 @@ def wh5a(r):
     go home, INFERRED) gives 'partner only'; self-checked with CountNearNPCs, else INCONCLUSIVE."""
     fids = [F1] + WR_GUARDS[:1]
     try:
-        market(r)
+        if not market(r):
+            return
         hb = ctl_line(r, "SetHour", [2.0, 0x0001A66C], r"\[IEB-TEST\] CRASHCTX hour=(-?[\d.]+)")
         if not hb or abs(float(hb.group(1)) - 2.0) > 0.25:         # RV-123 (3): CRASHCTX reads GameHour after the write
             return inc(r, "SetHour read-back: hour %s, wanted 2.0" % (hb.group(1) if hb else "no CRASHCTX line"))
         time.sleep(45)                                  # packages re-evaluate; townsfolk head home
-        bring_back(r, F1)
-        if not near_player(r, F1, "moveto player"):    # RV-123 (3)
+        if not bring_back(r, F1):                       # RV-123 (3): bring_back reads the distance back
             return
         n = near(r, radius(r), F1)
         if n is None:
@@ -442,14 +449,13 @@ def wh5a(r):
         checkpoint(r)
         ok, secs, c = wait_whisper(r, True, timeout=25)
         r.check(not ok, "exterior, partner only: whisper stays off for 25 s")
-        place(r, WR_GUARDS[0], 400, 0, 0)
-        if not near_player(r, WR_GUARDS[0], "PlaceRel 400", maxd=700):     # RV-123 (3)
+        if not place(r, WR_GUARDS[0], 400, 0, 0):       # RV-123 (3): place() reads back
             return
         ok, secs, c = wait_whisper(r, True, timeout=20, step=2.0)
         r.check(not ok, "a guard approaching: still off")
     finally:
         for f in fids:
-            bring_back(r, f)
+            bring_back(r, f, readback=False)
 
 
 WH5B_CELL = "QASmoke"    # REVIEW_LOG RV-90 (2): the vanilla developer test cell: no location (so no house keyword),
@@ -468,10 +474,9 @@ def wh5b(r):
         time.sleep(12)
         if not player_moved(r, w0, "coc %s" % WH5B_CELL):          # RV-123 (3)
             return
-        bring_back(r, F1)
-        time.sleep(4)
-        if not near_player(r, F1, "moveto player"):                 # RV-123 (3)
+        if not bring_back(r, F1):                       # RV-123 (3): bring_back reads the distance back
             return
+        time.sleep(4)
         n = near(r, radius(r), F1)
         if n is None:
             return
@@ -483,15 +488,14 @@ def wh5b(r):
         checkpoint(r)
         con(r, "%08X.moveto player" % FRALIA)
         time.sleep(1)
-        place(r, FRALIA, 300, 0, 0)
-        t0 = time.time()
-        if not near_player(r, FRALIA, "moveto player + PlaceRel 300"):     # RV-123 (3)
+        if not place(r, FRALIA, 300, 0, 0):             # RV-123 (3): place() reads back
             return
+        t0 = time.time()
         ok, secs, c = wait_whisper(r, False, timeout=40, step=2.0)
         r.check(ok and time.time() - t0 <= HYST_S + 8, "an NPC enters the radius: whisper off within about 10 s (%d s)" % secs)
     finally:
         for f in fids:
-            bring_back(r, f)
+            bring_back(r, f, readback=False)
 
 
 @test("WH-6", "WH", reload=True)
@@ -500,7 +504,8 @@ def wh6(r):
     script logs 'manual override detected' within a tick or two and does not toggle back for 25 s; the next location change
     (coc to the inn's public common room) logs 'manual override ended', and auto then takes whisper off (crowd in range)."""
     try:
-        market(r)
+        if not market(r):
+            return
         c0 = cfg(r)
         if not c0:
             return
@@ -543,7 +548,8 @@ def wh7(r):
     The hostile is removed in `finally`."""
     spawned = False
     try:
-        market(r)
+        if not market(r):
+            return
         w0 = where(r)
         w1 = enter(r, HOME, w0)
         if not w1:
@@ -722,8 +728,7 @@ def pv3(r):
         witness_wait()
         t = ptail()
         t0 = time.time()
-        place(r, NEWCOMER, 120, 0, 0)
-        if not near_player(r, NEWCOMER, "PlaceRel 120", maxd=400):          # RV-123 (3)
+        if not place(r, NEWCOMER, 120, 0, 0):           # RV-123 (3): place() reads back
             return
         m = t.wait(r"\[IEB-SC\] PRIVATE 1->0", 15, poll=0.5)
         dt = time.time() - t0

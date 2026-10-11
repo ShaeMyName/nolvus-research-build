@@ -327,6 +327,11 @@ def tidy(r, *fids):
             if p.get("nffSeat", "-1") not in ("-1", ""):
                 r.ctl("NFFFollow", [fid])
                 con(r, "%s.moveto player" % hexid(fid))
+                time.sleep(2)
+                pf = probe(r, fid) or {}            # RV-123 (3) read-back: most B tests do not reload
+                need(r, num(pf.get("wfp")) == 0.0 and (num(pf.get("dPlayer")) or 1e9) <= 600,
+                     "teardown: %s following next to the player (wfp=%s dPlayer=%s)"
+                     % (hexid(fid), pf.get("wfp"), pf.get("dPlayer")))
         except Exception as e:      # teardown must not hide the test verdict
             r.log("  tidy %s: %r" % (hexid(fid), e))
 
@@ -935,7 +940,7 @@ def b6c(r):
     try:
         nm = base(r, F1)[0]
         snap(r, F1)
-        m = ctl_line(r, "NFFStaleFac", [F1, 1], r"\[IEB-TEST\] NFFStaleFac [^\r\n]*", 15)
+        m = ctl_line(r, "NFFStaleFac", [F1, 1], r"\[IEB-TEST\] NFFStaleFac [^\r\n]*\bon=1\b[^\r\n]*", 15)
         # RV-123 (3) read-back: the wrapper logs inFac=<IsInFaction(DismissedFac)> after the write
         if not need(r, m and re.search(r"(?i)\binFac=True\b", m.group(0)),
                     "NFFStaleFac wrapper missing or silent, or DismissedFac not read back (%s)" % (m.group(0) if m else "no line")):
@@ -954,7 +959,7 @@ def b6c(r):
         p = probe(r, F1) or {}
         r.check(p.get("nffSeat") not in (None, "-1"), "seat kept (nffSeat=%s)" % p.get("nffSeat"))
     finally:
-        m0 = ctl_line(r, "NFFStaleFac", [F1, 0], r"\[IEB-TEST\] NFFStaleFac [^\r\n]*", 10)
+        m0 = ctl_line(r, "NFFStaleFac", [F1, 0], r"\[IEB-TEST\] NFFStaleFac [^\r\n]*\bon=0\b[^\r\n]*", 10)
         need(r, m0 and re.search(r"(?i)\binFac=False\b", m0.group(0)),      # RV-123 (3): B-6c does not reload
              "teardown: F1 out of DismissedFac again (%s)" % (m0.group(0) if m0 else "no line"))
         tidy(r, F1)

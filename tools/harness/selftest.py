@@ -366,7 +366,11 @@ check(block.setup_row("B-1", "SETUP OK", "", 3) == "| B-1 | SETUP OK | 3 | |", "
 # Real test bodies in setup-only mode (stubbed game): no main action, and the test's own finally/cleanup runs.
 _probe = ("[10/10/2026 - 03:08:05PM] [IEB-TEST] probe " + wline("Jenassa", "0xE1BA9").split("] ", 1)[1].replace("combat=1", "combat=0")
           + "\n[10/10/2026 - 03:08:08PM] [IEB-TEST] snapshot " + wline("Jenassa", "0xE1BA9").split("] ", 1)[1]
-          + "\n[10/10/2026 - 03:08:09PM] [IEB-TEST] NFFStaleFac 0xE1BA9 in=1")
+          # RV-123 (3) read-backs: the real wrapper formats (IEB_TestCtl.psc CombatProbe; NFFStaleFac on= inFac=)
+          + "\n[10/10/2026 - 03:08:09PM] [IEB-TEST] CombatProbe Jenassa 0xE1BA9 combat=0 target=None aggression=1.0 "
+            "confidence=2.0 dead=0 dPlayer=150 pkg=0xD247147B"
+          + "\n[10/10/2026 - 03:08:09PM] [IEB-TEST] NFFStaleFac Jenassa on=1 inFac=True source=nff"
+          + "\n[10/10/2026 - 03:08:10PM] [IEB-TEST] NFFStaleFac Jenassa on=0 inFac=False source=nff")
 import time as _time
 _sleep = _time.sleep
 _time.sleep = lambda s: None
