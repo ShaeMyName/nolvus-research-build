@@ -1,4 +1,19 @@
-BLD-2 festival (REVIEW_LOG RV-121-dec; design investigation/round10/festival_nights.md): Relationships private patch group 'festival' (tools/apply_patch_f.py) applied to a SCRATCH COPY of build/src/relationships/src/scripts (APPLY_PATCH_F_DIR), compiled to a scratch dir; build/src and bin/rel_patched untouched (the S2r install uses them). New layer shae.festival + settings file, tools/gen_layer_festival.py, harness tests_fest.py (not in blocks_def). Generated 2026-10-11 11:43:12.
+BLD-2 festival (REVIEW_LOG RV-121-dec; design investigation/round10/festival_nights.md): Relationships private patch group 'festival' (tools/apply_patch_f.py) applied to a SCRATCH COPY of build/src/relationships/src/scripts (APPLY_PATCH_F_DIR), compiled to a scratch dir; build/src and bin/rel_patched untouched (the S2r install uses them). New layer shae.festival + settings file, tools/gen_layer_festival.py, harness tests_fest.py (not in blocks_def). v2 (REVIEW_LOG RV-127/RV-128): 0336 reads the native StorageUtil key IEB_FestCtx through papyrus_util (no Papyrus decorator); load + switch-off cleanup over tracking lists; FEST-8b dropped (RV-128). Generated 2026-10-11 11:56:17.
+
+=== Notes (RV-127 (1)/(2))
+papyrus_util is a NATIVE SkyrimNet decorator: devkit test prompt repos/SkyrimNet-GamePlugin/plugins/skyrimnet/base/prompts/
+submodules/test_decorators/0800_omnisight_state_decorators.prompt:228-233 ('papyrus_util("GetIntValue", actorUUID,
+"test_int", 0)'); C++ SkyrimNet::Decorators::PapyrusUtil in src/decorators/registrations/PapyrusUtilDecorators.cpp
+(tools/skyrimnet_b25_1_dll_strings.txt:44004-44010) over the PapyrusUtil bridge (:33236-33240), not a registered
+Papyrus decorator (those log "Papyrus decorator '{}' cache miss ... returning empty", :42075). House uses: layer K
+0501 (gen_layer_k.py), 0959 (lucienne staging, line 7).
+PhysicalOk paused residual (PRE-EXISTING, Relationships upstream; DECISIONS.md:549): romance_physical_ok and get_romance
+are Papyrus decorators, skipped while the game is paused; a render then gets the last cached answer or, on a miss, an
+empty string, and 0330 renders neither the desire nor the refusal branch on an empty answer. Our hunk does not change
+that: while paused, game time and Papyrus are frozen, so the festival inputs cannot move during the pause, and a cached
+answer from the same moment is still right. A cache warmed BEFORE 18:00 could show 0330's "not yet" refusal next to
+0336's inclination (0336 is native and unaffected). Not fixed (upstream). Real play does not pause the chat (Shae,
+REVIEW_LOG RV-128; Lucienne's profile gets pauseGame:false at promotion); a future "chat with pause" hotkey would hit it.
 
 === SNRom_Decorators.psc: build/src (S2r v3 tree) -> scratch + group festival
  .../scratchpad/fest_src}/SNRom_Decorators.psc      | 234 ++++++++++++++++++++-
@@ -268,10 +283,10 @@ index 0365732..f203469 100644
 +EndFunction
 
 === SNRom_Bridge.psc: build/src (S2r v3 tree) -> scratch + group festival
- .../scratchpad/fest_src}/SNRom_Bridge.psc          | 166 +++++++++++++++++++++
- 1 file changed, 166 insertions(+)
+ .../scratchpad/fest_src}/SNRom_Bridge.psc          | 296 +++++++++++++++++++++
+ 1 file changed, 296 insertions(+)
 diff --git a/src/relationships/src/scripts/SNRom_Bridge.psc b/C:/Users/sharp/AppData/Local/Temp/claude/C--nolvus-research/baa3b507-8492-4e93-bd63-89bc98229f66/scratchpad/fest_src/SNRom_Bridge.psc
-index c436722..18f8989 100644
+index c436722..5a31062 100644
 --- a/src/relationships/src/scripts/SNRom_Bridge.psc
 +++ b/C:/Users/sharp/AppData/Local/Temp/claude/C--nolvus-research/baa3b507-8492-4e93-bd63-89bc98229f66/scratchpad/fest_src/SNRom_Bridge.psc
 @@ -6829,6 +6829,8 @@ Event OnUpdateGameTime()
@@ -283,7 +298,7 @@ index c436722..18f8989 100644
      AssessNextTalk()
      AssessNextSpark()
      ; Drift LAST of the three, deliberately. It is the rarest and least urgent -
-@@ -9257,3 +9259,167 @@ Function IEB_UndoVanillaEngagement(Quest rm, Actor li, Bool abChild)
+@@ -9257,3 +9259,297 @@ Function IEB_UndoVanillaEngagement(Quest rm, Actor li, Bool abChild)
              " pts, below the gate): marriage quests reset, MarriageAskedFaction cleared.")
      EndIf
  EndFunction
@@ -296,12 +311,31 @@ index c436722..18f8989 100644
 +; switch is on and calls IEB_FestivalWatchTick, which JUDGES each partner the first time it sees them (scene start, or
 +; a join). The fast assessment tick runs the same tick as a backstop. Latency up to 5 real seconds.
 +
++; PAUSED CHAT (REVIEW_LOG RV-127 (1)): SkyrimNet skips Papyrus decorators while the game is paused (DECISIONS.md:549),
++; so 0336 must not depend on get_romance / romance_physical_ok. The watch therefore PUBLISHES the answer as a StorageUtil
++; int the template reads through SkyrimNet's NATIVE papyrus_util decorator:
++;   IEB_FestCtx (NPC)  key*10 + phase (IEB_FestivalContext) while the festival rule covers the NPC AND PhysicalOk is
++;                      true AND the stance is not "acknowledged partner"; unset otherwise. Refreshed for one NPC on every
++;                      judge / scene end / noon lapse, for the roster on every hour-band change (00/06/12/18) and every
++;                      6th tick (~30 s) while a festival can apply; cleared with the switch off and re-derived on load.
++;                      0336 also re-checks the key against the native clock and scene keys, so a key left over from
++;                      an earlier band can never render.
++; Tracking lists (None): IEB_FestSceneList, IEB_FestPartnerList, IEB_FestCtxList (RV-127 (3): the load cleanup and the
++; switch-off cleanup find every actor that carries a key).
++
++Int _festTick
++
 +Function IEB_FestivalWatchTick()
 +    { Judge new scene partners; clear the scene flag once its scene ended or the partner left; let morning-after marks
-+      lapse at noon. Switch off: one StorageUtil read and nothing written. }
++      lapse at noon; publish IEB_FestCtx. Switch off: the switch read, plus a one-time cleanup if any key is left. }
 +    If !SNRom_Decorators.IEB_FestivalOn()
++        If StorageUtil.FormListCount(None, "IEB_FestCtxList") > 0 || StorageUtil.FormListCount(None, "IEB_FestSceneList") > 0 || \
++           StorageUtil.FormListCount(None, "IEB_FestPartnerList") > 0
++            IEB_FestivalClearAll()
++        EndIf
 +        Return
 +    EndIf
++    _festTick += 1
 +    Actor pl = Game.GetPlayer()
 +    Bool sceneOn = StorageUtil.GetIntValue(pl, "IEB_SceneMode", 0) == 1
 +    If sceneOn
@@ -323,10 +357,118 @@ index c436722..18f8989 100644
 +        ElseIf !sceneOn || StorageUtil.GetIntValue(a, "IEB_IsScenePartner", 0) != 1
 +            StorageUtil.UnsetIntValue(a, "IEB_FestScene")
 +            StorageUtil.FormListRemoveAt(None, "IEB_FestSceneList", j)
++            IEB_FestivalRefreshCtx(a)
 +        EndIf
 +        j -= 1
 +    EndWhile
 +    IEB_FestivalLapse()
++    ; the roster: at once on an hour-band change, else every 6th tick while a festival can apply
++    Float h = SNRom_Decorators.IEB_FestivalHour()
++    Int hb = 0
++    If h >= 18.0
++        hb = 3
++    ElseIf h >= 12.0
++        hb = 2
++    ElseIf h >= 6.0
++        hb = 1
++    EndIf
++    Int band = SNRom_Decorators.IEB_FestivalStamp(0) * 10 + hb
++    If band != StorageUtil.GetIntValue(pl, "IEB_FestBand", 0)
++        StorageUtil.SetIntValue(pl, "IEB_FestBand", band)
++        IEB_FestivalRefreshAll()
++    ElseIf _festTick % 6 == 0
++        If SNRom_Decorators.IEB_FestivalKey() > 0 || StorageUtil.FormListCount(None, "IEB_FestCtxList") > 0 || \
++           (hb == 1 && StorageUtil.FormListCount(None, "IEB_FestPartnerList") > 0)
++            IEB_FestivalRefreshAll()
++        EndIf
++    EndIf
++EndFunction
++
++Function IEB_FestivalRefreshCtx(Actor akActor)
++    { Publish or clear IEB_FestCtx for one NPC (see the header). A child returns before any write. }
++    If akActor == None || akActor.IsChild()
++        Return
++    EndIf
++    Int v = 0
++    If SNRom_Decorators.IEB_FestivalOn() && IsEnrolled(akActor) && StorageUtil.GetIntValue(akActor, "SNRom_PlayerStance", 0) != 1
++        Int ctx = SNRom_Decorators.IEB_FestivalContext(akActor)
++        If ctx > 0
++            Int minT = StorageUtil.GetIntValue(akActor, "SNRom_PhysMinTier", 4)
++            If SNRom_Decorators.IEB_FestivalMinTierAt(akActor, SNRom_Decorators.IntimacyRank(minT), ctx / 10) >= 0 && \
++               SNRom_Decorators.PhysicalOk(akActor) == "true"
++                v = ctx
++            EndIf
++        EndIf
++    EndIf
++    If v > 0
++        If StorageUtil.GetIntValue(akActor, "IEB_FestCtx", 0) != v
++            StorageUtil.SetIntValue(akActor, "IEB_FestCtx", v)
++        EndIf
++        StorageUtil.FormListAdd(None, "IEB_FestCtxList", akActor, False)
++    ElseIf StorageUtil.HasIntValue(akActor, "IEB_FestCtx")
++        StorageUtil.UnsetIntValue(akActor, "IEB_FestCtx")
++        StorageUtil.FormListRemove(None, "IEB_FestCtxList", akActor, True)
++    EndIf
++EndFunction
++
++Function IEB_FestivalRefreshAll()
++    { Every roster member (enrolled = the only NPCs 0336 serves), then any leftover on IEB_FestCtxList. }
++    Int n = StorageUtil.FormListCount(None, "SNRom_Roster")
++    Int i = 0
++    While i < n
++        IEB_FestivalRefreshCtx(StorageUtil.FormListGet(None, "SNRom_Roster", i) as Actor)
++        i += 1
++    EndWhile
++    Int j = StorageUtil.FormListCount(None, "IEB_FestCtxList") - 1
++    While j >= 0
++        Actor a = StorageUtil.FormListGet(None, "IEB_FestCtxList", j) as Actor
++        If a == None
++            StorageUtil.FormListRemoveAt(None, "IEB_FestCtxList", j)
++        Else
++            IEB_FestivalRefreshCtx(a)
++        EndIf
++        j -= 1
++    EndWhile
++EndFunction
++
++Function IEB_FestivalClearAll()
++    { The switch went off: every festival key on every tracked actor is removed (scene flags, published contexts,
++      morning-after marks), and the band latch. }
++    IEB_FestivalClearList("IEB_FestCtxList", "IEB_FestCtx")
++    IEB_FestivalClearList("IEB_FestSceneList", "IEB_FestScene")
++    IEB_FestivalClearList("IEB_FestPartnerList", "IEB_FestivalPartnerDay")
++    StorageUtil.UnsetIntValue(Game.GetPlayer(), "IEB_FestBand")
++    Diag(LOG_INFO(), "Festival switch off: festival keys cleared.")
++EndFunction
++
++Function IEB_FestivalClearList(String asList, String asKey)
++    Int j = StorageUtil.FormListCount(None, asList) - 1
++    While j >= 0
++        Form f = StorageUtil.FormListGet(None, asList, j)
++        If f != None
++            StorageUtil.UnsetIntValue(f, asKey)
++        EndIf
++        j -= 1
++    EndWhile
++    StorageUtil.FormListClear(None, asList)
++EndFunction
++
++Function IEB_FestivalOnLoad()
++    { REVIEW_LOG RV-127 (3), called by SNRom_PlayerAlias on every load. With no scene running (SceneControls ends a
++      scene on load), every IEB_FestScene (-1 or a key) is a leftover: cleared. Published contexts are cleared and
++      re-derived (switch on) or everything is cleared (switch off). Morning-after marks stay (a save/load inside the
++      morning keeps it); IEB_FestivalLapse clears them at noon. If SceneControls has not yet ended a saved scene, the
++      next tick clears the flags once IEB_SceneMode is off. }
++    If StorageUtil.GetIntValue(Game.GetPlayer(), "IEB_SceneMode", 0) != 1
++        IEB_FestivalClearList("IEB_FestSceneList", "IEB_FestScene")
++    EndIf
++    IEB_FestivalClearList("IEB_FestCtxList", "IEB_FestCtx")
++    StorageUtil.UnsetIntValue(Game.GetPlayer(), "IEB_FestBand")
++    If !SNRom_Decorators.IEB_FestivalOn()
++        If StorageUtil.FormListCount(None, "IEB_FestSceneList") > 0 || StorageUtil.FormListCount(None, "IEB_FestPartnerList") > 0
++            IEB_FestivalClearAll()
++        EndIf
++    EndIf
 +EndFunction
 +
 +Function IEB_FestivalJudge(Actor akActor)
@@ -357,6 +499,7 @@ index c436722..18f8989 100644
 +        StorageUtil.SetIntValue(akActor, "IEB_FestScene", -1)
 +    EndIf
 +    StorageUtil.FormListAdd(None, "IEB_FestSceneList", akActor, False)
++    IEB_FestivalRefreshCtx(akActor)
 +EndFunction
 +
 +Function IEB_FestivalLapse()
@@ -379,6 +522,7 @@ index c436722..18f8989 100644
 +                StorageUtil.UnsetIntValue(a, "IEB_FestivalPartnerDay")
 +                StorageUtil.FormListRemoveAt(None, "IEB_FestPartnerList", j)
 +                Diag(LOG_INFO(), "Festival morning-after mark cleared for " + a.GetDisplayName() + ".")
++                IEB_FestivalRefreshCtx(a)
 +            EndIf
 +        EndIf
 +        j -= 1
@@ -411,7 +555,7 @@ index c436722..18f8989 100644
 +
 +String Function IEB_FestivalProbe(Actor akActor)
 +    { Read-only test probe (tests_fest.py): the date as Papyrus reads it, the switch, the context, the festival minimum,
-+      PhysicalOk and the two keys. Writes nothing; one "[IEB-FEST] PROBE" line in the Papyrus log, also returned. }
++      PhysicalOk, the two keys and the published IEB_FestCtx (pub). Writes nothing; one "[IEB-FEST] PROBE" line in the Papyrus log, also returned. }
 +    GlobalVariable gm = Game.GetFormFromFile(0x00000036, "Skyrim.esm") as GlobalVariable
 +    GlobalVariable gd = Game.GetFormFromFile(0x00000037, "Skyrim.esm") as GlobalVariable
 +    String s = "PROBE"
@@ -446,17 +590,18 @@ index c436722..18f8989 100644
 +            " ctx=" + ctx + " festMin=" + fMin + " phys=" + SNRom_Decorators.PhysicalOk(akActor) + " scene=" + sc + \
 +            " pday=" + pd + " inScene=" + (SNRom_Decorators.IEB_FestInScene(akActor) as Int) + " child=" + (akActor.IsChild() as Int) + \
 +            " orc=" + orc + " luc=" + StorageUtil.GetIntValue(Game.GetPlayer(), "LUC_Active", 0) + " tier=" + tier + \
-+            " minT=" + minT + " excl=" + StorageUtil.GetIntValue(akActor, "SNRom_Exclusivity", 50)
++            " minT=" + minT + " excl=" + StorageUtil.GetIntValue(akActor, "SNRom_Exclusivity", 50) + \
++            " pub=" + StorageUtil.GetIntValue(akActor, "IEB_FestCtx", -99)
 +    EndIf
 +    Debug.Trace("[IEB-FEST] " + s)
 +    Return s
 +EndFunction
 
 === SNRom_PlayerAlias.psc: build/src (S2r v3 tree) -> scratch + group festival
- .../scratchpad/fest_src}/SNRom_PlayerAlias.psc     | 22 ++++++++++++++++++++++
- 1 file changed, 22 insertions(+)
+ .../scratchpad/fest_src}/SNRom_PlayerAlias.psc     | 26 ++++++++++++++++++++++
+ 1 file changed, 26 insertions(+)
 diff --git a/src/relationships/src/scripts/SNRom_PlayerAlias.psc b/C:/Users/sharp/AppData/Local/Temp/claude/C--nolvus-research/baa3b507-8492-4e93-bd63-89bc98229f66/scratchpad/fest_src/SNRom_PlayerAlias.psc
-index b7b8411..2ba0b54 100644
+index b7b8411..62db24a 100644
 --- a/src/relationships/src/scripts/SNRom_PlayerAlias.psc
 +++ b/C:/Users/sharp/AppData/Local/Temp/claude/C--nolvus-research/baa3b507-8492-4e93-bd63-89bc98229f66/scratchpad/fest_src/SNRom_PlayerAlias.psc
 @@ -12,6 +12,7 @@ Scriptname SNRom_PlayerAlias extends ReferenceAlias
@@ -467,15 +612,19 @@ index b7b8411..2ba0b54 100644
  EndEvent
  
  Event OnPlayerLoadGame()
-@@ -28,6 +29,7 @@ Event OnPlayerLoadGame()
+@@ -28,6 +29,11 @@ Event OnPlayerLoadGame()
        the part that got skipped. Real time cannot distinguish sessions; this
        event can. }
      Rebind(True)
++    SNRom_Bridge fb = GetOwningQuest() as SNRom_Bridge
++    If fb != None
++        fb.IEB_FestivalOnLoad()                ; Patch festival (RV-127 (3)): leftover festival keys cleared on load
++    EndIf
 +    IEB_FestivalWatch()                        ; Patch festival: the scene watch (BEFORE the amulet watch: its 5 s wins)
      IEB_AmuletWatch()                          ; Patch rv117: re-arm the amulet watch (or restore if it is off)
      SNRom_Bridge bridge = GetOwningQuest() as SNRom_Bridge
      If bridge != None
-@@ -58,6 +60,7 @@ EndEvent
+@@ -58,6 +64,7 @@ EndEvent
  Event OnObjectUnequipped(Form akBaseObject, ObjectReference akReference)
      If akBaseObject == Game.GetFormFromFile(0x000C891B, "Skyrim.esm")
          UnregisterForUpdate()
@@ -483,7 +632,7 @@ index b7b8411..2ba0b54 100644
          SNRom_Bridge bridge = GetOwningQuest() as SNRom_Bridge
          If bridge != None
              bridge.IEB_AmuletRestoreAll()
-@@ -70,6 +73,7 @@ Event OnLocationChange(Location akOldLoc, Location akNewLoc)
+@@ -70,6 +77,7 @@ Event OnLocationChange(Location akOldLoc, Location akNewLoc)
  EndEvent
  
  Event OnUpdate()
@@ -491,7 +640,7 @@ index b7b8411..2ba0b54 100644
      IEB_AmuletWatch()
  EndEvent
  
-@@ -87,3 +91,21 @@ Function IEB_AmuletWatch()
+@@ -87,3 +95,21 @@ Function IEB_AmuletWatch()
      bridge.IEB_AmuletSweep()
      RegisterForSingleUpdate(5.0)
  EndFunction
@@ -516,517 +665,207 @@ index b7b8411..2ba0b54 100644
 
 === tools/apply_patch_f.py vs HEAD (APPLY_PATCH_F_DIR + group festival)
 diff --git a/tools/apply_patch_f.py b/tools/apply_patch_f.py
-index d02e31c..b649c9d 100644
+index b649c9d..3bcdb53 100644
 --- a/tools/apply_patch_f.py
 +++ b/tools/apply_patch_f.py
-@@ -1,8 +1,10 @@
- """Apply the Relationships private patch (component F; spec §11.4, §11.10.2, §11.12.3, §11.13.4, §11.14.1)
- to build/src/relationships, one hunk group per call. Every anchor must match exactly once (CRLF kept)."""
--import sys
-+import os, sys
+@@ -1613,12 +1613,31 @@ EndFunction
+ ; switch is on and calls IEB_FestivalWatchTick, which JUDGES each partner the first time it sees them (scene start, or
+ ; a join). The fast assessment tick runs the same tick as a backstop. Latency up to 5 real seconds.
  
--D = "C:/nolvus-research/build/src/relationships/src/scripts/"
-+# APPLY_PATCH_F_DIR (2026-10-11, festival build): apply into a COPY of the scripts (a scratch build) instead of the
-+# tree the pending install uses. Unset = the default below, unchanged.
-+D = os.environ.get("APPLY_PATCH_F_DIR", "C:/nolvus-research/build/src/relationships/src/scripts/").replace("\\", "/").rstrip("/") + "/"
- NL = "\r\n"
- B, DEC = "SNRom_Bridge.psc", "SNRom_Decorators.psc"
- 
-@@ -1322,6 +1324,494 @@ EndEvent""", """    Rebind(True)
++; PAUSED CHAT (REVIEW_LOG RV-127 (1)): SkyrimNet skips Papyrus decorators while the game is paused (DECISIONS.md:549),
++; so 0336 must not depend on get_romance / romance_physical_ok. The watch therefore PUBLISHES the answer as a StorageUtil
++; int the template reads through SkyrimNet's NATIVE papyrus_util decorator:
++;   IEB_FestCtx (NPC)  key*10 + phase (IEB_FestivalContext) while the festival rule covers the NPC AND PhysicalOk is
++;                      true AND the stance is not "acknowledged partner"; unset otherwise. Refreshed for one NPC on every
++;                      judge / scene end / noon lapse, for the roster on every hour-band change (00/06/12/18) and every
++;                      6th tick (~30 s) while a festival can apply; cleared with the switch off and re-derived on load.
++;                      0336 also re-checks the key against the native clock and scene keys, so a key left over from
++;                      an earlier band can never render.
++; Tracking lists (None): IEB_FestSceneList, IEB_FestPartnerList, IEB_FestCtxList (RV-127 (3): the load cleanup and the
++; switch-off cleanup find every actor that carries a key).
++
++Int _festTick
++
+ Function IEB_FestivalWatchTick()
+     { Judge new scene partners; clear the scene flag once its scene ended or the partner left; let morning-after marks
+-      lapse at noon. Switch off: one StorageUtil read and nothing written. }
++      lapse at noon; publish IEB_FestCtx. Switch off: the switch read, plus a one-time cleanup if any key is left. }
+     If !SNRom_Decorators.IEB_FestivalOn()
++        If StorageUtil.FormListCount(None, "IEB_FestCtxList") > 0 || StorageUtil.FormListCount(None, "IEB_FestSceneList") > 0 || \\
++           StorageUtil.FormListCount(None, "IEB_FestPartnerList") > 0
++            IEB_FestivalClearAll()
++        EndIf
+         Return
      EndIf
- EndEvent"""),
- ])
-+elif G == "festival":   # REVIEW_LOG RV-115/RV-118 design inputs, RV-121 (design ACCEPTED), RV-121-dec (Shae: APPROVED with
-+    # every recommendation, five nights; extra rules (1) a scene that STARTS inside the window may run past 06:00, judged at
-+    # its start, flag kept so PhysicalOk and 0336 do not flip mid-scene; (2) after 06:00 no NEW festival scene except a
-+    # "morning after" with the SAME NPC until 12:00, pair marked with the festival day key, cleared at noon).
-+    # Design: investigation/round10/festival_nights.md (4.3 hunks). Switch IEB_FestivalEnabled on the player, default OFF.
-+    # Scene start: SceneControls (IEB_SceneMain.StartScene) calls nothing in Relationships, so Relationships' own player
-+    # alias polls SceneControls' StorageUtil keys (5 s with the switch on) and judges each partner when first seen.
-+    # Children: every new path is behind RomanceApplicability / the NEVER lock (PhysicalOk), IsChild (every helper and
-+    # the judge, which writes nothing for a child), and SceneControls' own refusal of a child partner (P2).
-+    edit(DEC, [
-+("""    Int rank = SNRom_Decorators.IntimacyRank(minTier)       ; 0 casual 1 romantic 2 guarded
-+    If rank >= 1
-+        If StorageUtil.GetIntValue(akActor, "SNRom_Sparked", 0) != 1 && SNRom_Bridge.CommitmentState(akActor) < 2
-+            Return "false"
-+        EndIf
-+        If rank == 1
-+            minTier = 3                                     ; Confidant
-+        EndIf
-+    EndIf""",
-+"""    Int rank = SNRom_Decorators.IntimacyRank(minTier)       ; 0 casual 1 romantic 2 guarded
-+    ; Patch festival (REVIEW_LOG RV-115/118, RV-121-dec): derived at call time from the date and the scene keys. Reached
-+    ; only AFTER Applicability and the NEVER test above, so a minor, kin and a foreclosed orientation already returned.
-+    Int festMin = SNRom_Decorators.IEB_FestivalMinTier(akActor, rank)   ; -1 = the festival changes nothing now
-+    If festMin >= 0
-+        If festMin < minTier
-+            minTier = festMin                               ; festival: ROMANTIC also skips the spark test below (D4)
-+        EndIf
-+    ElseIf rank >= 1
-+        If StorageUtil.GetIntValue(akActor, "SNRom_Sparked", 0) != 1 && SNRom_Bridge.CommitmentState(akActor) < 2
-+            Return "false"
-+        EndIf
-+        If rank == 1
-+            minTier = 3                                     ; Confidant
-+        EndIf
-+    EndIf"""),
-+("""    If toNext < 0
-+        toNext = 0
-+    EndIf
-+    Return "{\\"enrolled\\":true,\\"points\\":" + pts + ",\\"level\\":" + tier + \\""",
-+"""    If toNext < 0
-+        toNext = 0
-+    EndIf
-+    ; Patch festival: the festival context for 0336 (shae.festival). The same Papyrus rule as PhysicalOk, so the line
-+    ; and the gate cannot disagree about the date or about a scene judged at its start. -1/0 = nothing.
-+    Int fCtx = SNRom_Decorators.IEB_FestivalContext(akActor)
-+    Int fMin = -1
-+    If fCtx > 0
-+        fMin = SNRom_Decorators.IEB_FestivalMinTierAt(akActor, SNRom_Decorators.IntimacyRank(StorageUtil.GetIntValue(akActor, "SNRom_PhysMinTier", 4)), fCtx / 10)
-+    EndIf
-+    Return "{\\"enrolled\\":true,\\"points\\":" + pts + ",\\"level\\":" + tier + \\"""),
-+("""        ",\\"stance\\":" + StorageUtil.GetIntValue(akActor, "SNRom_PlayerStance", 0) + "}\"""",
-+"""        ",\\"festKey\\":" + (fCtx / 10) + ",\\"festPhase\\":" + (fCtx % 10) + ",\\"festival\\":" + fMin + \\
-+        ",\\"stance\\":" + StorageUtil.GetIntValue(akActor, "SNRom_PlayerStance", 0) + "}\""""),
-+])
-+    append(DEC, """
-+; ============================================================================ Patch festival (REVIEW_LOG RV-121-dec, 2026-10-11)
-+; Festival nights (investigation/round10/festival_nights.md, approved with every recommendation and five nights). The
-+; gate stays derived at call time. RV-121-dec's two rules use two StorageUtil keys on the NPC; only
-+; SNRom_Bridge.IEB_FestivalJudge writes them (never for a child) and SNRom_Bridge.IEB_FestivalWatchTick clears them:
-+;   IEB_FestScene           the festival key the scene was judged under AT ITS START (m*100+d), -1 = judged and NOT a
-+;                           festival scene, unset = not judged. Honoured only while the NPC is still a SceneControls
-+;                           partner of a running scene (IEB_IsScenePartner on the NPC, IEB_SceneMode on the player).
-+;   IEB_FestivalPartnerDay  year*10000 + m*100 + d of the festival NIGHT on which this NPC shared a festival scene. It
-+;                           opens the morning after (06:00-12:00 next morning, this NPC only); cleared at noon.
-+; Switch IEB_FestivalEnabled on the player, default 0 (OFF): every function below then answers "no festival" after one
-+; StorageUtil read. Settings ../ErrandBridge/festival_nights.json (JsonUtil, relative to StorageUtilData): intList
-+; "keys" (m*100+d, GameMonth 0-based), int "orcMinTier" (default 2), formList "abstain" ("0x<id>|Plugin": the placed
-+; ref, its base or its leveled base). A missing file means no festival (fails closed).
-+
-+String Function IEB_FestivalFile() Global
-+    Return "../ErrandBridge/festival_nights"
-+EndFunction
-+
-+Bool Function IEB_FestivalOn() Global
-+    { D10: the kill switch, IEB_FestivalEnabled on the player, default 0 = OFF (OFF in tests and the soak). }
-+    Return StorageUtil.GetIntValue(Game.GetPlayer(), "IEB_FestivalEnabled", 0) == 1
-+EndFunction
-+
-+Int Function IEB_FestivalMinTier(Actor akActor, Int aiRank) Global
-+    { The festival-rule minimum tier for akActor NOW (the night, a festival scene judged at its start, or the morning
-+      after with the same NPC), or -1 when the festival changes nothing. PhysicalOk calls it after Applicability and
-+      the NEVER test. }
-+    Return IEB_FestivalMinTierAt(akActor, aiRank, IEB_FestivalContext(akActor) / 10)
-+EndFunction
-+
-+Int Function IEB_FestivalMinTierAt(Actor akActor, Int aiRank, Int aiKey) Global
-+    { festival_nights.md 4.2 under festival key aiKey (0 = none). Adults only (already excluded by RomanceApplicability;
-+      kept so the helper is safe alone). GUARDED and NEVER (rank >= 2), CONSUMING exclusivity (D6), the orc rule (D7)
-+      and the abstain list (D8) keep the normal rule. }
-+    If akActor == None || aiKey <= 0 || aiRank >= 2 || akActor.IsChild()
-+        Return -1
-+    EndIf
-+    If !IEB_FestivalOn()
-+        Return -1
-+    EndIf
-+    Int excl = StorageUtil.GetIntValue(akActor, "SNRom_Exclusivity", 50)
-+    If excl >= SNRom_Bridge.CONSUMING_MIN()
-+        Return -1
-+    EndIf
-+    If IEB_FestivalOrcHeld(akActor) || IEB_FestivalAbstains(akActor)
-+        Return -1
-+    EndIf
-+    If aiRank == 0 && excl <= 62
-+        Return 0                                ; CASUAL, exclusivity UNTROUBLED/ACCEPTING/CONVENTIONAL: met that night (D3)
-+    EndIf
-+    Return 1                                    ; knows them at least a little (D3; ROMANTIC D4; POSSESSIVE D6)
-+EndFunction
-+
-+Bool Function IEB_FestivalOrcHeld(Actor akActor) Global
-+    { D7: in Lucienne's game (LUC_Active) an orc below orcMinTier (default 2) keeps the normal rule. Race display name,
-+      exact match "Orc" as 0959 (OrcRace and OrcRaceVampire; never a child race). Not enrolled = tier 0 = held. }
-+    If StorageUtil.GetIntValue(Game.GetPlayer(), "LUC_Active", 0) != 1
-+        Return False
-+    EndIf
-+    Race r = akActor.GetRace()
-+    If r == None || r.GetName() != "Orc"
-+        Return False
-+    EndIf
-+    Return SNRom_Bridge.TierOf(akActor) < JsonUtil.GetIntValue(IEB_FestivalFile(), "orcMinTier", 2)
-+EndFunction
-+
-+Bool Function IEB_FestivalAbstains(Actor akActor) Global
-+    { D8: Shae's per-NPC list, formList "abstain" (empty at start): the placed ref, its base or its leveled base. }
-+    String f = IEB_FestivalFile()
-+    If JsonUtil.FormListCount(f, "abstain") <= 0
-+        Return False
-+    EndIf
-+    If JsonUtil.FormListHas(f, "abstain", akActor)
-+        Return True
-+    EndIf
-+    ActorBase b = akActor.GetActorBase()
-+    If b != None && JsonUtil.FormListHas(f, "abstain", b)
-+        Return True
-+    EndIf
-+    ActorBase lb = akActor.GetLeveledActorBase()
-+    Return lb != None && lb != b && JsonUtil.FormListHas(f, "abstain", lb)
-+EndFunction
-+
-+Int Function IEB_FestivalMonthLen(Int aiMonth) Global
-+    { 28 for month 1, 30 for months 3/5/8/10, else 31 (GameMonth 0-based). }
-+    If aiMonth == 1
-+        Return 28
-+    ElseIf aiMonth == 3 || aiMonth == 5 || aiMonth == 8 || aiMonth == 10
-+        Return 30
-+    EndIf
-+    Return 31
-+EndFunction
-+
-+Float Function IEB_FestivalHour() Global
-+    { GameHour (Skyrim.esm 0x38); -1.0 if missing (no window matches: fails closed). }
-+    GlobalVariable g = Game.GetFormFromFile(0x00000038, "Skyrim.esm") as GlobalVariable
-+    If g == None
-+        Return -1.0
-+    EndIf
-+    Return g.GetValue()
-+EndFunction
-+
-+Int Function IEB_FestivalStamp(Int aiBackDays) Global
-+    { year*10000 + month*100 + day of today minus aiBackDays (0 or 1). GameYear/GameMonth/GameDay = Skyrim.esm
-+      0x35/0x36/0x37, GameMonth 0-based. Any None -> 0 (fails CLOSED). Day 0 = the previous month's last day; month -1
-+      = Evening Star of the previous year. }
-+    GlobalVariable gy = Game.GetFormFromFile(0x00000035, "Skyrim.esm") as GlobalVariable
-+    GlobalVariable gm = Game.GetFormFromFile(0x00000036, "Skyrim.esm") as GlobalVariable
-+    GlobalVariable gd = Game.GetFormFromFile(0x00000037, "Skyrim.esm") as GlobalVariable
-+    If gy == None || gm == None || gd == None
-+        Return 0
-+    EndIf
-+    Int y = gy.GetValueInt()
-+    Int m = gm.GetValueInt()
-+    Int d = gd.GetValueInt() - aiBackDays
-+    If d < 1
-+        m -= 1
-+        If m < 0
-+            m = 11
-+            y -= 1
-+        EndIf
-+        d = IEB_FestivalMonthLen(m)
-+    EndIf
-+    Return y * 10000 + m * 100 + d
-+EndFunction
-+
-+Int Function IEB_FestivalNightStamp() Global
-+    { D2: the stamp of the festival NIGHT under way (18:00-06:00; before 06:00 the night belongs to the previous day),
-+      only if its m*100+d is in festival_nights.json "keys"; else 0. }
-+    Float h = IEB_FestivalHour()
-+    Int s = 0
++    _festTick += 1
+     Actor pl = Game.GetPlayer()
+     Bool sceneOn = StorageUtil.GetIntValue(pl, "IEB_SceneMode", 0) == 1
+     If sceneOn
+@@ -1640,10 +1659,118 @@ Function IEB_FestivalWatchTick()
+         ElseIf !sceneOn || StorageUtil.GetIntValue(a, "IEB_IsScenePartner", 0) != 1
+             StorageUtil.UnsetIntValue(a, "IEB_FestScene")
+             StorageUtil.FormListRemoveAt(None, "IEB_FestSceneList", j)
++            IEB_FestivalRefreshCtx(a)
+         EndIf
+         j -= 1
+     EndWhile
+     IEB_FestivalLapse()
++    ; the roster: at once on an hour-band change, else every 6th tick while a festival can apply
++    Float h = SNRom_Decorators.IEB_FestivalHour()
++    Int hb = 0
 +    If h >= 18.0
-+        s = IEB_FestivalStamp(0)
-+    ElseIf h >= 0.0 && h < 6.0
-+        s = IEB_FestivalStamp(1)
++        hb = 3
++    ElseIf h >= 12.0
++        hb = 2
++    ElseIf h >= 6.0
++        hb = 1
 +    EndIf
-+    If s > 0 && JsonUtil.IntListHas(IEB_FestivalFile(), "keys", s % 10000)
-+        Return s
-+    EndIf
-+    Return 0
-+EndFunction
-+
-+Int Function IEB_FestivalKey() Global
-+    { festival_nights.md 4.3: m*100+d of an enabled festival whose NIGHT it is, else 0. The 0340 template computes the
-+      festival DAY natively; gen_layer_festival.py --check keeps the key sets equal. }
-+    Return IEB_FestivalNightStamp() % 10000
-+EndFunction
-+
-+Int Function IEB_FestivalMorningStamp(Actor akActor) Global
-+    { RV-121-dec rule 2: from 06:00 to 12:00, last night's stamp if akActor shared a festival scene with the player
-+      during it (IEB_FestivalPartnerDay), else 0. Derived: past noon this is 0 even before the mark is cleared. }
-+    Int pd = StorageUtil.GetIntValue(akActor, "IEB_FestivalPartnerDay", 0)
-+    If pd <= 0
-+        Return 0
-+    EndIf
-+    Float h = IEB_FestivalHour()
-+    If h < 6.0 || h >= 12.0 || pd != IEB_FestivalStamp(1)
-+        Return 0
-+    EndIf
-+    Return pd
-+EndFunction
-+
-+Bool Function IEB_FestInScene(Actor akActor) Global
-+    { A scene judged at its start (IEB_FestScene set) still running with akActor as a SceneControls partner. }
-+    If !StorageUtil.HasIntValue(akActor, "IEB_FestScene")
-+        Return False
-+    EndIf
-+    Return StorageUtil.GetIntValue(akActor, "IEB_IsScenePartner", 0) == 1 && StorageUtil.GetIntValue(Game.GetPlayer(), "IEB_SceneMode", 0) == 1
-+EndFunction
-+
-+Int Function IEB_FestivalContext(Actor akActor) Global
-+    { key*10 + phase, or 0 (switch off, or no festival applies to akActor now). Phases:
-+        0  the festival night (18:00-06:00);
-+        1  a scene judged FESTIVAL at its start, still running after its night or morning ended (RV-121-dec rule 1);
-+        2  the morning after, 06:00-12:00, with the NPC who shared a festival scene that night (rule 2).
-+      A scene judged NOT festival at its start (IEB_FestScene -1) stays so for its whole run: no flip mid-scene. }
-+    If akActor == None || !IEB_FestivalOn()
-+        Return 0
-+    EndIf
-+    Int night = IEB_FestivalKey()
-+    Int morn = IEB_FestivalMorningStamp(akActor) % 10000
-+    If IEB_FestInScene(akActor)
-+        Int s = StorageUtil.GetIntValue(akActor, "IEB_FestScene", 0)
-+        If s <= 0
-+            Return 0
-+        ElseIf s == night
-+            Return s * 10
-+        ElseIf s == morn
-+            Return s * 10 + 2
++    Int band = SNRom_Decorators.IEB_FestivalStamp(0) * 10 + hb
++    If band != StorageUtil.GetIntValue(pl, "IEB_FestBand", 0)
++        StorageUtil.SetIntValue(pl, "IEB_FestBand", band)
++        IEB_FestivalRefreshAll()
++    ElseIf _festTick % 6 == 0
++        If SNRom_Decorators.IEB_FestivalKey() > 0 || StorageUtil.FormListCount(None, "IEB_FestCtxList") > 0 || \\
++           (hb == 1 && StorageUtil.FormListCount(None, "IEB_FestPartnerList") > 0)
++            IEB_FestivalRefreshAll()
 +        EndIf
-+        Return s * 10 + 1
 +    EndIf
-+    If night > 0
-+        Return night * 10
-+    ElseIf morn > 0
-+        Return morn * 10 + 2
-+    EndIf
-+    Return 0
 +EndFunction
 +
-+String Function IEB_FestivalName(Int aiKey) Global
-+    { D1: the five nights. gen_layer_festival.py --check asserts these keys = festival_nights.json "keys" = the
-+      template copies in 0336/0340. }
-+    If aiKey == 1
-+        Return "the New Life Festival"
-+    ElseIf aiKey == 116
-+        Return "Heart's Day"
-+    ElseIf aiKey == 516
-+        Return "the Mid Year Celebration"
-+    ElseIf aiKey == 727
-+        Return "Harvest's End"
-+    ElseIf aiKey == 1125
-+        Return "Saturalia"
-+    EndIf
-+    Return ""
-+EndFunction
-+""")
-+    edit(B, [
-+("""    PumpAskQueue()
-+    AssessNextTalk()""",
-+"""    PumpAskQueue()
-+    IEB_FestivalWatchTick()                    ; Patch festival: backstop for the player-alias scene watch
-+    IEB_FestivalAnnounce()                     ; Patch festival: the GameMaster's neutral festival-night event (D9)
-+    AssessNextTalk()"""),
-+])
-+    append(B, """
-+; ============================================================================ Patch festival (REVIEW_LOG RV-121-dec, 2026-10-11)
-+; SCENE START IS NOT OBSERVABLE FROM RELATIONSHIPS ALONE. SceneControls (IEB_SceneMain.StartScene) writes StorageUtil keys
-+; (IEB_SceneMode on the player, the IEB_ScenePartners list, IEB_IsScenePartner on each partner) and calls nothing in
-+; Relationships; JoinScene calls only IEB_QueueIntimacy, and only for a second partner. The closest existing hook is
-+; Relationships' own player alias (SNRom_PlayerAlias, already the amulet watch): it polls those keys every 5 s while the
-+; switch is on and calls IEB_FestivalWatchTick, which JUDGES each partner the first time it sees them (scene start, or
-+; a join). The fast assessment tick runs the same tick as a backstop. Latency up to 5 real seconds.
-+
-+Function IEB_FestivalWatchTick()
-+    { Judge new scene partners; clear the scene flag once its scene ended or the partner left; let morning-after marks
-+      lapse at noon. Switch off: one StorageUtil read and nothing written. }
-+    If !SNRom_Decorators.IEB_FestivalOn()
-+        Return
-+    EndIf
-+    Actor pl = Game.GetPlayer()
-+    Bool sceneOn = StorageUtil.GetIntValue(pl, "IEB_SceneMode", 0) == 1
-+    If sceneOn
-+        Int n = StorageUtil.FormListCount(pl, "IEB_ScenePartners")
-+        Int i = 0
-+        While i < n
-+            Actor p = StorageUtil.FormListGet(pl, "IEB_ScenePartners", i) as Actor
-+            If p != None && StorageUtil.GetIntValue(p, "IEB_IsScenePartner", 0) == 1 && !StorageUtil.HasIntValue(p, "IEB_FestScene")
-+                IEB_FestivalJudge(p)
-+            EndIf
-+            i += 1
-+        EndWhile
-+    EndIf
-+    Int j = StorageUtil.FormListCount(None, "IEB_FestSceneList") - 1
-+    While j >= 0
-+        Actor a = StorageUtil.FormListGet(None, "IEB_FestSceneList", j) as Actor
-+        If a == None
-+            StorageUtil.FormListRemoveAt(None, "IEB_FestSceneList", j)
-+        ElseIf !sceneOn || StorageUtil.GetIntValue(a, "IEB_IsScenePartner", 0) != 1
-+            StorageUtil.UnsetIntValue(a, "IEB_FestScene")
-+            StorageUtil.FormListRemoveAt(None, "IEB_FestSceneList", j)
-+        EndIf
-+        j -= 1
-+    EndWhile
-+    IEB_FestivalLapse()
-+EndFunction
-+
-+Function IEB_FestivalJudge(Actor akActor)
-+    { RV-121-dec rule 1: judged ONCE, when the watch first sees akActor as a partner (scene start or join). Inside the
-+      night window, or (rule 2) from 06:00 to 12:00 with the NPC marked last night, an enrolled adult the festival rule
-+      covers makes a FESTIVAL scene: IEB_FestScene = the key, and the pair is marked for the morning after. Anyone else
-+      is judged NOT festival (-1) for the whole scene. A child is never judged and nothing is written. }
++Function IEB_FestivalRefreshCtx(Actor akActor)
++    { Publish or clear IEB_FestCtx for one NPC (see the header). A child returns before any write. }
 +    If akActor == None || akActor.IsChild()
 +        Return
 +    EndIf
-+    Int stamp = SNRom_Decorators.IEB_FestivalNightStamp()
-+    If stamp <= 0
-+        stamp = SNRom_Decorators.IEB_FestivalMorningStamp(akActor)
++    Int v = 0
++    If SNRom_Decorators.IEB_FestivalOn() && IsEnrolled(akActor) && StorageUtil.GetIntValue(akActor, "SNRom_PlayerStance", 0) != 1
++        Int ctx = SNRom_Decorators.IEB_FestivalContext(akActor)
++        If ctx > 0
++            Int minT = StorageUtil.GetIntValue(akActor, "SNRom_PhysMinTier", 4)
++            If SNRom_Decorators.IEB_FestivalMinTierAt(akActor, SNRom_Decorators.IntimacyRank(minT), ctx / 10) >= 0 && \\
++               SNRom_Decorators.PhysicalOk(akActor) == "true"
++                v = ctx
++            EndIf
++        EndIf
 +    EndIf
-+    Int fk = stamp % 10000
-+    Int minT = StorageUtil.GetIntValue(akActor, "SNRom_PhysMinTier", 4)
-+    Int fMin = -1
-+    If fk > 0 && minT >= 0 && IsEnrolled(akActor) && SNRom_Decorators.RomanceApplicability(akActor) == 0
-+        fMin = SNRom_Decorators.IEB_FestivalMinTierAt(akActor, SNRom_Decorators.IntimacyRank(minT), fk)
++    If v > 0
++        If StorageUtil.GetIntValue(akActor, "IEB_FestCtx", 0) != v
++            StorageUtil.SetIntValue(akActor, "IEB_FestCtx", v)
++        EndIf
++        StorageUtil.FormListAdd(None, "IEB_FestCtxList", akActor, False)
++    ElseIf StorageUtil.HasIntValue(akActor, "IEB_FestCtx")
++        StorageUtil.UnsetIntValue(akActor, "IEB_FestCtx")
++        StorageUtil.FormListRemove(None, "IEB_FestCtxList", akActor, True)
 +    EndIf
-+    If fMin >= 0
-+        StorageUtil.SetIntValue(akActor, "IEB_FestScene", fk)
-+        StorageUtil.SetIntValue(akActor, "IEB_FestivalPartnerDay", stamp)
-+        StorageUtil.FormListAdd(None, "IEB_FestPartnerList", akActor, False)
-+        Diag(LOG_INFO(), "Festival scene judged at start with " + akActor.GetDisplayName() + " (" + \\
-+            SNRom_Decorators.IEB_FestivalName(fk) + ", minimum tier " + fMin + ").")
-+    Else
-+        StorageUtil.SetIntValue(akActor, "IEB_FestScene", -1)
-+    EndIf
-+    StorageUtil.FormListAdd(None, "IEB_FestSceneList", akActor, False)
 +EndFunction
 +
-+Function IEB_FestivalLapse()
-+    { RV-121-dec rule 2: a morning-after mark lives through its night and the next morning until 12:00; any other
-+      time (noon passed, a time jump, a new day) it is cleared. }
-+    Int night = SNRom_Decorators.IEB_FestivalNightStamp()
-+    Int morn = 0
-+    Float h = SNRom_Decorators.IEB_FestivalHour()
-+    If h >= 6.0 && h < 12.0
-+        morn = SNRom_Decorators.IEB_FestivalStamp(1)
-+    EndIf
-+    Int j = StorageUtil.FormListCount(None, "IEB_FestPartnerList") - 1
++Function IEB_FestivalRefreshAll()
++    { Every roster member (enrolled = the only NPCs 0336 serves), then any leftover on IEB_FestCtxList. }
++    Int n = StorageUtil.FormListCount(None, "SNRom_Roster")
++    Int i = 0
++    While i < n
++        IEB_FestivalRefreshCtx(StorageUtil.FormListGet(None, "SNRom_Roster", i) as Actor)
++        i += 1
++    EndWhile
++    Int j = StorageUtil.FormListCount(None, "IEB_FestCtxList") - 1
 +    While j >= 0
-+        Actor a = StorageUtil.FormListGet(None, "IEB_FestPartnerList", j) as Actor
++        Actor a = StorageUtil.FormListGet(None, "IEB_FestCtxList", j) as Actor
 +        If a == None
-+            StorageUtil.FormListRemoveAt(None, "IEB_FestPartnerList", j)
++            StorageUtil.FormListRemoveAt(None, "IEB_FestCtxList", j)
 +        Else
-+            Int pd = StorageUtil.GetIntValue(a, "IEB_FestivalPartnerDay", 0)
-+            If pd <= 0 || (pd != night && pd != morn)
-+                StorageUtil.UnsetIntValue(a, "IEB_FestivalPartnerDay")
-+                StorageUtil.FormListRemoveAt(None, "IEB_FestPartnerList", j)
-+                Diag(LOG_INFO(), "Festival morning-after mark cleared for " + a.GetDisplayName() + ".")
-+            EndIf
++            IEB_FestivalRefreshCtx(a)
 +        EndIf
 +        j -= 1
 +    EndWhile
 +EndFunction
 +
-+Function IEB_FestivalAnnounce()
-+    { D9 (festival_nights.md 3.4): one neutral RegisterPersistentEvent per festival night, naming no one and carrying
-+      no romance framing (GameMaster directs any nearby NPC). Latched per night: IEB_FestivalAnnounced on the player =
-+      the night's stamp. First fast tick at or after 18:00. }
++Function IEB_FestivalClearAll()
++    { The switch went off: every festival key on every tracked actor is removed (scene flags, published contexts,
++      morning-after marks), and the band latch. }
++    IEB_FestivalClearList("IEB_FestCtxList", "IEB_FestCtx")
++    IEB_FestivalClearList("IEB_FestSceneList", "IEB_FestScene")
++    IEB_FestivalClearList("IEB_FestPartnerList", "IEB_FestivalPartnerDay")
++    StorageUtil.UnsetIntValue(Game.GetPlayer(), "IEB_FestBand")
++    Diag(LOG_INFO(), "Festival switch off: festival keys cleared.")
++EndFunction
++
++Function IEB_FestivalClearList(String asList, String asKey)
++    Int j = StorageUtil.FormListCount(None, asList) - 1
++    While j >= 0
++        Form f = StorageUtil.FormListGet(None, asList, j)
++        If f != None
++            StorageUtil.UnsetIntValue(f, asKey)
++        EndIf
++        j -= 1
++    EndWhile
++    StorageUtil.FormListClear(None, asList)
++EndFunction
++
++Function IEB_FestivalOnLoad()
++    { REVIEW_LOG RV-127 (3), called by SNRom_PlayerAlias on every load. With no scene running (SceneControls ends a
++      scene on load), every IEB_FestScene (-1 or a key) is a leftover: cleared. Published contexts are cleared and
++      re-derived (switch on) or everything is cleared (switch off). Morning-after marks stay (a save/load inside the
++      morning keeps it); IEB_FestivalLapse clears them at noon. If SceneControls has not yet ended a saved scene, the
++      next tick clears the flags once IEB_SceneMode is off. }
++    If StorageUtil.GetIntValue(Game.GetPlayer(), "IEB_SceneMode", 0) != 1
++        IEB_FestivalClearList("IEB_FestSceneList", "IEB_FestScene")
++    EndIf
++    IEB_FestivalClearList("IEB_FestCtxList", "IEB_FestCtx")
++    StorageUtil.UnsetIntValue(Game.GetPlayer(), "IEB_FestBand")
 +    If !SNRom_Decorators.IEB_FestivalOn()
-+        Return
-+    EndIf
-+    Int stamp = SNRom_Decorators.IEB_FestivalNightStamp()
-+    If stamp <= 0
-+        Return
-+    EndIf
-+    Actor pl = Game.GetPlayer()
-+    If StorageUtil.GetIntValue(pl, "IEB_FestivalAnnounced", 0) == stamp
-+        Return
-+    EndIf
-+    StorageUtil.SetIntValue(pl, "IEB_FestivalAnnounced", stamp)
-+    String nm = SNRom_Decorators.IEB_FestivalName(stamp % 10000)
-+    If nm == ""
-+        nm = "a festival"
-+    EndIf
-+    Int rc = SkyrimNetApi.RegisterPersistentEvent("It is " + nm + " tonight; the town is out celebrating.")
-+    Diag(LOG_INFO(), "Festival night announced: " + nm + " (persistent event rc=" + rc + ").")
-+EndFunction
-+
-+String Function IEB_FestivalProbe(Actor akActor)
-+    { Read-only test probe (tests_fest.py): the date as Papyrus reads it, the switch, the context, the festival minimum,
-+      PhysicalOk and the two keys. Writes nothing; one "[IEB-FEST] PROBE" line in the Papyrus log, also returned. }
-+    GlobalVariable gm = Game.GetFormFromFile(0x00000036, "Skyrim.esm") as GlobalVariable
-+    GlobalVariable gd = Game.GetFormFromFile(0x00000037, "Skyrim.esm") as GlobalVariable
-+    String s = "PROBE"
-+    If akActor == None
-+        s += " id=none"
-+    Else
-+        Int minT = StorageUtil.GetIntValue(akActor, "SNRom_PhysMinTier", 4)
-+        Int ctx = SNRom_Decorators.IEB_FestivalContext(akActor)
-+        Int fMin = -1
-+        If ctx > 0
-+            fMin = SNRom_Decorators.IEB_FestivalMinTierAt(akActor, SNRom_Decorators.IntimacyRank(minT), ctx / 10)
++        If StorageUtil.FormListCount(None, "IEB_FestSceneList") > 0 || StorageUtil.FormListCount(None, "IEB_FestPartnerList") > 0
++            IEB_FestivalClearAll()
 +        EndIf
-+        Int sc = -99
-+        If StorageUtil.HasIntValue(akActor, "IEB_FestScene")
-+            sc = StorageUtil.GetIntValue(akActor, "IEB_FestScene", 0)
-+        EndIf
-+        Int pd = -99
-+        If StorageUtil.HasIntValue(akActor, "IEB_FestivalPartnerDay")
-+            pd = StorageUtil.GetIntValue(akActor, "IEB_FestivalPartnerDay", 0)
-+        EndIf
-+        Int orc = 0
-+        Race r = akActor.GetRace()
-+        If r != None && r.GetName() == "Orc"
-+            orc = 1
-+        EndIf
-+        Int tier = -1
-+        If IsEnrolled(akActor)
-+            tier = TierOf(akActor)
-+        EndIf
-+        s += " id=" + akActor.GetFormID() + " on=" + (SNRom_Decorators.IEB_FestivalOn() as Int) + " m=" + gm.GetValueInt() + \\
-+            " d=" + gd.GetValueInt() + " h=" + SNRom_Decorators.IEB_FestivalHour() + " night=" + SNRom_Decorators.IEB_FestivalKey() + \\
-+            " ctx=" + ctx + " festMin=" + fMin + " phys=" + SNRom_Decorators.PhysicalOk(akActor) + " scene=" + sc + \\
-+            " pday=" + pd + " inScene=" + (SNRom_Decorators.IEB_FestInScene(akActor) as Int) + " child=" + (akActor.IsChild() as Int) + \\
-+            " orc=" + orc + " luc=" + StorageUtil.GetIntValue(Game.GetPlayer(), "LUC_Active", 0) + " tier=" + tier + \\
-+            " minT=" + minT + " excl=" + StorageUtil.GetIntValue(akActor, "SNRom_Exclusivity", 50)
 +    EndIf
-+    Debug.Trace("[IEB-FEST] " + s)
-+    Return s
-+EndFunction
-+""")
-+    A = "SNRom_PlayerAlias.psc"
-+    edit(A, [
-+("""Event OnInit()
-+    Rebind(True)
-+EndEvent""", """Event OnInit()
-+    Rebind(True)
-+    IEB_FestivalWatch()                        ; Patch festival: start the scene watch
-+EndEvent"""),
-+("""    Rebind(True)
-+    IEB_AmuletWatch()                          ; Patch rv117: re-arm the amulet watch (or restore if it is off)""",
-+"""    Rebind(True)
-+    IEB_FestivalWatch()                        ; Patch festival: the scene watch (BEFORE the amulet watch: its 5 s wins)
-+    IEB_AmuletWatch()                          ; Patch rv117: re-arm the amulet watch (or restore if it is off)"""),
-+("""        UnregisterForUpdate()
-+""", """        UnregisterForUpdate()
-+        IEB_FestivalWatch()                    ; Patch festival: UnregisterForUpdate also stopped the scene watch
-+"""),
-+("""Event OnUpdate()
-+    IEB_AmuletWatch()
-+EndEvent""", """Event OnUpdate()
-+    IEB_FestivalWatch()                        ; Patch festival: first, so the amulet watch's 5 s re-arm wins
-+    IEB_AmuletWatch()
-+EndEvent"""),
-+])
-+    append(A, """
-+; ============================================================================ Patch festival (REVIEW_LOG RV-121-dec, 2026-10-11)
-+; The scene-start watch for festival nights. SceneControls calls nothing in Relationships when a scene starts, so this
-+; alias polls its StorageUtil keys through SNRom_Bridge.IEB_FestivalWatchTick: every 5 s with IEB_FestivalEnabled on,
-+; every 15 s with it off (then only the switch is read). One chained single update, shared with the amulet watch: both
-+; are called from OnUpdate and the shorter re-arm wins.
-+
-+Function IEB_FestivalWatch()
-+    SNRom_Bridge bridge = GetOwningQuest() as SNRom_Bridge
-+    If bridge != None
-+        bridge.IEB_FestivalWatchTick()
+ EndFunction
+ 
+ Function IEB_FestivalJudge(Actor akActor)
+@@ -1674,6 +1801,7 @@ Function IEB_FestivalJudge(Actor akActor)
+         StorageUtil.SetIntValue(akActor, "IEB_FestScene", -1)
+     EndIf
+     StorageUtil.FormListAdd(None, "IEB_FestSceneList", akActor, False)
++    IEB_FestivalRefreshCtx(akActor)
+ EndFunction
+ 
+ Function IEB_FestivalLapse()
+@@ -1696,6 +1824,7 @@ Function IEB_FestivalLapse()
+                 StorageUtil.UnsetIntValue(a, "IEB_FestivalPartnerDay")
+                 StorageUtil.FormListRemoveAt(None, "IEB_FestPartnerList", j)
+                 Diag(LOG_INFO(), "Festival morning-after mark cleared for " + a.GetDisplayName() + ".")
++                IEB_FestivalRefreshCtx(a)
+             EndIf
+         EndIf
+         j -= 1
+@@ -1728,7 +1857,7 @@ EndFunction
+ 
+ String Function IEB_FestivalProbe(Actor akActor)
+     { Read-only test probe (tests_fest.py): the date as Papyrus reads it, the switch, the context, the festival minimum,
+-      PhysicalOk and the two keys. Writes nothing; one "[IEB-FEST] PROBE" line in the Papyrus log, also returned. }
++      PhysicalOk, the two keys and the published IEB_FestCtx (pub). Writes nothing; one "[IEB-FEST] PROBE" line in the Papyrus log, also returned. }
+     GlobalVariable gm = Game.GetFormFromFile(0x00000036, "Skyrim.esm") as GlobalVariable
+     GlobalVariable gd = Game.GetFormFromFile(0x00000037, "Skyrim.esm") as GlobalVariable
+     String s = "PROBE"
+@@ -1763,7 +1892,8 @@ String Function IEB_FestivalProbe(Actor akActor)
+             " ctx=" + ctx + " festMin=" + fMin + " phys=" + SNRom_Decorators.PhysicalOk(akActor) + " scene=" + sc + \\
+             " pday=" + pd + " inScene=" + (SNRom_Decorators.IEB_FestInScene(akActor) as Int) + " child=" + (akActor.IsChild() as Int) + \\
+             " orc=" + orc + " luc=" + StorageUtil.GetIntValue(Game.GetPlayer(), "LUC_Active", 0) + " tier=" + tier + \\
+-            " minT=" + minT + " excl=" + StorageUtil.GetIntValue(akActor, "SNRom_Exclusivity", 50)
++            " minT=" + minT + " excl=" + StorageUtil.GetIntValue(akActor, "SNRom_Exclusivity", 50) + \\
++            " pub=" + StorageUtil.GetIntValue(akActor, "IEB_FestCtx", -99)
+     EndIf
+     Debug.Trace("[IEB-FEST] " + s)
+     Return s
+@@ -1780,6 +1910,10 @@ EndEvent"""),
+ ("""    Rebind(True)
+     IEB_AmuletWatch()                          ; Patch rv117: re-arm the amulet watch (or restore if it is off)""",
+ """    Rebind(True)
++    SNRom_Bridge fb = GetOwningQuest() as SNRom_Bridge
++    If fb != None
++        fb.IEB_FestivalOnLoad()                ; Patch festival (RV-127 (3)): leftover festival keys cleared on load
 +    EndIf
-+    If SNRom_Decorators.IEB_FestivalOn()
-+        RegisterForSingleUpdate(5.0)
-+    Else
-+        RegisterForSingleUpdate(15.0)
-+    EndIf
-+EndFunction
-+""")
- else:
-     raise SystemExit("unknown group " + G)
- print("applied", G)
+     IEB_FestivalWatch()                        ; Patch festival: the scene watch (BEFORE the amulet watch: its 5 s wins)
+     IEB_AmuletWatch()                          ; Patch rv117: re-arm the amulet watch (or restore if it is off)"""),
+ ("""        UnregisterForUpdate()
 
 === static check: python tools/gen_layer_festival.py --check <scratch scripts>
 festival static check: PASS
@@ -1039,7 +878,14 @@ FAIL SNRom_Decorators: IEB_FestivalAbstains missing
 FAIL SNRom_Decorators: IEB_FestivalContext missing
 FAIL IEB_FestivalMinTierAt: IsChild / switch test missing
 FAIL SNRom_Bridge: IEB_FestivalJudge missing
-festival static check: FAIL (8)
+FAIL SNRom_Bridge: IEB_FestivalRefreshCtx missing
+FAIL SNRom_Bridge: missing 'Function IEB_FestivalOnLoad()'
+FAIL SNRom_Bridge: missing 'Function IEB_FestivalClearAll()'
+FAIL SNRom_Bridge: missing '"IEB_FestCtxList"'
+FAIL SNRom_Bridge: missing '"IEB_FestSceneList"'
+FAIL SNRom_Bridge: missing '"IEB_FestPartnerList"'
+FAIL SNRom_PlayerAlias: no load cleanup call
+festival static check: FAIL (15)
 
 === content-validate shae.festival: ok=True errors=0 warnings=0 shadows=0 files=2 unresolved=["variable 'is_player' not found", "variable 'is_plugin_loaded' not found", "variable 'papyrus_util' not found"]
 
@@ -1051,17 +897,24 @@ five nights; design investigation/round10/festival_nights.md 3.1-3.3, 4.3 files 
       prompts/submodules/character_bio/0336_ieb_festival_night.prompt   (the inclination: enrolled NPC, gate open)
       prompts/submodules/character_bio/0340_ieb_festival_custom.prompt  (the custom: every adult, festival DAY)
   build/layers/festival/SKSE/Plugins/ErrandBridge/festival_nights.json   (keys, orcMinTier, abstain; JsonUtil schema)
-0340 reads the date natively (get_global_value) so it does not depend on a Papyrus decorator. 0336 reads the festival
-context from get_romance (festKey/festPhase/festival, written by the patched SNRom_Decorators.GetRomance with the SAME
-rule PhysicalOk uses), so the line and the gate cannot disagree about the date, a scene judged at its start (RV-121-dec
-rule 1) or the morning after (rule 2). Both carry the native adult tests (decnpc isChild + "child" race, a missing race
+0340 reads the date natively (get_global_value) so it does not depend on a Papyrus decorator. 0336 [CHANGED REVIEW_LOG
+RV-127 (1)] reads NO Papyrus decorator either: the patched SNRom_Bridge watch publishes IEB_FestCtx (key*10 + phase) on
+the NPC, computed by the same Papyrus rule as PhysicalOk (IEB_FestivalContext + the festival minimum + PhysicalOk + stance),
+and 0336 reads it through SkyrimNet's NATIVE papyrus_util decorator (devkit test prompt
+repos/SkyrimNet-GamePlugin/plugins/skyrimnet/base/prompts/submodules/test_decorators/0800_omnisight_state_decorators.prompt:231
+'papyrus_util("GetIntValue", actorUUID, "test_int", 0)'; native C++ in PapyrusUtilDecorators.cpp, DLL strings
+tools/skyrimnet_b25_1_dll_strings.txt:44004-44010, bridge :33236-33240). The template accepts the key only if it agrees
+with the native clock (night window / 06:00-12:00 with yesterday's date) or the native SceneControls keys (phase 1), so a
+key left from an earlier band never renders. get_romance's festKey/festPhase/festival stay as a test-side cross-check
+only: a stale cached "false" would otherwise silence the native signal. Both carry the native adult tests (decnpc isChild + "child" race, a missing race
 reads as a child). Wording: the approved placeholders (D11); the two RV-121-dec texts (carried-over scene, morning
 after) are NEW placeholders for Shae.
 
   python gen_layer_festival.py                 write the layer
   python gen_layer_festival.py --check DIR     static checks against a patched scripts dir (apply_patch_f festival):
       key sets equal (JSON keys = 0340 = 0336 = SNRom_Decorators.IEB_FestivalName), names equal, the PhysicalOk hunk
-      sits after the Applicability and NEVER returns, both prompts carry the adult tests and the switch."""
+      sits after the Applicability and NEVER returns, both prompts carry the adult tests and the switch, 0336 reads
+      IEB_FestCtx natively and calls no Papyrus decorator, and the Bridge publishes/clears IEB_FestCtx (child first)."""
 import json, os, re, sys
 
 ROOT = "C:/nolvus-research/build/layers/festival/"
@@ -1116,29 +969,38 @@ Today is {{ _f_name }}. On a festival night it is an old, accepted custom that p
 """
 
 P0336 = """{% if render_mode == "full" %}
-{# shae.festival 0336 (festival_nights.md 3.2; REVIEW_LOG RV-121-dec). The inclination, for an ENROLLED adult whose
-   physical gate the festival rule covers right now. The festival context comes from get_romance (patched
-   SNRom_Decorators.GetRomance: festKey, festPhase, festival = the festival minimum tier or -1), computed by the same
-   Papyrus rule as romance_physical_ok, so a scene judged at its start does not flip mid-scene (rule 1) and the morning
-   after covers only the NPC marked that night (rule 2). Phases: 0 the night, 1 a festival scene still running after
-   its night or morning ended, 2 the morning after (06:00-12:00, same NPC). A decorator miss renders nothing: festKey
-   and festival default to "none", romanceNA to foreclosed, stance to acknowledged (an acknowledged partner is not a
-   fling). Adults only: the native race test as 0330 plus decnpc isChild; not the player, not virtual. #}
+{# shae.festival 0336 (festival_nights.md 3.2; REVIEW_LOG RV-121-dec, RV-127). The inclination, for an ENROLLED adult
+   whose physical gate the festival rule opens right now. NATIVE reads only (papyrus_util, get_global_value,
+   get_faction_rank), so it renders while Papyrus decorators are skipped (paused game) or miss the cache.
+   IEB_FestCtx on the NPC = key*10 + phase, published by the patched SNRom_Bridge (the same rule as PhysicalOk, plus
+   stance != acknowledged partner). Phases: 0 the night (18:00-06:00, after midnight = previous day), 1 a scene judged
+   festival at its start still running (RV-121-dec rule 1; native check: still a SceneControls partner of a running
+   scene and IEB_FestScene = the key), 2 the morning after with the NPC marked that night (rule 2; 06:00-12:00, key =
+   yesterday). A key that does not match the native clock or scene renders nothing. Adults only: the native race test
+   as 0330 plus decnpc isChild; not the player, not virtual. #}
 {% if not is_player(actorUUID) and is_plugin_loaded("SNRom_Integration.esl") and %SWITCH% %}
 %ADULT%
-{% if get_faction_rank(actorUUID, "SNRom_Bond") >= 0 %}
-{% set _f_rom = get_romance(actorUUID) %}
-{% set _f_key = default(_f_rom.festKey, 0) %}
-{% if _f_key > 0 and default(_f_rom.festival, -1) >= 0 and default(_f_rom.romanceNA, 1) == 0 and default(_f_rom.stance, 1) != 1 %}
-{% if romance_physical_ok(actorUUID) == "true" %}
-{% set _f_phase = default(_f_rom.festPhase, -1) %}
+{% set _f_ctx = papyrus_util("GetIntValue", actorUUID, "IEB_FestCtx", 0) %}
+{% if _f_ctx > 0 and get_faction_rank(actorUUID, "SNRom_Bond") >= 0 and papyrus_util("GetIntValue", actorUUID, "SNRom_PlayerStance", 0) != 1 %}
+{% set _f_h = get_global_value("GameHour") %}{% set _f_m = get_global_value("GameMonth") %}{% set _f_d = get_global_value("GameDay") %}
+{% set _f_tk = _f_m * 100 + _f_d %}
+{% set _f_d = _f_d - 1 %}
+{% if _f_d < 1 %}{% if _f_m == 0 %}{% set _f_m = 11 %}{% else %}{% set _f_m = _f_m - 1 %}{% endif %}{% set _f_d = 31 %}{% if _f_m == 1 %}{% set _f_d = 28 %}{% elif _f_m == 3 or _f_m == 5 or _f_m == 8 or _f_m == 10 %}{% set _f_d = 30 %}{% endif %}{% endif %}
+{% set _f_yk = _f_m * 100 + _f_d %}
+{% set _f_nk = 0 %}{% if _f_h >= 18 %}{% set _f_nk = _f_tk %}{% elif _f_h < 6 %}{% set _f_nk = _f_yk %}{% endif %}
+{% set _f_sk = papyrus_util("GetIntValue", actorUUID, "IEB_FestScene", 0) %}
+{% set _f_key = 0 %}{% set _f_phase = -1 %}
+{% if _f_nk > 0 and _f_ctx == _f_nk * 10 %}{% set _f_key = _f_nk %}{% set _f_phase = 0 %}
+{% elif _f_h >= 6 and _f_h < 12 and _f_ctx == _f_yk * 10 + 2 %}{% set _f_key = _f_yk %}{% set _f_phase = 2 %}
+{% elif _f_sk > 0 and _f_ctx == _f_sk * 10 + 1 and papyrus_util("GetIntValue", actorUUID, "IEB_IsScenePartner", 0) == 1 and papyrus_util("GetIntValue", player.UUID, "IEB_SceneMode", 0) == 1 %}{% set _f_key = _f_sk %}{% set _f_phase = 1 %}
+{% endif %}
 %NAMES%
 {% if _f_name != "" %}
 {% if _f_phase == 0 %}
 
 ## Tonight
 
-{% if default(_f_rom.level, 0) >= 1 %}Tonight is {{ _f_name }}, and you know {{ player.name }}. If they want you tonight you are strongly inclined to say yes; the night and the custom are on their side. If you say no, it is for a reason of your own you could name: you do not want them that way, someone you will not hurt, what you believe, or how they treat you or your people. Say it in your own way. Nothing is decided for you.
+{% if get_faction_rank(actorUUID, "SNRom_Bond") >= 1 %}Tonight is {{ _f_name }}, and you know {{ player.name }}. If they want you tonight you are strongly inclined to say yes; the night and the custom are on their side. If you say no, it is for a reason of your own you could name: you do not want them that way, someone you will not hurt, what you believe, or how they treat you or your people. Say it in your own way. Nothing is decided for you.
 {% else %}Tonight is {{ _f_name }}, and you have only just met {{ player.name }}. Your nature allows a night like this with a stranger, if they please you and the moment is right. It is a real choice, not an expectation.
 {% endif %}
 {% elif _f_phase == 1 %}
@@ -1157,8 +1019,6 @@ Last night was {{ _f_name }}, and you spent part of it with {{ player.name }}. B
 {% endif %}
 {% endif %}
 {% endif %}
-{% endif %}
-{% endif %}
 """
 
 MANIFEST = """{
@@ -1166,7 +1026,7 @@ MANIFEST = """{
   "type": "bundle",
   "title": "Festival Nights (private)",
   "tagline": "Private: five lore festival nights; the custom for every adult and the inclination for an enrolled NPC whose gate is open.",
-  "description": "Festival nights (festival_nights.md, REVIEW_LOG RV-121-dec). Two additive character_bio files (0336, 0340). Needs SkyrimNet Relationships with the private patch group 'festival' (get_romance festKey/festPhase/festival) and the settings file SKSE/Plugins/ErrandBridge/festival_nights.json in this mod. Switch IEB_FestivalEnabled on the player, default OFF. Private; never published.",
+  "description": "Festival nights (festival_nights.md, REVIEW_LOG RV-121-dec). Two additive character_bio files (0336, 0340). Needs SkyrimNet Relationships with the private patch group 'festival' (IEB_FestCtx, published by the Bridge watch) and the settings file SKSE/Plugins/ErrandBridge/festival_nights.json in this mod. Switch IEB_FestivalEnabled on the player, default OFF. Private; never published.",
   "author": "shae",
   "version": "1.0.0",
   "min_skyrimnet_version": "0.25.0",
@@ -1222,10 +1082,15 @@ def check(scripts):
         if not (0 <= a < h):
             errs.append(fn + ": a heading precedes the adult test")
     t36 = open(OUT + "prompts/submodules/character_bio/0336_ieb_festival_night.prompt", encoding="utf-8").read()
-    for need in ('default(_f_rom.romanceNA, 1) == 0', 'default(_f_rom.stance, 1) != 1', 'romance_physical_ok(actorUUID) == "true"',
-                 'get_faction_rank(actorUUID, "SNRom_Bond") >= 0', 'default(_f_rom.festival, -1) >= 0'):
+    for need in ('papyrus_util("GetIntValue", actorUUID, "IEB_FestCtx", 0)', 'get_faction_rank(actorUUID, "SNRom_Bond") >= 0',
+                 'papyrus_util("GetIntValue", actorUUID, "SNRom_PlayerStance", 0) != 1', '_f_ctx == _f_nk * 10',
+                 '_f_ctx == _f_yk * 10 + 2', '_f_ctx == _f_sk * 10 + 1'):
         if need not in t36:
             errs.append("0336: missing %r" % need)
+    # RV-127 (1): no Papyrus decorator in 0336 (skipped while paused); get_romance / romance_physical_ok only as a test cross-check
+    for bad in ("get_romance(", "romance_physical_ok("):
+        if bad in t36:
+            errs.append("0336 calls the Papyrus decorator %s" % bad)
     # 2. Papyrus side (patched scripts dir)
     dec = open(os.path.join(scripts, "SNRom_Decorators.psc"), encoding="utf-8").read().replace("\r\n", "\n")
     pap = {int(k): n for k, n in re.findall(r'aiKey == (\d+)\n\s+Return "([^"]+)"', dec)}
@@ -1253,6 +1118,25 @@ def check(scripts):
         first_write = min([x for x in (b.find("StorageUtil.Set"), b.find("StorageUtil.FormListAdd")) if x >= 0] or [-1])
         if not (0 <= b.find("akActor.IsChild()") < first_write):
             errs.append("IEB_FestivalJudge: the IsChild return is not before the first write")
+    mr = re.search(r'Function IEB_FestivalRefreshCtx\(Actor akActor\)(.*?)\nEndFunction', br, re.S)
+    if not mr:
+        errs.append("SNRom_Bridge: IEB_FestivalRefreshCtx missing")
+    else:
+        b = mr.group(1)
+        w_ = b.find('StorageUtil.SetIntValue(akActor, "IEB_FestCtx"')
+        if not (0 <= b.find("akActor.IsChild()") < w_):
+            errs.append("IEB_FestivalRefreshCtx: the IsChild return is not before the IEB_FestCtx write")
+        for need in ('SNRom_Decorators.PhysicalOk(akActor) == "true"', '"SNRom_PlayerStance", 0) != 1', "IEB_FestivalOn()",
+                     'StorageUtil.UnsetIntValue(akActor, "IEB_FestCtx")'):
+            if need not in b:
+                errs.append("IEB_FestivalRefreshCtx: missing %r" % need)
+    for need in ("Function IEB_FestivalOnLoad()", "Function IEB_FestivalClearAll()", '"IEB_FestCtxList"', '"IEB_FestSceneList"',
+                 '"IEB_FestPartnerList"'):
+        if need not in br:
+            errs.append("SNRom_Bridge: missing %r" % need)
+    al = open(os.path.join(scripts, "SNRom_PlayerAlias.psc"), encoding="utf-8").read()
+    if "IEB_FestivalOnLoad()" not in al:
+        errs.append("SNRom_PlayerAlias: no load cleanup call")
     for e in errs:
         print("FAIL", e)
     print("festival static check:", "PASS" if not errs else "FAIL (%d)" % len(errs))
@@ -1270,7 +1154,7 @@ if __name__ == "__main__":
   "type": "bundle",
   "title": "Festival Nights (private)",
   "tagline": "Private: five lore festival nights; the custom for every adult and the inclination for an enrolled NPC whose gate is open.",
-  "description": "Festival nights (festival_nights.md, REVIEW_LOG RV-121-dec). Two additive character_bio files (0336, 0340). Needs SkyrimNet Relationships with the private patch group 'festival' (get_romance festKey/festPhase/festival) and the settings file SKSE/Plugins/ErrandBridge/festival_nights.json in this mod. Switch IEB_FestivalEnabled on the player, default OFF. Private; never published.",
+  "description": "Festival nights (festival_nights.md, REVIEW_LOG RV-121-dec). Two additive character_bio files (0336, 0340). Needs SkyrimNet Relationships with the private patch group 'festival' (IEB_FestCtx, published by the Bridge watch) and the settings file SKSE/Plugins/ErrandBridge/festival_nights.json in this mod. Switch IEB_FestivalEnabled on the player, default OFF. Private; never published.",
   "author": "shae",
   "version": "1.0.0",
   "min_skyrimnet_version": "0.25.0",
@@ -1279,30 +1163,39 @@ if __name__ == "__main__":
 
 === NEW layers/festival/SKSE/Plugins/SkyrimNet/external/shae.festival/prompts/submodules/character_bio/0336_ieb_festival_night.prompt
 {% if render_mode == "full" %}
-{# shae.festival 0336 (festival_nights.md 3.2; REVIEW_LOG RV-121-dec). The inclination, for an ENROLLED adult whose
-   physical gate the festival rule covers right now. The festival context comes from get_romance (patched
-   SNRom_Decorators.GetRomance: festKey, festPhase, festival = the festival minimum tier or -1), computed by the same
-   Papyrus rule as romance_physical_ok, so a scene judged at its start does not flip mid-scene (rule 1) and the morning
-   after covers only the NPC marked that night (rule 2). Phases: 0 the night, 1 a festival scene still running after
-   its night or morning ended, 2 the morning after (06:00-12:00, same NPC). A decorator miss renders nothing: festKey
-   and festival default to "none", romanceNA to foreclosed, stance to acknowledged (an acknowledged partner is not a
-   fling). Adults only: the native race test as 0330 plus decnpc isChild; not the player, not virtual. #}
+{# shae.festival 0336 (festival_nights.md 3.2; REVIEW_LOG RV-121-dec, RV-127). The inclination, for an ENROLLED adult
+   whose physical gate the festival rule opens right now. NATIVE reads only (papyrus_util, get_global_value,
+   get_faction_rank), so it renders while Papyrus decorators are skipped (paused game) or miss the cache.
+   IEB_FestCtx on the NPC = key*10 + phase, published by the patched SNRom_Bridge (the same rule as PhysicalOk, plus
+   stance != acknowledged partner). Phases: 0 the night (18:00-06:00, after midnight = previous day), 1 a scene judged
+   festival at its start still running (RV-121-dec rule 1; native check: still a SceneControls partner of a running
+   scene and IEB_FestScene = the key), 2 the morning after with the NPC marked that night (rule 2; 06:00-12:00, key =
+   yesterday). A key that does not match the native clock or scene renders nothing. Adults only: the native race test
+   as 0330 plus decnpc isChild; not the player, not virtual. #}
 {% if not is_player(actorUUID) and is_plugin_loaded("SNRom_Integration.esl") and papyrus_util("GetIntValue", player.UUID, "IEB_FestivalEnabled", 0) == 1 %}
 {% set _f_npc = decnpc(actorUUID) %}
 {% if not _f_npc.isVirtual and not _f_npc.isChild and not contains(lower(default(_f_npc.race, "child")), "child") %}
-{% if get_faction_rank(actorUUID, "SNRom_Bond") >= 0 %}
-{% set _f_rom = get_romance(actorUUID) %}
-{% set _f_key = default(_f_rom.festKey, 0) %}
-{% if _f_key > 0 and default(_f_rom.festival, -1) >= 0 and default(_f_rom.romanceNA, 1) == 0 and default(_f_rom.stance, 1) != 1 %}
-{% if romance_physical_ok(actorUUID) == "true" %}
-{% set _f_phase = default(_f_rom.festPhase, -1) %}
+{% set _f_ctx = papyrus_util("GetIntValue", actorUUID, "IEB_FestCtx", 0) %}
+{% if _f_ctx > 0 and get_faction_rank(actorUUID, "SNRom_Bond") >= 0 and papyrus_util("GetIntValue", actorUUID, "SNRom_PlayerStance", 0) != 1 %}
+{% set _f_h = get_global_value("GameHour") %}{% set _f_m = get_global_value("GameMonth") %}{% set _f_d = get_global_value("GameDay") %}
+{% set _f_tk = _f_m * 100 + _f_d %}
+{% set _f_d = _f_d - 1 %}
+{% if _f_d < 1 %}{% if _f_m == 0 %}{% set _f_m = 11 %}{% else %}{% set _f_m = _f_m - 1 %}{% endif %}{% set _f_d = 31 %}{% if _f_m == 1 %}{% set _f_d = 28 %}{% elif _f_m == 3 or _f_m == 5 or _f_m == 8 or _f_m == 10 %}{% set _f_d = 30 %}{% endif %}{% endif %}
+{% set _f_yk = _f_m * 100 + _f_d %}
+{% set _f_nk = 0 %}{% if _f_h >= 18 %}{% set _f_nk = _f_tk %}{% elif _f_h < 6 %}{% set _f_nk = _f_yk %}{% endif %}
+{% set _f_sk = papyrus_util("GetIntValue", actorUUID, "IEB_FestScene", 0) %}
+{% set _f_key = 0 %}{% set _f_phase = -1 %}
+{% if _f_nk > 0 and _f_ctx == _f_nk * 10 %}{% set _f_key = _f_nk %}{% set _f_phase = 0 %}
+{% elif _f_h >= 6 and _f_h < 12 and _f_ctx == _f_yk * 10 + 2 %}{% set _f_key = _f_yk %}{% set _f_phase = 2 %}
+{% elif _f_sk > 0 and _f_ctx == _f_sk * 10 + 1 and papyrus_util("GetIntValue", actorUUID, "IEB_IsScenePartner", 0) == 1 and papyrus_util("GetIntValue", player.UUID, "IEB_SceneMode", 0) == 1 %}{% set _f_key = _f_sk %}{% set _f_phase = 1 %}
+{% endif %}
 {% set _f_name = "" %}{% if _f_key == 1 %}{% set _f_name = "the New Life Festival" %}{% elif _f_key == 116 %}{% set _f_name = "Heart's Day" %}{% elif _f_key == 516 %}{% set _f_name = "the Mid Year Celebration" %}{% elif _f_key == 727 %}{% set _f_name = "Harvest's End" %}{% elif _f_key == 1125 %}{% set _f_name = "Saturalia" %}{% endif %}
 {% if _f_name != "" %}
 {% if _f_phase == 0 %}
 
 ## Tonight
 
-{% if default(_f_rom.level, 0) >= 1 %}Tonight is {{ _f_name }}, and you know {{ player.name }}. If they want you tonight you are strongly inclined to say yes; the night and the custom are on their side. If you say no, it is for a reason of your own you could name: you do not want them that way, someone you will not hurt, what you believe, or how they treat you or your people. Say it in your own way. Nothing is decided for you.
+{% if get_faction_rank(actorUUID, "SNRom_Bond") >= 1 %}Tonight is {{ _f_name }}, and you know {{ player.name }}. If they want you tonight you are strongly inclined to say yes; the night and the custom are on their side. If you say no, it is for a reason of your own you could name: you do not want them that way, someone you will not hurt, what you believe, or how they treat you or your people. Say it in your own way. Nothing is decided for you.
 {% else %}Tonight is {{ _f_name }}, and you have only just met {{ player.name }}. Your nature allows a night like this with a stranger, if they please you and the moment is right. It is a real choice, not an expectation.
 {% endif %}
 {% elif _f_phase == 1 %}
@@ -1315,8 +1208,6 @@ The night of {{ _f_name }} has passed, but what began between you and {{ player.
 ## This Morning
 
 Last night was {{ _f_name }}, and you spent part of it with {{ player.name }}. By custom the night's freedom lasts between the two of you until midday. If they want you again this morning you may say yes; it is your choice, and nothing is expected.
-{% endif %}
-{% endif %}
 {% endif %}
 {% endif %}
 {% endif %}
@@ -1381,7 +1272,11 @@ What is under test (patched Relationships):
 - rule 2: after 06:00 no new festival scene, except the morning after with the SAME NPC until 12:00
   (IEB_FestivalPartnerDay), cleared at noon;
 - the switch IEB_FestivalEnabled (player, default 0): off = no change and nothing written;
-- a child: refused, nothing written; an orc below tier 2 in Lucienne's game (LUC_Active): refused.
+- a child: refused, nothing written; an orc below tier 2 in Lucienne's game (LUC_Active): refused;
+- [REVIEW_LOG RV-127 (1)] the published native key IEB_FestCtx (probe field "pub", -99 = unset) that 0336 reads through
+  papyrus_util: set exactly when the gate is open under the festival rule, cleared when it is not. FEST-8b (paused chat)
+  was dropped (REVIEW_LOG RV-128: real play does not pause the chat). The load cleanup (RV-127 (3)) is static-checked
+  only (gen_layer_festival.py --check); a live check would need an extra save.
 
 Routes: date by console ("set gamemonth/gameday/gamehour to N", global sets run fine on the player), each write read
 back at once through the template's native get_global_value (RV-123 (3)), and the Papyrus side through the read-only
@@ -1411,7 +1306,7 @@ MORNING_HEAD = "## This Morning"       # 0336 phase 2 heading
 # ---------------------------------------------------------------------------- reads
 def probe(r, fid):
     """SNRom_Bridge.IEB_FestivalProbe -> dict (on, m, d, h, night, ctx, festMin, phys, scene, pday, inScene, child, orc,
-    luc, tier, minT, excl) or None. scene/pday -99 = unset. Read-only on the Papyrus side."""
+    luc, tier, minT, excl, pub) or None. scene/pday -99 = unset. Read-only on the Papyrus side."""
     t = tail("papyrus")
     res = rel(r, "IEB_FestivalProbe", [ah(fid)])
     v = retval(res)
@@ -1425,7 +1320,7 @@ def probe(r, fid):
     d = parse_kv(m.group(1))
     r.log("  probe %s: on=%s m=%s d=%s h=%s night=%s ctx=%s festMin=%s phys=%s scene=%s pday=%s inScene=%s"
           % (hx(fid), d.get("on"), d.get("m"), d.get("d"), d.get("h"), d.get("night"), d.get("ctx"), d.get("festMin"),
-             d.get("phys"), d.get("scene"), d.get("pday"), d.get("inScene")))
+             d.get("phys"), d.get("scene"), d.get("pday"), d.get("inScene")) + " pub=%s" % d.get("pub"))
     return d
 
 
@@ -1587,17 +1482,22 @@ def fest1(r):
     if not festival_installed(r, pu):
         return
     checkpoint(r)
+    time.sleep(WATCH)                       # the band change publishes IEB_FestCtx on the next watch tick
     p = probe(r, F1)
     r.check(phys(p) and iv(p, "festMin") == 0 and iv(p, "ctx") == HEARTS * 10,
             "16 Sun's Dawn 20:00: open from Stranger (phys=%s festMin=%s ctx=%s)" % (p and p.get("phys"), p and p.get("festMin"), p and p.get("ctx")))
+    r.check(bool(p) and iv(p, "pub") == HEARTS * 10, "20:00: native key IEB_FestCtx published = %d (pub=%s)" % (HEARTS * 10, p and p.get("pub")))
     for (d, h, want, what) in ((16, 12.0, False, "16th 12:00 (festival day, not night)"),
                                (17, 3.0, True, "17th 03:00 (after midnight = Heart's Day night)"),
                                (17, 7.0, False, "17th 07:00 (night over, no morning-after mark)"),
                                (20, 20.0, False, "20th 20:00 (ordinary night)")):
         if not clock(r, pu, 1, d, h):
             return
+        time.sleep(WATCH)
         p = probe(r, F1)
         r.check(bool(p) and phys(p) == want, "%s: phys=%s, want %s" % (what, p and p.get("phys"), want))
+        r.check(bool(p) and iv(p, "pub") == (HEARTS * 10 if want else -99), "%s: IEB_FestCtx %s (pub=%s)"
+                % (what, "published" if want else "cleared", p and p.get("pub")))
     r.check(bool(p) and iv(p, "scene") == -99 and iv(p, "pday") == -99, "no scene, nothing written on F1 (scene=%s pday=%s)"
             % (p and p.get("scene"), p and p.get("pday")))
 
@@ -1633,12 +1533,14 @@ def fest2(r):
         r.check(phys(p) and iv(p, "ctx") == HEARTS * 10 + 1 and iv(p, "scene") == HEARTS,
                 "13:00, scene still running: open, phase 1 'carried over' (phys=%s ctx=%s scene=%s)" % (p and p.get("phys"), p and p.get("ctx"), p and p.get("scene")))
         r.check(bool(p) and iv(p, "pday") == -99, "13:00: the morning-after mark lapsed at noon (pday=%s)" % (p and p.get("pday")))
+        r.check(bool(p) and iv(p, "pub") == HEARTS * 10 + 1, "13:00: IEB_FestCtx = phase 1 (pub=%s)" % (p and p.get("pub")))
     finally:
         off = scene_off(r, f1, F1)
     if off:
         p = probe(r, F1)
-        r.check(bool(p) and iv(p, "scene") == -99 and not phys(p), "after SceneOff: flag cleared, closed (scene=%s phys=%s)"
-                % (p and p.get("scene"), p and p.get("phys")))
+        r.check(bool(p) and iv(p, "scene") == -99 and not phys(p) and iv(p, "pub") == -99,
+                "after SceneOff: flag and IEB_FestCtx cleared, closed (scene=%s phys=%s pub=%s)"
+                % (p and p.get("scene"), p and p.get("phys"), p and p.get("pub")))
 
 
 @test("FEST-3", "FEST", reload=True)
@@ -1665,6 +1567,8 @@ def fest3(r):
         r.check(bool(p) and not phys(p) and iv(p, "ctx") == 0, "19:00 in that scene: F1 stays closed (phys=%s ctx=%s)"
                 % (p and p.get("phys"), p and p.get("ctx")))
         r.check(phys(q), "19:00: F2 (no scene) open (phys=%s)" % (q and q.get("phys")))
+        r.check(bool(p) and bool(q) and iv(p, "pub") == -99 and iv(q, "pub") == HEARTS * 10,
+                "19:00: IEB_FestCtx F1 unset, F2 published (pub %s / %s)" % (p and p.get("pub"), q and q.get("pub")))
     finally:
         off = scene_off(r, f1, F1)
     if off:
@@ -1698,6 +1602,8 @@ def fest4(r):
             % (p and p.get("phys"), p and p.get("ctx")))
     r.check(bool(q) and not phys(q) and iv(q, "ctx") == 0, "07:00: F2 (other NPC) closed (phys=%s ctx=%s)"
             % (q and q.get("phys"), q and q.get("ctx")))
+    r.check(bool(p) and bool(q) and iv(p, "pub") == HEARTS * 10 + 2 and iv(q, "pub") == -99,
+            "07:00: IEB_FestCtx F1 phase 2, F2 unset (pub %s / %s)" % (p and p.get("pub"), q and q.get("pub")))
     try:
         if scene_on(r, F2, f2):
             q = probe(r, F2)
@@ -1719,8 +1625,9 @@ def fest4(r):
         return
     time.sleep(WATCH)
     p = probe(r, F1)
-    r.check(bool(p) and iv(p, "pday") == -99 and not phys(p), "12:30: mark cleared at noon, F1 closed (pday=%s phys=%s)"
-            % (p and p.get("pday"), p and p.get("phys")))
+    r.check(bool(p) and iv(p, "pday") == -99 and not phys(p) and iv(p, "pub") == -99,
+            "12:30: mark and IEB_FestCtx cleared at noon, F1 closed (pday=%s phys=%s pub=%s)"
+            % (p and p.get("pday"), p and p.get("phys"), p and p.get("pub")))
 
 
 @test("FEST-5", "FEST", reload=True)
@@ -1748,6 +1655,8 @@ def fest5(r):
                     % (p and p.get("scene"), p and p.get("pday"), p and p.get("phys")))
     finally:
         scene_off(r, f1, F1)
+    p = probe(r, F1)
+    r.check(bool(p) and iv(p, "pub") == -99, "switch off: no IEB_FestCtx on F1 (pub=%s)" % (p and p.get("pub")))
     a = su_get(r, pu, "IEB_FestivalAnnounced", -99, fid=PLAYER)
     r.check(a == -99, "switch off: no festival announcement latch on the player (%s)" % a)
 
@@ -1772,7 +1681,7 @@ def fest6(r):
     m = ctl_line(r, "SceneOn", [CHILD], r"\[IEB-TEST\] SCENE (on partner=|refused child)")
     r.check(bool(m) and "refused" in m.group(0), "SceneOn refuses the child (%s)" % (m and m.group(1)))
     time.sleep(WATCH)
-    for key in ("IEB_FestScene", "IEB_FestivalPartnerDay", "IEB_IsScenePartner"):
+    for key in ("IEB_FestScene", "IEB_FestivalPartnerDay", "IEB_IsScenePartner", "IEB_FestCtx"):
         v = su_get(r, cu, key, -99, fid=CHILD)
         r.check(v == -99, "child: %s unset (%s)" % (key, v))
     rom = romance(r, cu)
@@ -1816,7 +1725,7 @@ def fest8(r):
     """Templates live (verify-templates-live rule): F1's character_bio render carries the 0340 custom heading on
     Heart's Day (20:00 and 12:00, the day rule) and the 0336 'Tonight' heading at 20:00 only; neither on an ordinary
     night, neither for the child, neither with the switch off. Headings of our own layer only; text never logged.
-    0336 rides on get_romance (cached decorator): a missing heading after 3 tries with festKey unread is INCONCLUSIVE."""
+    Both files are native-only (RV-127 (1): 0336 reads IEB_FestCtx through papyrus_util), so a miss is a FAIL."""
     s = setup(r)
     if not s:
         return
@@ -1842,16 +1751,12 @@ def fest8(r):
                                         (20, 20.0, False, False, "20 Sun's Dawn 20:00")):
         if not clock(r, pu, 1, d, h):
             return
+        time.sleep(WATCH)                   # IEB_FestCtx is published on the next watch tick
         hs = heads(f1)
         if hs is None:
             inc(r, "%s: character_bio render failed" % what)
             continue
         r.check(hs[0] == want_c, "%s: 0340 custom heading %s (want %s)" % (what, hs[0], want_c))
-        if hs[1] != want_n and want_n:
-            rom = romance(r, f1)
-            if rom is None or "festKey" not in rom:
-                inc(r, "%s: 0336 heading absent and get_romance unread (cache miss / old pex)" % what)
-                continue
         r.check(hs[1] == want_n, "%s: 0336 'Tonight' heading %s (want %s)" % (what, hs[1], want_n))
     if cu and child is True and clock(r, pu, 1, 16, 20.0):
         hs = heads(cu)
@@ -1881,6 +1786,6 @@ def fest9(r):
     r.check(a is not None and a % 10000 == HEARTS, "IEB_FestivalAnnounced latched to the Heart's Day stamp (%s)" % a)
 
 === pex sha1 (scratch output C:/Users/sharp/AppData/Local/Temp/claude/C--nolvus-research/baa3b507-8492-4e93-bd63-89bc98229f66/scratchpad/fest_out)
-14b709df00452e9a7e99502b48dbbb69132a4f0f  SNRom_Bridge.pex
-aaa87fa5cc32561773e404738150a62243007b82  SNRom_Decorators.pex
-55d970636930cf7e80ba3953efb1831017bb5b1e  SNRom_PlayerAlias.pex
+feef3213cf9a6be40d8faf715bb26ea13c92c47a  SNRom_Bridge.pex
+1e4678cb332c9cda0e9a87e6b3d000ba952a0dfe  SNRom_Decorators.pex
+787c3fe6d7035e24cad33633abc48c97613a5311  SNRom_PlayerAlias.pex

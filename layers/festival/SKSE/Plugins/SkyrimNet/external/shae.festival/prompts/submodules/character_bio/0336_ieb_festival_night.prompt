@@ -1,28 +1,37 @@
 {% if render_mode == "full" %}
-{# shae.festival 0336 (festival_nights.md 3.2; REVIEW_LOG RV-121-dec). The inclination, for an ENROLLED adult whose
-   physical gate the festival rule covers right now. The festival context comes from get_romance (patched
-   SNRom_Decorators.GetRomance: festKey, festPhase, festival = the festival minimum tier or -1), computed by the same
-   Papyrus rule as romance_physical_ok, so a scene judged at its start does not flip mid-scene (rule 1) and the morning
-   after covers only the NPC marked that night (rule 2). Phases: 0 the night, 1 a festival scene still running after
-   its night or morning ended, 2 the morning after (06:00-12:00, same NPC). A decorator miss renders nothing: festKey
-   and festival default to "none", romanceNA to foreclosed, stance to acknowledged (an acknowledged partner is not a
-   fling). Adults only: the native race test as 0330 plus decnpc isChild; not the player, not virtual. #}
+{# shae.festival 0336 (festival_nights.md 3.2; REVIEW_LOG RV-121-dec, RV-127). The inclination, for an ENROLLED adult
+   whose physical gate the festival rule opens right now. NATIVE reads only (papyrus_util, get_global_value,
+   get_faction_rank), so it renders while Papyrus decorators are skipped (paused game) or miss the cache.
+   IEB_FestCtx on the NPC = key*10 + phase, published by the patched SNRom_Bridge (the same rule as PhysicalOk, plus
+   stance != acknowledged partner). Phases: 0 the night (18:00-06:00, after midnight = previous day), 1 a scene judged
+   festival at its start still running (RV-121-dec rule 1; native check: still a SceneControls partner of a running
+   scene and IEB_FestScene = the key), 2 the morning after with the NPC marked that night (rule 2; 06:00-12:00, key =
+   yesterday). A key that does not match the native clock or scene renders nothing. Adults only: the native race test
+   as 0330 plus decnpc isChild; not the player, not virtual. #}
 {% if not is_player(actorUUID) and is_plugin_loaded("SNRom_Integration.esl") and papyrus_util("GetIntValue", player.UUID, "IEB_FestivalEnabled", 0) == 1 %}
 {% set _f_npc = decnpc(actorUUID) %}
 {% if not _f_npc.isVirtual and not _f_npc.isChild and not contains(lower(default(_f_npc.race, "child")), "child") %}
-{% if get_faction_rank(actorUUID, "SNRom_Bond") >= 0 %}
-{% set _f_rom = get_romance(actorUUID) %}
-{% set _f_key = default(_f_rom.festKey, 0) %}
-{% if _f_key > 0 and default(_f_rom.festival, -1) >= 0 and default(_f_rom.romanceNA, 1) == 0 and default(_f_rom.stance, 1) != 1 %}
-{% if romance_physical_ok(actorUUID) == "true" %}
-{% set _f_phase = default(_f_rom.festPhase, -1) %}
+{% set _f_ctx = papyrus_util("GetIntValue", actorUUID, "IEB_FestCtx", 0) %}
+{% if _f_ctx > 0 and get_faction_rank(actorUUID, "SNRom_Bond") >= 0 and papyrus_util("GetIntValue", actorUUID, "SNRom_PlayerStance", 0) != 1 %}
+{% set _f_h = get_global_value("GameHour") %}{% set _f_m = get_global_value("GameMonth") %}{% set _f_d = get_global_value("GameDay") %}
+{% set _f_tk = _f_m * 100 + _f_d %}
+{% set _f_d = _f_d - 1 %}
+{% if _f_d < 1 %}{% if _f_m == 0 %}{% set _f_m = 11 %}{% else %}{% set _f_m = _f_m - 1 %}{% endif %}{% set _f_d = 31 %}{% if _f_m == 1 %}{% set _f_d = 28 %}{% elif _f_m == 3 or _f_m == 5 or _f_m == 8 or _f_m == 10 %}{% set _f_d = 30 %}{% endif %}{% endif %}
+{% set _f_yk = _f_m * 100 + _f_d %}
+{% set _f_nk = 0 %}{% if _f_h >= 18 %}{% set _f_nk = _f_tk %}{% elif _f_h < 6 %}{% set _f_nk = _f_yk %}{% endif %}
+{% set _f_sk = papyrus_util("GetIntValue", actorUUID, "IEB_FestScene", 0) %}
+{% set _f_key = 0 %}{% set _f_phase = -1 %}
+{% if _f_nk > 0 and _f_ctx == _f_nk * 10 %}{% set _f_key = _f_nk %}{% set _f_phase = 0 %}
+{% elif _f_h >= 6 and _f_h < 12 and _f_ctx == _f_yk * 10 + 2 %}{% set _f_key = _f_yk %}{% set _f_phase = 2 %}
+{% elif _f_sk > 0 and _f_ctx == _f_sk * 10 + 1 and papyrus_util("GetIntValue", actorUUID, "IEB_IsScenePartner", 0) == 1 and papyrus_util("GetIntValue", player.UUID, "IEB_SceneMode", 0) == 1 %}{% set _f_key = _f_sk %}{% set _f_phase = 1 %}
+{% endif %}
 {% set _f_name = "" %}{% if _f_key == 1 %}{% set _f_name = "the New Life Festival" %}{% elif _f_key == 116 %}{% set _f_name = "Heart's Day" %}{% elif _f_key == 516 %}{% set _f_name = "the Mid Year Celebration" %}{% elif _f_key == 727 %}{% set _f_name = "Harvest's End" %}{% elif _f_key == 1125 %}{% set _f_name = "Saturalia" %}{% endif %}
 {% if _f_name != "" %}
 {% if _f_phase == 0 %}
 
 ## Tonight
 
-{% if default(_f_rom.level, 0) >= 1 %}Tonight is {{ _f_name }}, and you know {{ player.name }}. If they want you tonight you are strongly inclined to say yes; the night and the custom are on their side. If you say no, it is for a reason of your own you could name: you do not want them that way, someone you will not hurt, what you believe, or how they treat you or your people. Say it in your own way. Nothing is decided for you.
+{% if get_faction_rank(actorUUID, "SNRom_Bond") >= 1 %}Tonight is {{ _f_name }}, and you know {{ player.name }}. If they want you tonight you are strongly inclined to say yes; the night and the custom are on their side. If you say no, it is for a reason of your own you could name: you do not want them that way, someone you will not hurt, what you believe, or how they treat you or your people. Say it in your own way. Nothing is decided for you.
 {% else %}Tonight is {{ _f_name }}, and you have only just met {{ player.name }}. Your nature allows a night like this with a stranger, if they please you and the moment is right. It is a real choice, not an expectation.
 {% endif %}
 {% elif _f_phase == 1 %}
@@ -35,8 +44,6 @@ The night of {{ _f_name }} has passed, but what began between you and {{ player.
 ## This Morning
 
 Last night was {{ _f_name }}, and you spent part of it with {{ player.name }}. By custom the night's freedom lasts between the two of you until midday. If they want you again this morning you may say yes; it is your choice, and nothing is expected.
-{% endif %}
-{% endif %}
 {% endif %}
 {% endif %}
 {% endif %}

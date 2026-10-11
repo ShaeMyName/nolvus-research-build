@@ -14,14 +14,14 @@
       "code": "UNRESOLVED",
       "col": 11,
       "file": "submodules/character_bio/0336_ieb_festival_night",
-      "line": 10,
+      "line": 11,
       "message": "variable 'is_player' not found"
     },
     {
       "code": "UNRESOLVED",
       "col": 36,
       "file": "submodules/character_bio/0336_ieb_festival_night",
-      "line": 10,
+      "line": 11,
       "message": "variable 'is_plugin_loaded' not found"
     },
     {

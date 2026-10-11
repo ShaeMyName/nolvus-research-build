@@ -3,7 +3,7 @@
   "type": "bundle",
   "title": "Festival Nights (private)",
   "tagline": "Private: five lore festival nights; the custom for every adult and the inclination for an enrolled NPC whose gate is open.",
-  "description": "Festival nights (festival_nights.md, REVIEW_LOG RV-121-dec). Two additive character_bio files (0336, 0340). Needs SkyrimNet Relationships with the private patch group 'festival' (get_romance festKey/festPhase/festival) and the settings file SKSE/Plugins/ErrandBridge/festival_nights.json in this mod. Switch IEB_FestivalEnabled on the player, default OFF. Private; never published.",
+  "description": "Festival nights (festival_nights.md, REVIEW_LOG RV-121-dec). Two additive character_bio files (0336, 0340). Needs SkyrimNet Relationships with the private patch group 'festival' (IEB_FestCtx, published by the Bridge watch) and the settings file SKSE/Plugins/ErrandBridge/festival_nights.json in this mod. Switch IEB_FestivalEnabled on the player, default OFF. Private; never published.",
   "author": "shae",
   "version": "1.0.0",
   "min_skyrimnet_version": "0.25.0",

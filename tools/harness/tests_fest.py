@@ -9,7 +9,11 @@ What is under test (patched Relationships):
 - rule 2: after 06:00 no new festival scene, except the morning after with the SAME NPC until 12:00
   (IEB_FestivalPartnerDay), cleared at noon;
 - the switch IEB_FestivalEnabled (player, default 0): off = no change and nothing written;
-- a child: refused, nothing written; an orc below tier 2 in Lucienne's game (LUC_Active): refused.
+- a child: refused, nothing written; an orc below tier 2 in Lucienne's game (LUC_Active): refused;
+- [REVIEW_LOG RV-127 (1)] the published native key IEB_FestCtx (probe field "pub", -99 = unset) that 0336 reads through
+  papyrus_util: set exactly when the gate is open under the festival rule, cleared when it is not. FEST-8b (paused chat)
+  was dropped (REVIEW_LOG RV-128: real play does not pause the chat). The load cleanup (RV-127 (3)) is static-checked
+  only (gen_layer_festival.py --check); a live check would need an extra save.
 
 Routes: date by console ("set gamemonth/gameday/gamehour to N", global sets run fine on the player), each write read
 back at once through the template's native get_global_value (RV-123 (3)), and the Papyrus side through the read-only
@@ -39,7 +43,7 @@ MORNING_HEAD = "## This Morning"       # 0336 phase 2 heading
 # ---------------------------------------------------------------------------- reads
 def probe(r, fid):
     """SNRom_Bridge.IEB_FestivalProbe -> dict (on, m, d, h, night, ctx, festMin, phys, scene, pday, inScene, child, orc,
-    luc, tier, minT, excl) or None. scene/pday -99 = unset. Read-only on the Papyrus side."""
+    luc, tier, minT, excl, pub) or None. scene/pday -99 = unset. Read-only on the Papyrus side."""
     t = tail("papyrus")
     res = rel(r, "IEB_FestivalProbe", [ah(fid)])
     v = retval(res)
@@ -53,7 +57,7 @@ def probe(r, fid):
     d = parse_kv(m.group(1))
     r.log("  probe %s: on=%s m=%s d=%s h=%s night=%s ctx=%s festMin=%s phys=%s scene=%s pday=%s inScene=%s"
           % (hx(fid), d.get("on"), d.get("m"), d.get("d"), d.get("h"), d.get("night"), d.get("ctx"), d.get("festMin"),
-             d.get("phys"), d.get("scene"), d.get("pday"), d.get("inScene")))
+             d.get("phys"), d.get("scene"), d.get("pday"), d.get("inScene")) + " pub=%s" % d.get("pub"))
     return d
 
 
@@ -215,17 +219,22 @@ def fest1(r):
     if not festival_installed(r, pu):
         return
     checkpoint(r)
+    time.sleep(WATCH)                       # the band change publishes IEB_FestCtx on the next watch tick
     p = probe(r, F1)
     r.check(phys(p) and iv(p, "festMin") == 0 and iv(p, "ctx") == HEARTS * 10,
             "16 Sun's Dawn 20:00: open from Stranger (phys=%s festMin=%s ctx=%s)" % (p and p.get("phys"), p and p.get("festMin"), p and p.get("ctx")))
+    r.check(bool(p) and iv(p, "pub") == HEARTS * 10, "20:00: native key IEB_FestCtx published = %d (pub=%s)" % (HEARTS * 10, p and p.get("pub")))
     for (d, h, want, what) in ((16, 12.0, False, "16th 12:00 (festival day, not night)"),
                                (17, 3.0, True, "17th 03:00 (after midnight = Heart's Day night)"),
                                (17, 7.0, False, "17th 07:00 (night over, no morning-after mark)"),
                                (20, 20.0, False, "20th 20:00 (ordinary night)")):
         if not clock(r, pu, 1, d, h):
             return
+        time.sleep(WATCH)
         p = probe(r, F1)
         r.check(bool(p) and phys(p) == want, "%s: phys=%s, want %s" % (what, p and p.get("phys"), want))
+        r.check(bool(p) and iv(p, "pub") == (HEARTS * 10 if want else -99), "%s: IEB_FestCtx %s (pub=%s)"
+                % (what, "published" if want else "cleared", p and p.get("pub")))
     r.check(bool(p) and iv(p, "scene") == -99 and iv(p, "pday") == -99, "no scene, nothing written on F1 (scene=%s pday=%s)"
             % (p and p.get("scene"), p and p.get("pday")))
 
@@ -261,12 +270,14 @@ def fest2(r):
         r.check(phys(p) and iv(p, "ctx") == HEARTS * 10 + 1 and iv(p, "scene") == HEARTS,
                 "13:00, scene still running: open, phase 1 'carried over' (phys=%s ctx=%s scene=%s)" % (p and p.get("phys"), p and p.get("ctx"), p and p.get("scene")))
         r.check(bool(p) and iv(p, "pday") == -99, "13:00: the morning-after mark lapsed at noon (pday=%s)" % (p and p.get("pday")))
+        r.check(bool(p) and iv(p, "pub") == HEARTS * 10 + 1, "13:00: IEB_FestCtx = phase 1 (pub=%s)" % (p and p.get("pub")))
     finally:
         off = scene_off(r, f1, F1)
     if off:
         p = probe(r, F1)
-        r.check(bool(p) and iv(p, "scene") == -99 and not phys(p), "after SceneOff: flag cleared, closed (scene=%s phys=%s)"
-                % (p and p.get("scene"), p and p.get("phys")))
+        r.check(bool(p) and iv(p, "scene") == -99 and not phys(p) and iv(p, "pub") == -99,
+                "after SceneOff: flag and IEB_FestCtx cleared, closed (scene=%s phys=%s pub=%s)"
+                % (p and p.get("scene"), p and p.get("phys"), p and p.get("pub")))
 
 
 @test("FEST-3", "FEST", reload=True)
@@ -293,6 +304,8 @@ def fest3(r):
         r.check(bool(p) and not phys(p) and iv(p, "ctx") == 0, "19:00 in that scene: F1 stays closed (phys=%s ctx=%s)"
                 % (p and p.get("phys"), p and p.get("ctx")))
         r.check(phys(q), "19:00: F2 (no scene) open (phys=%s)" % (q and q.get("phys")))
+        r.check(bool(p) and bool(q) and iv(p, "pub") == -99 and iv(q, "pub") == HEARTS * 10,
+                "19:00: IEB_FestCtx F1 unset, F2 published (pub %s / %s)" % (p and p.get("pub"), q and q.get("pub")))
     finally:
         off = scene_off(r, f1, F1)
     if off:
@@ -326,6 +339,8 @@ def fest4(r):
             % (p and p.get("phys"), p and p.get("ctx")))
     r.check(bool(q) and not phys(q) and iv(q, "ctx") == 0, "07:00: F2 (other NPC) closed (phys=%s ctx=%s)"
             % (q and q.get("phys"), q and q.get("ctx")))
+    r.check(bool(p) and bool(q) and iv(p, "pub") == HEARTS * 10 + 2 and iv(q, "pub") == -99,
+            "07:00: IEB_FestCtx F1 phase 2, F2 unset (pub %s / %s)" % (p and p.get("pub"), q and q.get("pub")))
     try:
         if scene_on(r, F2, f2):
             q = probe(r, F2)
@@ -347,8 +362,9 @@ def fest4(r):
         return
     time.sleep(WATCH)
     p = probe(r, F1)
-    r.check(bool(p) and iv(p, "pday") == -99 and not phys(p), "12:30: mark cleared at noon, F1 closed (pday=%s phys=%s)"
-            % (p and p.get("pday"), p and p.get("phys")))
+    r.check(bool(p) and iv(p, "pday") == -99 and not phys(p) and iv(p, "pub") == -99,
+            "12:30: mark and IEB_FestCtx cleared at noon, F1 closed (pday=%s phys=%s pub=%s)"
+            % (p and p.get("pday"), p and p.get("phys"), p and p.get("pub")))
 
 
 @test("FEST-5", "FEST", reload=True)
@@ -376,6 +392,8 @@ def fest5(r):
                     % (p and p.get("scene"), p and p.get("pday"), p and p.get("phys")))
     finally:
         scene_off(r, f1, F1)
+    p = probe(r, F1)
+    r.check(bool(p) and iv(p, "pub") == -99, "switch off: no IEB_FestCtx on F1 (pub=%s)" % (p and p.get("pub")))
     a = su_get(r, pu, "IEB_FestivalAnnounced", -99, fid=PLAYER)
     r.check(a == -99, "switch off: no festival announcement latch on the player (%s)" % a)
 
@@ -400,7 +418,7 @@ def fest6(r):
     m = ctl_line(r, "SceneOn", [CHILD], r"\[IEB-TEST\] SCENE (on partner=|refused child)")
     r.check(bool(m) and "refused" in m.group(0), "SceneOn refuses the child (%s)" % (m and m.group(1)))
     time.sleep(WATCH)
-    for key in ("IEB_FestScene", "IEB_FestivalPartnerDay", "IEB_IsScenePartner"):
+    for key in ("IEB_FestScene", "IEB_FestivalPartnerDay", "IEB_IsScenePartner", "IEB_FestCtx"):
         v = su_get(r, cu, key, -99, fid=CHILD)
         r.check(v == -99, "child: %s unset (%s)" % (key, v))
     rom = romance(r, cu)
@@ -444,7 +462,7 @@ def fest8(r):
     """Templates live (verify-templates-live rule): F1's character_bio render carries the 0340 custom heading on
     Heart's Day (20:00 and 12:00, the day rule) and the 0336 'Tonight' heading at 20:00 only; neither on an ordinary
     night, neither for the child, neither with the switch off. Headings of our own layer only; text never logged.
-    0336 rides on get_romance (cached decorator): a missing heading after 3 tries with festKey unread is INCONCLUSIVE."""
+    Both files are native-only (RV-127 (1): 0336 reads IEB_FestCtx through papyrus_util), so a miss is a FAIL."""
     s = setup(r)
     if not s:
         return
@@ -470,16 +488,12 @@ def fest8(r):
                                         (20, 20.0, False, False, "20 Sun's Dawn 20:00")):
         if not clock(r, pu, 1, d, h):
             return
+        time.sleep(WATCH)                   # IEB_FestCtx is published on the next watch tick
         hs = heads(f1)
         if hs is None:
             inc(r, "%s: character_bio render failed" % what)
             continue
         r.check(hs[0] == want_c, "%s: 0340 custom heading %s (want %s)" % (what, hs[0], want_c))
-        if hs[1] != want_n and want_n:
-            rom = romance(r, f1)
-            if rom is None or "festKey" not in rom:
-                inc(r, "%s: 0336 heading absent and get_romance unread (cache miss / old pex)" % what)
-                continue
         r.check(hs[1] == want_n, "%s: 0336 'Tonight' heading %s (want %s)" % (what, hs[1], want_n))
     if cu and child is True and clock(r, pu, 1, 16, 20.0):
         hs = heads(cu)

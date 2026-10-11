@@ -1613,12 +1613,31 @@ EndFunction
 ; switch is on and calls IEB_FestivalWatchTick, which JUDGES each partner the first time it sees them (scene start, or
 ; a join). The fast assessment tick runs the same tick as a backstop. Latency up to 5 real seconds.
 
+; PAUSED CHAT (REVIEW_LOG RV-127 (1)): SkyrimNet skips Papyrus decorators while the game is paused (DECISIONS.md:549),
+; so 0336 must not depend on get_romance / romance_physical_ok. The watch therefore PUBLISHES the answer as a StorageUtil
+; int the template reads through SkyrimNet's NATIVE papyrus_util decorator:
+;   IEB_FestCtx (NPC)  key*10 + phase (IEB_FestivalContext) while the festival rule covers the NPC AND PhysicalOk is
+;                      true AND the stance is not "acknowledged partner"; unset otherwise. Refreshed for one NPC on every
+;                      judge / scene end / noon lapse, for the roster on every hour-band change (00/06/12/18) and every
+;                      6th tick (~30 s) while a festival can apply; cleared with the switch off and re-derived on load.
+;                      0336 also re-checks the key against the native clock and scene keys, so a key left over from
+;                      an earlier band can never render.
+; Tracking lists (None): IEB_FestSceneList, IEB_FestPartnerList, IEB_FestCtxList (RV-127 (3): the load cleanup and the
+; switch-off cleanup find every actor that carries a key).
+
+Int _festTick
+
 Function IEB_FestivalWatchTick()
     { Judge new scene partners; clear the scene flag once its scene ended or the partner left; let morning-after marks
-      lapse at noon. Switch off: one StorageUtil read and nothing written. }
+      lapse at noon; publish IEB_FestCtx. Switch off: the switch read, plus a one-time cleanup if any key is left. }
     If !SNRom_Decorators.IEB_FestivalOn()
+        If StorageUtil.FormListCount(None, "IEB_FestCtxList") > 0 || StorageUtil.FormListCount(None, "IEB_FestSceneList") > 0 || \\
+           StorageUtil.FormListCount(None, "IEB_FestPartnerList") > 0
+            IEB_FestivalClearAll()
+        EndIf
         Return
     EndIf
+    _festTick += 1
     Actor pl = Game.GetPlayer()
     Bool sceneOn = StorageUtil.GetIntValue(pl, "IEB_SceneMode", 0) == 1
     If sceneOn
@@ -1640,10 +1659,118 @@ Function IEB_FestivalWatchTick()
         ElseIf !sceneOn || StorageUtil.GetIntValue(a, "IEB_IsScenePartner", 0) != 1
             StorageUtil.UnsetIntValue(a, "IEB_FestScene")
             StorageUtil.FormListRemoveAt(None, "IEB_FestSceneList", j)
+            IEB_FestivalRefreshCtx(a)
         EndIf
         j -= 1
     EndWhile
     IEB_FestivalLapse()
+    ; the roster: at once on an hour-band change, else every 6th tick while a festival can apply
+    Float h = SNRom_Decorators.IEB_FestivalHour()
+    Int hb = 0
+    If h >= 18.0
+        hb = 3
+    ElseIf h >= 12.0
+        hb = 2
+    ElseIf h >= 6.0
+        hb = 1
+    EndIf
+    Int band = SNRom_Decorators.IEB_FestivalStamp(0) * 10 + hb
+    If band != StorageUtil.GetIntValue(pl, "IEB_FestBand", 0)
+        StorageUtil.SetIntValue(pl, "IEB_FestBand", band)
+        IEB_FestivalRefreshAll()
+    ElseIf _festTick % 6 == 0
+        If SNRom_Decorators.IEB_FestivalKey() > 0 || StorageUtil.FormListCount(None, "IEB_FestCtxList") > 0 || \\
+           (hb == 1 && StorageUtil.FormListCount(None, "IEB_FestPartnerList") > 0)
+            IEB_FestivalRefreshAll()
+        EndIf
+    EndIf
+EndFunction
+
+Function IEB_FestivalRefreshCtx(Actor akActor)
+    { Publish or clear IEB_FestCtx for one NPC (see the header). A child returns before any write. }
+    If akActor == None || akActor.IsChild()
+        Return
+    EndIf
+    Int v = 0
+    If SNRom_Decorators.IEB_FestivalOn() && IsEnrolled(akActor) && StorageUtil.GetIntValue(akActor, "SNRom_PlayerStance", 0) != 1
+        Int ctx = SNRom_Decorators.IEB_FestivalContext(akActor)
+        If ctx > 0
+            Int minT = StorageUtil.GetIntValue(akActor, "SNRom_PhysMinTier", 4)
+            If SNRom_Decorators.IEB_FestivalMinTierAt(akActor, SNRom_Decorators.IntimacyRank(minT), ctx / 10) >= 0 && \\
+               SNRom_Decorators.PhysicalOk(akActor) == "true"
+                v = ctx
+            EndIf
+        EndIf
+    EndIf
+    If v > 0
+        If StorageUtil.GetIntValue(akActor, "IEB_FestCtx", 0) != v
+            StorageUtil.SetIntValue(akActor, "IEB_FestCtx", v)
+        EndIf
+        StorageUtil.FormListAdd(None, "IEB_FestCtxList", akActor, False)
+    ElseIf StorageUtil.HasIntValue(akActor, "IEB_FestCtx")
+        StorageUtil.UnsetIntValue(akActor, "IEB_FestCtx")
+        StorageUtil.FormListRemove(None, "IEB_FestCtxList", akActor, True)
+    EndIf
+EndFunction
+
+Function IEB_FestivalRefreshAll()
+    { Every roster member (enrolled = the only NPCs 0336 serves), then any leftover on IEB_FestCtxList. }
+    Int n = StorageUtil.FormListCount(None, "SNRom_Roster")
+    Int i = 0
+    While i < n
+        IEB_FestivalRefreshCtx(StorageUtil.FormListGet(None, "SNRom_Roster", i) as Actor)
+        i += 1
+    EndWhile
+    Int j = StorageUtil.FormListCount(None, "IEB_FestCtxList") - 1
+    While j >= 0
+        Actor a = StorageUtil.FormListGet(None, "IEB_FestCtxList", j) as Actor
+        If a == None
+            StorageUtil.FormListRemoveAt(None, "IEB_FestCtxList", j)
+        Else
+            IEB_FestivalRefreshCtx(a)
+        EndIf
+        j -= 1
+    EndWhile
+EndFunction
+
+Function IEB_FestivalClearAll()
+    { The switch went off: every festival key on every tracked actor is removed (scene flags, published contexts,
+      morning-after marks), and the band latch. }
+    IEB_FestivalClearList("IEB_FestCtxList", "IEB_FestCtx")
+    IEB_FestivalClearList("IEB_FestSceneList", "IEB_FestScene")
+    IEB_FestivalClearList("IEB_FestPartnerList", "IEB_FestivalPartnerDay")
+    StorageUtil.UnsetIntValue(Game.GetPlayer(), "IEB_FestBand")
+    Diag(LOG_INFO(), "Festival switch off: festival keys cleared.")
+EndFunction
+
+Function IEB_FestivalClearList(String asList, String asKey)
+    Int j = StorageUtil.FormListCount(None, asList) - 1
+    While j >= 0
+        Form f = StorageUtil.FormListGet(None, asList, j)
+        If f != None
+            StorageUtil.UnsetIntValue(f, asKey)
+        EndIf
+        j -= 1
+    EndWhile
+    StorageUtil.FormListClear(None, asList)
+EndFunction
+
+Function IEB_FestivalOnLoad()
+    { REVIEW_LOG RV-127 (3), called by SNRom_PlayerAlias on every load. With no scene running (SceneControls ends a
+      scene on load), every IEB_FestScene (-1 or a key) is a leftover: cleared. Published contexts are cleared and
+      re-derived (switch on) or everything is cleared (switch off). Morning-after marks stay (a save/load inside the
+      morning keeps it); IEB_FestivalLapse clears them at noon. If SceneControls has not yet ended a saved scene, the
+      next tick clears the flags once IEB_SceneMode is off. }
+    If StorageUtil.GetIntValue(Game.GetPlayer(), "IEB_SceneMode", 0) != 1
+        IEB_FestivalClearList("IEB_FestSceneList", "IEB_FestScene")
+    EndIf
+    IEB_FestivalClearList("IEB_FestCtxList", "IEB_FestCtx")
+    StorageUtil.UnsetIntValue(Game.GetPlayer(), "IEB_FestBand")
+    If !SNRom_Decorators.IEB_FestivalOn()
+        If StorageUtil.FormListCount(None, "IEB_FestSceneList") > 0 || StorageUtil.FormListCount(None, "IEB_FestPartnerList") > 0
+            IEB_FestivalClearAll()
+        EndIf
+    EndIf
 EndFunction
 
 Function IEB_FestivalJudge(Actor akActor)
@@ -1674,6 +1801,7 @@ Function IEB_FestivalJudge(Actor akActor)
         StorageUtil.SetIntValue(akActor, "IEB_FestScene", -1)
     EndIf
     StorageUtil.FormListAdd(None, "IEB_FestSceneList", akActor, False)
+    IEB_FestivalRefreshCtx(akActor)
 EndFunction
 
 Function IEB_FestivalLapse()
@@ -1696,6 +1824,7 @@ Function IEB_FestivalLapse()
                 StorageUtil.UnsetIntValue(a, "IEB_FestivalPartnerDay")
                 StorageUtil.FormListRemoveAt(None, "IEB_FestPartnerList", j)
                 Diag(LOG_INFO(), "Festival morning-after mark cleared for " + a.GetDisplayName() + ".")
+                IEB_FestivalRefreshCtx(a)
             EndIf
         EndIf
         j -= 1
@@ -1728,7 +1857,7 @@ EndFunction
 
 String Function IEB_FestivalProbe(Actor akActor)
     { Read-only test probe (tests_fest.py): the date as Papyrus reads it, the switch, the context, the festival minimum,
-      PhysicalOk and the two keys. Writes nothing; one "[IEB-FEST] PROBE" line in the Papyrus log, also returned. }
+      PhysicalOk, the two keys and the published IEB_FestCtx (pub). Writes nothing; one "[IEB-FEST] PROBE" line in the Papyrus log, also returned. }
     GlobalVariable gm = Game.GetFormFromFile(0x00000036, "Skyrim.esm") as GlobalVariable
     GlobalVariable gd = Game.GetFormFromFile(0x00000037, "Skyrim.esm") as GlobalVariable
     String s = "PROBE"
@@ -1763,7 +1892,8 @@ String Function IEB_FestivalProbe(Actor akActor)
             " ctx=" + ctx + " festMin=" + fMin + " phys=" + SNRom_Decorators.PhysicalOk(akActor) + " scene=" + sc + \\
             " pday=" + pd + " inScene=" + (SNRom_Decorators.IEB_FestInScene(akActor) as Int) + " child=" + (akActor.IsChild() as Int) + \\
             " orc=" + orc + " luc=" + StorageUtil.GetIntValue(Game.GetPlayer(), "LUC_Active", 0) + " tier=" + tier + \\
-            " minT=" + minT + " excl=" + StorageUtil.GetIntValue(akActor, "SNRom_Exclusivity", 50)
+            " minT=" + minT + " excl=" + StorageUtil.GetIntValue(akActor, "SNRom_Exclusivity", 50) + \\
+            " pub=" + StorageUtil.GetIntValue(akActor, "IEB_FestCtx", -99)
     EndIf
     Debug.Trace("[IEB-FEST] " + s)
     Return s
@@ -1780,6 +1910,10 @@ EndEvent"""),
 ("""    Rebind(True)
     IEB_AmuletWatch()                          ; Patch rv117: re-arm the amulet watch (or restore if it is off)""",
 """    Rebind(True)
+    SNRom_Bridge fb = GetOwningQuest() as SNRom_Bridge
+    If fb != None
+        fb.IEB_FestivalOnLoad()                ; Patch festival (RV-127 (3)): leftover festival keys cleared on load
+    EndIf
     IEB_FestivalWatch()                        ; Patch festival: the scene watch (BEFORE the amulet watch: its 5 s wins)
     IEB_AmuletWatch()                          ; Patch rv117: re-arm the amulet watch (or restore if it is off)"""),
 ("""        UnregisterForUpdate()

@@ -5,17 +5,24 @@ five nights; design investigation/round10/festival_nights.md 3.1-3.3, 4.3 files 
       prompts/submodules/character_bio/0336_ieb_festival_night.prompt   (the inclination: enrolled NPC, gate open)
       prompts/submodules/character_bio/0340_ieb_festival_custom.prompt  (the custom: every adult, festival DAY)
   build/layers/festival/SKSE/Plugins/ErrandBridge/festival_nights.json   (keys, orcMinTier, abstain; JsonUtil schema)
-0340 reads the date natively (get_global_value) so it does not depend on a Papyrus decorator. 0336 reads the festival
-context from get_romance (festKey/festPhase/festival, written by the patched SNRom_Decorators.GetRomance with the SAME
-rule PhysicalOk uses), so the line and the gate cannot disagree about the date, a scene judged at its start (RV-121-dec
-rule 1) or the morning after (rule 2). Both carry the native adult tests (decnpc isChild + "child" race, a missing race
+0340 reads the date natively (get_global_value) so it does not depend on a Papyrus decorator. 0336 [CHANGED REVIEW_LOG
+RV-127 (1)] reads NO Papyrus decorator either: the patched SNRom_Bridge watch publishes IEB_FestCtx (key*10 + phase) on
+the NPC, computed by the same Papyrus rule as PhysicalOk (IEB_FestivalContext + the festival minimum + PhysicalOk + stance),
+and 0336 reads it through SkyrimNet's NATIVE papyrus_util decorator (devkit test prompt
+repos/SkyrimNet-GamePlugin/plugins/skyrimnet/base/prompts/submodules/test_decorators/0800_omnisight_state_decorators.prompt:231
+'papyrus_util("GetIntValue", actorUUID, "test_int", 0)'; native C++ in PapyrusUtilDecorators.cpp, DLL strings
+tools/skyrimnet_b25_1_dll_strings.txt:44004-44010, bridge :33236-33240). The template accepts the key only if it agrees
+with the native clock (night window / 06:00-12:00 with yesterday's date) or the native SceneControls keys (phase 1), so a
+key left from an earlier band never renders. get_romance's festKey/festPhase/festival stay as a test-side cross-check
+only: a stale cached "false" would otherwise silence the native signal. Both carry the native adult tests (decnpc isChild + "child" race, a missing race
 reads as a child). Wording: the approved placeholders (D11); the two RV-121-dec texts (carried-over scene, morning
 after) are NEW placeholders for Shae.
 
   python gen_layer_festival.py                 write the layer
   python gen_layer_festival.py --check DIR     static checks against a patched scripts dir (apply_patch_f festival):
       key sets equal (JSON keys = 0340 = 0336 = SNRom_Decorators.IEB_FestivalName), names equal, the PhysicalOk hunk
-      sits after the Applicability and NEVER returns, both prompts carry the adult tests and the switch."""
+      sits after the Applicability and NEVER returns, both prompts carry the adult tests and the switch, 0336 reads
+      IEB_FestCtx natively and calls no Papyrus decorator, and the Bridge publishes/clears IEB_FestCtx (child first)."""
 import json, os, re, sys
 
 ROOT = "C:/nolvus-research/build/layers/festival/"
@@ -70,29 +77,38 @@ Today is {{ _f_name }}. On a festival night it is an old, accepted custom that p
 """
 
 P0336 = """{% if render_mode == "full" %}
-{# shae.festival 0336 (festival_nights.md 3.2; REVIEW_LOG RV-121-dec). The inclination, for an ENROLLED adult whose
-   physical gate the festival rule covers right now. The festival context comes from get_romance (patched
-   SNRom_Decorators.GetRomance: festKey, festPhase, festival = the festival minimum tier or -1), computed by the same
-   Papyrus rule as romance_physical_ok, so a scene judged at its start does not flip mid-scene (rule 1) and the morning
-   after covers only the NPC marked that night (rule 2). Phases: 0 the night, 1 a festival scene still running after
-   its night or morning ended, 2 the morning after (06:00-12:00, same NPC). A decorator miss renders nothing: festKey
-   and festival default to "none", romanceNA to foreclosed, stance to acknowledged (an acknowledged partner is not a
-   fling). Adults only: the native race test as 0330 plus decnpc isChild; not the player, not virtual. #}
+{# shae.festival 0336 (festival_nights.md 3.2; REVIEW_LOG RV-121-dec, RV-127). The inclination, for an ENROLLED adult
+   whose physical gate the festival rule opens right now. NATIVE reads only (papyrus_util, get_global_value,
+   get_faction_rank), so it renders while Papyrus decorators are skipped (paused game) or miss the cache.
+   IEB_FestCtx on the NPC = key*10 + phase, published by the patched SNRom_Bridge (the same rule as PhysicalOk, plus
+   stance != acknowledged partner). Phases: 0 the night (18:00-06:00, after midnight = previous day), 1 a scene judged
+   festival at its start still running (RV-121-dec rule 1; native check: still a SceneControls partner of a running
+   scene and IEB_FestScene = the key), 2 the morning after with the NPC marked that night (rule 2; 06:00-12:00, key =
+   yesterday). A key that does not match the native clock or scene renders nothing. Adults only: the native race test
+   as 0330 plus decnpc isChild; not the player, not virtual. #}
 {% if not is_player(actorUUID) and is_plugin_loaded("SNRom_Integration.esl") and %SWITCH% %}
 %ADULT%
-{% if get_faction_rank(actorUUID, "SNRom_Bond") >= 0 %}
-{% set _f_rom = get_romance(actorUUID) %}
-{% set _f_key = default(_f_rom.festKey, 0) %}
-{% if _f_key > 0 and default(_f_rom.festival, -1) >= 0 and default(_f_rom.romanceNA, 1) == 0 and default(_f_rom.stance, 1) != 1 %}
-{% if romance_physical_ok(actorUUID) == "true" %}
-{% set _f_phase = default(_f_rom.festPhase, -1) %}
+{% set _f_ctx = papyrus_util("GetIntValue", actorUUID, "IEB_FestCtx", 0) %}
+{% if _f_ctx > 0 and get_faction_rank(actorUUID, "SNRom_Bond") >= 0 and papyrus_util("GetIntValue", actorUUID, "SNRom_PlayerStance", 0) != 1 %}
+{% set _f_h = get_global_value("GameHour") %}{% set _f_m = get_global_value("GameMonth") %}{% set _f_d = get_global_value("GameDay") %}
+{% set _f_tk = _f_m * 100 + _f_d %}
+{% set _f_d = _f_d - 1 %}
+{% if _f_d < 1 %}{% if _f_m == 0 %}{% set _f_m = 11 %}{% else %}{% set _f_m = _f_m - 1 %}{% endif %}{% set _f_d = 31 %}{% if _f_m == 1 %}{% set _f_d = 28 %}{% elif _f_m == 3 or _f_m == 5 or _f_m == 8 or _f_m == 10 %}{% set _f_d = 30 %}{% endif %}{% endif %}
+{% set _f_yk = _f_m * 100 + _f_d %}
+{% set _f_nk = 0 %}{% if _f_h >= 18 %}{% set _f_nk = _f_tk %}{% elif _f_h < 6 %}{% set _f_nk = _f_yk %}{% endif %}
+{% set _f_sk = papyrus_util("GetIntValue", actorUUID, "IEB_FestScene", 0) %}
+{% set _f_key = 0 %}{% set _f_phase = -1 %}
+{% if _f_nk > 0 and _f_ctx == _f_nk * 10 %}{% set _f_key = _f_nk %}{% set _f_phase = 0 %}
+{% elif _f_h >= 6 and _f_h < 12 and _f_ctx == _f_yk * 10 + 2 %}{% set _f_key = _f_yk %}{% set _f_phase = 2 %}
+{% elif _f_sk > 0 and _f_ctx == _f_sk * 10 + 1 and papyrus_util("GetIntValue", actorUUID, "IEB_IsScenePartner", 0) == 1 and papyrus_util("GetIntValue", player.UUID, "IEB_SceneMode", 0) == 1 %}{% set _f_key = _f_sk %}{% set _f_phase = 1 %}
+{% endif %}
 %NAMES%
 {% if _f_name != "" %}
 {% if _f_phase == 0 %}
 
 ## Tonight
 
-{% if default(_f_rom.level, 0) >= 1 %}Tonight is {{ _f_name }}, and you know {{ player.name }}. If they want you tonight you are strongly inclined to say yes; the night and the custom are on their side. If you say no, it is for a reason of your own you could name: you do not want them that way, someone you will not hurt, what you believe, or how they treat you or your people. Say it in your own way. Nothing is decided for you.
+{% if get_faction_rank(actorUUID, "SNRom_Bond") >= 1 %}Tonight is {{ _f_name }}, and you know {{ player.name }}. If they want you tonight you are strongly inclined to say yes; the night and the custom are on their side. If you say no, it is for a reason of your own you could name: you do not want them that way, someone you will not hurt, what you believe, or how they treat you or your people. Say it in your own way. Nothing is decided for you.
 {% else %}Tonight is {{ _f_name }}, and you have only just met {{ player.name }}. Your nature allows a night like this with a stranger, if they please you and the moment is right. It is a real choice, not an expectation.
 {% endif %}
 {% elif _f_phase == 1 %}
@@ -111,8 +127,6 @@ Last night was {{ _f_name }}, and you spent part of it with {{ player.name }}. B
 {% endif %}
 {% endif %}
 {% endif %}
-{% endif %}
-{% endif %}
 """
 
 MANIFEST = """{
@@ -120,7 +134,7 @@ MANIFEST = """{
   "type": "bundle",
   "title": "Festival Nights (private)",
   "tagline": "Private: five lore festival nights; the custom for every adult and the inclination for an enrolled NPC whose gate is open.",
-  "description": "Festival nights (festival_nights.md, REVIEW_LOG RV-121-dec). Two additive character_bio files (0336, 0340). Needs SkyrimNet Relationships with the private patch group 'festival' (get_romance festKey/festPhase/festival) and the settings file SKSE/Plugins/ErrandBridge/festival_nights.json in this mod. Switch IEB_FestivalEnabled on the player, default OFF. Private; never published.",
+  "description": "Festival nights (festival_nights.md, REVIEW_LOG RV-121-dec). Two additive character_bio files (0336, 0340). Needs SkyrimNet Relationships with the private patch group 'festival' (IEB_FestCtx, published by the Bridge watch) and the settings file SKSE/Plugins/ErrandBridge/festival_nights.json in this mod. Switch IEB_FestivalEnabled on the player, default OFF. Private; never published.",
   "author": "shae",
   "version": "1.0.0",
   "min_skyrimnet_version": "0.25.0",
@@ -176,10 +190,15 @@ def check(scripts):
         if not (0 <= a < h):
             errs.append(fn + ": a heading precedes the adult test")
     t36 = open(OUT + "prompts/submodules/character_bio/0336_ieb_festival_night.prompt", encoding="utf-8").read()
-    for need in ('default(_f_rom.romanceNA, 1) == 0', 'default(_f_rom.stance, 1) != 1', 'romance_physical_ok(actorUUID) == "true"',
-                 'get_faction_rank(actorUUID, "SNRom_Bond") >= 0', 'default(_f_rom.festival, -1) >= 0'):
+    for need in ('papyrus_util("GetIntValue", actorUUID, "IEB_FestCtx", 0)', 'get_faction_rank(actorUUID, "SNRom_Bond") >= 0',
+                 'papyrus_util("GetIntValue", actorUUID, "SNRom_PlayerStance", 0) != 1', '_f_ctx == _f_nk * 10',
+                 '_f_ctx == _f_yk * 10 + 2', '_f_ctx == _f_sk * 10 + 1'):
         if need not in t36:
             errs.append("0336: missing %r" % need)
+    # RV-127 (1): no Papyrus decorator in 0336 (skipped while paused); get_romance / romance_physical_ok only as a test cross-check
+    for bad in ("get_romance(", "romance_physical_ok("):
+        if bad in t36:
+            errs.append("0336 calls the Papyrus decorator %s" % bad)
     # 2. Papyrus side (patched scripts dir)
     dec = open(os.path.join(scripts, "SNRom_Decorators.psc"), encoding="utf-8").read().replace("\r\n", "\n")
     pap = {int(k): n for k, n in re.findall(r'aiKey == (\d+)\n\s+Return "([^"]+)"', dec)}
@@ -207,6 +226,25 @@ def check(scripts):
         first_write = min([x for x in (b.find("StorageUtil.Set"), b.find("StorageUtil.FormListAdd")) if x >= 0] or [-1])
         if not (0 <= b.find("akActor.IsChild()") < first_write):
             errs.append("IEB_FestivalJudge: the IsChild return is not before the first write")
+    mr = re.search(r'Function IEB_FestivalRefreshCtx\(Actor akActor\)(.*?)\nEndFunction', br, re.S)
+    if not mr:
+        errs.append("SNRom_Bridge: IEB_FestivalRefreshCtx missing")
+    else:
+        b = mr.group(1)
+        w_ = b.find('StorageUtil.SetIntValue(akActor, "IEB_FestCtx"')
+        if not (0 <= b.find("akActor.IsChild()") < w_):
+            errs.append("IEB_FestivalRefreshCtx: the IsChild return is not before the IEB_FestCtx write")
+        for need in ('SNRom_Decorators.PhysicalOk(akActor) == "true"', '"SNRom_PlayerStance", 0) != 1', "IEB_FestivalOn()",
+                     'StorageUtil.UnsetIntValue(akActor, "IEB_FestCtx")'):
+            if need not in b:
+                errs.append("IEB_FestivalRefreshCtx: missing %r" % need)
+    for need in ("Function IEB_FestivalOnLoad()", "Function IEB_FestivalClearAll()", '"IEB_FestCtxList"', '"IEB_FestSceneList"',
+                 '"IEB_FestPartnerList"'):
+        if need not in br:
+            errs.append("SNRom_Bridge: missing %r" % need)
+    al = open(os.path.join(scripts, "SNRom_PlayerAlias.psc"), encoding="utf-8").read()
+    if "IEB_FestivalOnLoad()" not in al:
+        errs.append("SNRom_PlayerAlias: no load cleanup call")
     for e in errs:
         print("FAIL", e)
     print("festival static check:", "PASS" if not errs else "FAIL (%d)" % len(errs))
