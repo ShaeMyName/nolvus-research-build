@@ -91,6 +91,8 @@ def main():
     extra = sys.argv[sys.argv.index("--extra-quest") + 1:] if "--extra-quest" in sys.argv else []
     probe = "--probe" in sys.argv
     test_q = "--test-story-quest" in sys.argv
+    if test_q and not probe:                     # REVIEW_LOG RV-86: the test quest can never reach a real-play build
+        sys.exit("REFUSED: --test-story-quest needs --probe (test builds only)")
     light = set()
     order = [l.strip() for l in open(ACTIVE + "_loadorder.txt", encoding="utf-8") if l.strip()]
     exempt_l = {e.lower() for e in EXEMPT}
@@ -184,6 +186,14 @@ def main():
     }
     if test_q:                                   # synthetic test quest (ESL-flagged test plugin or not: 0x820 fits 12 bits)
         out["formList"]["story_quests"] = sorted(out["formList"]["story_quests"] + [form_string("ErrandBridgeTest.esp", 0x820)])
+    # REVIEW_LOG RV-86 guard: a real-play (non --probe) build carries exactly the scanned story quests and no test plugin
+    sq = out["formList"]["story_quests"]
+    if not probe:
+        bad = [x for x in sq if "errandbridgetest" in x.lower()]
+        if bad or len(sq) != len(story) or out["int"]["write_probe"] != 0:
+            sys.exit("REFUSED: real-play quest_integrity has test entries (%d), %d entries vs %d scanned, write_probe %d"
+                     % (len(bad), len(sq), len(story), out["int"]["write_probe"]))
+    print("story_quests entries: %d (scanned %d%s)" % (len(sq), len(story), ", + test quest" if test_q else ""))
     # Q-9 probe forms: one per kind of origin, so every spelling case is covered
     picks = []
     for lst, keys in (("story_quests", story), ("reserved_npcs", reserved)):
