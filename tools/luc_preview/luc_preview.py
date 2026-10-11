@@ -436,10 +436,10 @@ WEATHER: Heavy rain
 NEARBY:
 SCENE:
 - Lucienne and Jenassa are alone in a rented upstairs room; the door is bolted
-- Jenassa is sitting on the edge of a Bed
+- Jenassa is sitting on a Chair
 ACTIONS:
-- **Lucienne** closed a Door (happened a few minutes ago)
-- **Jenassa** sat down on a Bed (happened a few minutes ago)
+- **Lucienne** opened Door (happened a while ago)
+- **Jenassa** sat down on Chair (happened moments ago)
 BOND_TIER: 4
 BOND_POINTS: 2150
 MEMORIES:
@@ -502,22 +502,83 @@ def parse_scenario(text):
             "memories": mem, "events": ev_}
 
 
+INDOOR_WORDS = ("room", "inn", "house", "tavern", "cellar", "cabin", "hall", "keep", "shrine hostel", "interior")
+
+
+def time_of_day_line(scn):
+    """The bullet under '## Current Time'. Thresholds and wording: scene_context.prompt:36-44 (SkyrimNet base),
+    keyed on gameTimeJson.hour, which here is read from the scenario TIME text (e.g. '11:48 PM'). When the hour
+    cannot be read, the DAYPART word picks the nearest bullet (own mapping, no source)."""
+    m = re.match(r"\s*(\d{1,2}):\d{2}\s*([AaPp][Mm])", scn["time"])
+    if m:
+        h = int(m.group(1)) % 12 + (12 if m.group(2).lower() == "pm" else 0)
+    else:       # own wording, no source: DAYPART word -> an hour
+        h = {"morning": 8, "afternoon": 14, "evening": 19}.get(scn["daypart"].lower(), 23)
+    if h >= 22 or h <= 5:
+        return "- It's currently late at night - most people would be sleeping"      # scene_context.prompt:37
+    if 6 <= h <= 11:
+        return "- It's currently morning time"                                       # :39
+    if 12 <= h <= 17:
+        return "- It's currently afternoon"                                          # :41
+    return "- It's currently evening."                                               # :43
+
+
+def weather_block(scn):
+    """'## Current Weather' per scene_context.prompt:47-59. The game reads isRaining/isSnowing/windSpeed from the
+    weather record; here they are read from the WEATHER words of the scenario. is_indoors is guessed from the
+    location name (INDOOR_WORDS: own guess, no source). Wording of both sentences and the italic lines is the template's."""
+    w, loc = scn["weather"], scn["location"].lower()
+    low = w.lower()
+    indoors = any(re.search(r"\b%s\b" % x, loc) for x in INDOOR_WORDS) and "camp" not in loc
+    rain, snow = "rain" in low or "storm" in low, "snow" in low or "blizzard" in low
+    out = "**Weather**: " + ("You are indoors and sheltered from the weather. Outside, it is " if indoors else "") + w
+    out += " (Raining)" if rain else (" (Snowing)" if snow else "")
+    pre = "Outside, " if indoors else ""
+    if rain and snow:
+        out += "\n*%sA harsh storm is raging with both rain and snow*" % pre
+    elif rain:
+        out += "\n*%sRain is falling, making outdoor activities unpleasant*" % pre
+    elif snow:
+        out += "\n*%sSnow is falling, creating a winter atmosphere*" % pre
+    elif "wind" in low:
+        out += "\n*%sStrong winds are blowing*" % pre
+    return "## Current Weather\n" + out
+
+
 def scene_context_block(scn):
-    """FAKED. get_scene_context is a native (C++) decorator; this reproduces the section order and wording seen in the
-    test install's openrouter_input.log (Current Location / Time / Weather / Nearby People / Recent Events / Scene
-    Summary / Traveling Party). The 'night time' phrasing is INFERRED from 'It's currently morning time'."""
-    out = ["## Current Location\nThe scene is taking place in **%s**" % scn["location"],
-           "## Current Time\n**Time**: %s\n- It's currently %s time" % (scn["time"], scn["daypart"]),
-           "## Current Weather\n**Weather**: %s" % scn["weather"]]
-    if scn["nearby"] and scn["nearby"][0].lower() not in ("none", "no one", "nobody"):
-        out.append("## Nearby People\n" + "\n".join("%d. %s" % (i + 1, x) for i, x in enumerate(scn["nearby"])))
-    if scn["actions"]:
+    """get_scene_context(npc, target, "full") is a native (C++) decorator (DLL strings: 'get_scene_context',
+    'components\\context\\scene_context_'). It renders the layout components/context/scene_context_full.prompt with the
+    block bodies of components/context/scene_context.prompt, so the section order is that of scene_context_full.prompt
+    (:3-22): Scene Information (location, time), weather, Nearby People, Recent Events (only when there are short-lived
+    events), Scene Summary. The scenario text is the game state the blocks would read; headings and sentences are the
+    templates'. Built here, not rendered."""
+    out = ["## Scene Information\n"                                                       # scene_context_full.prompt:3-4
+           "## Current Location\nThe scene is taking place in **%s**" % scn["location"],  # scene_context.prompt:30-31
+           "## Current Time\n**Time**: %s\n\n%s" % (scn["time"], time_of_day_line(scn)),   # :33-44
+           weather_block(scn)]
+    near = [x for x in scn["nearby"] if x.lower() not in ("none", "no one", "nobody")]
+    out.append("## Nearby People\n" + ("\n".join("%d. %s" % (i + 1, x) for i, x in enumerate(near))   # :15-23
+                                       if near else "No one else is nearby."))                      # :25
+    if scn["actions"]:                                                                    # scene_context_full.prompt:14-18
+        # component_recent_events.prompt:12 prefixes "- "; the event text is the DLL's recent_events format
+        # '**{{ actor }}** ... ({{ time_desc }})'; time_desc words ('happened moments ago') are the DLL's.
         out.append("## Recent Events\n" + "\n".join(
-            "- " + a.lstrip("- ") + ("" if "(happened" in a else " (happened moments ago)") for a in scn["actions"]))
-    if scn["scene"]:
+            "- " + a.lstrip("- ") + ("" if "(" in a else " (happened moments ago)") for a in scn["actions"]))
+    if scn["scene"]:       # npcStateSummary block, component_npc_state_summary.prompt: "- {{ npc.name }} is ..." lines
         out.append("## Scene Summary\n" + "\n".join("- " + x.lstrip("- ") for x in scn["scene"]))
-    out.append("## Traveling Party\nYou are traveling with Lucienne.")
-    return "\n".join(out)
+    return "\n\n".join(out)
+
+
+def physical_activity(name, scn):
+    """'## Physical Activity' (character_bio/0050_physical_activity.prompt:12-33). The furniture case (:23-24) is read
+    from a scenario SCENE line of the form '<name> is sitting on a Chair' / 'lying down in a Bed'; otherwise the
+    template's default standing line (:32)."""
+    for x in scn["scene"]:
+        m = re.match(r"^%s is (?:sitting (?:on|at|upon)|lying down in) (?:an? |the )?(?:edge of (?:an? |the )?)?(.+?)\s*$"
+                     % re.escape(name), x.lstrip("- "))
+        if m:
+            return "## Physical Activity\n- %s is currently using a %s." % (name, m.group(1))
+    return "## Physical Activity\n- %s is currently standing, able to move normally." % name
 
 
 def history_prefix(scope):
@@ -546,16 +607,26 @@ def build_system(profile, scn, d, luc_full=False):
     """Returns (system, prefix_messages, final_instructions)."""
     scope, blocks = make_world(profile, scn, d)
     j = blocks["jenassa"]
+    # Section order = the numbered files of submodules/system_head (rendered by render_subcomponent("system_head", "full")
+    # in dialogue_response.prompt:3), after the opening line of dialogue_response.prompt:2:
+    #   0010_instructions, 0010_setting, 0020_format_rules, 0100_actor_bios (speaker profile, then the addressed person's),
+    #   0200_scene_context (native get_scene_context), [0150 telepathy, 0210 visible attire, 0250 omnisight, 0260 traveling
+    #   party: all print nothing in this scenario, see their conditions], 0400_speech_style_bio.
     sections = []
-    sections.append("You are Jenassa, a female Dunmer in Skyrim. You are speaking to Lucienne, a female Dunmer.")
+    sections.append("You are Jenassa, a female Dunmer in Skyrim. You are speaking to Lucienne, a female Dunmer.")  # dialogue_response.prompt:2
     sections.append(render_file(f"{BASE_PROMPTS}/submodules/system_head/0010_instructions.prompt", scope))
     sections.append(render_file(f"{BASE_PROMPTS}/submodules/system_head/0010_setting.prompt", scope))
     sections.append(render_file(f"{SCENE_TEXT}/submodules/system_head/0020_format_rules.prompt", scope))
-    # character bio, in the numbered order of submodules/character_bio
-    bio = ["## Jenassa's Character Profile (THIS IS WHO YOU ARE ROLEPLAYING AS)",
+    # character bio, in the numbered order of submodules/character_bio (0010 header .. 7100 memories)
+    bio = ["## Jenassa's Character Profile (THIS IS WHO YOU ARE ROLEPLAYING AS)",             # 0010_header.prompt:3
+           # 0010_header.prompt:18-19 (gender, race), :44 health, :79 energy (the healthy / rested cases). The Magic
+           # line (:47-66) is not printed for her: her magicka is not known to this app.
            "- Gender: female\n- Race: Dunmer\n- Health: Healthy and uninjured\n- Energy: Energetic and ready for action",
-           "## Jenassa - Character Summary\n" + j.get("summary", ""),
-           "## Your Role as Companion\nYou are currently traveling with Lucienne as their companion.",
+           physical_activity("Jenassa", scn),                                                # 0050_physical_activity.prompt
+           "## Jenassa - Character Summary\n" + j.get("summary", ""),                        # 0100_summary.prompt:9
+           # 0175_severactions_follower.prompt:15-20 (SeverActions mod, character_bio). Its feelings / combat / behaviour
+           # sub-sections are not rendered (they read SeverActions state this app does not have).
+           "## Your Role as Companion\n\nYou are currently traveling with Lucienne as their companion.",
            "## Background\n" + j.get("background", ""),
            "## Personality & Psychology\n" + j.get("personality", ""),
            "### Interject Summary (Things that Jenassa thinks are interesting and will respond to).\n"
@@ -565,13 +636,20 @@ def build_system(profile, scn, d, luc_full=False):
            render_file(f"{SCENE_TEXT}/submodules/character_bio/0335_ieb_intimacy_profile.prompt", scope),
            "## Appearance & Physical State\n" + j.get("appearance", ""),
            "## Skills & Combat\n" + j.get("skills", ""),
+           # 0600_relationships.prompt:8, 15-17 (follower branch)
            "## Relationships\n" + j.get("relationships", "") + "\n### Travel History with Lucienne\n"
            "- Jenassa is a member of Lucienne's party, and is currently actively traveling in the group.",
            "## Occupation\n" + j.get("occupation", ""),
            "## Long Term Memories and Plot Progression\n" + render_file(MEMORY_PROMPT, scope)]
     sections.append("\n\n".join(b for b in bio if b.strip()))
     lb = blocks["player"]
-    luc = ["## Lucienne's Character Profile (THIS IS WHO YOU'RE TALKING TO)", "- Gender: female\n- Race: Dunmer",
+    # dialogue_target render mode (0010_header.prompt:4-15 heading, :16-19 gender/race, :44 health, :63 magic (player always
+    # gets the line), :79 energy; 0050 physical activity; 0100 summary; 0400 appearance). Worn equipment (0410) and the
+    # 0412 visible-attire fact are not printed: no equipment is modelled and the torso slot counts as covered.
+    luc = ["## Lucienne's Character Profile (THIS IS WHO YOU'RE TALKING TO)",
+           "- Gender: female\n- Race: Dunmer\n- Health: Healthy and uninjured\n- Magic: Full of magical energy\n"
+           "- Energy: Energetic and ready for action",
+           physical_activity("Lucienne", scn),
            "## Lucienne - Character Summary\n" + lb.get("summary", ""),
            "## Appearance & Physical State\n" + lb.get("appearance", "")]
     if luc_full:   # LUC_PREVIEW_LUC_FULL=1: also her private blocks (Jenassa would NOT see these in game)
@@ -581,7 +659,7 @@ def build_system(profile, scn, d, luc_full=False):
             if lb.get(k):
                 luc.append("## %s\n%s" % (h, lb[k]))
     sections.append("\n\n".join(luc))
-    sections.append(scene_context_block(scn))
+    sections.append(scene_context_block(scn))        # 0200_scene_context.prompt -> native get_scene_context(..., "full")
     sections.append(render_file(f"{BASE_PROMPTS}/submodules/system_head/0400_speech_style_bio.prompt", scope))
     system = "\n\n".join(x for x in sections if x.strip())
     finals = [render_file(f"{BASE_PROMPTS}/submodules/user_final_instructions/0500_response_format.prompt", scope),

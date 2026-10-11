@@ -75,10 +75,25 @@ check("unknown command handled", "Unknown command" in r.stdout)
 
 # 2b. disposition roll, scene context, /scene
 for label, needle in (("real bond section at Lover tier", "## Your Bond With Lucienne"), ("bond: her WHY from the rolled disposition", "tested in blood"),
-                      ("current location", "## Current Location"), ("weather", "**Weather**: Heavy rain"), ("time", "**Time**: 11:48 PM"),
                       ("memories via real 7100 template", "Potentially Relevant Memories"), ("memory: the hire", "hired me at the Drunken Huntsman"),
-                      ("scene summary", "## Scene Summary"), ("recent events bullets", "- **Jenassa** sat down on a Bed")):
+                      ("role as companion (SeverActions 0175)", "## Your Role as Companion\n\nYou are currently traveling with Lucienne as their companion."),
+                      ("physical activity from the 0050 template", "## Physical Activity\n- Jenassa is currently using a Chair."),
+                      ("target health/magic/energy (0010 template)", "- Health: Healthy and uninjured\n- Magic: Full of magical energy")):
     check("system prompt has " + label, needle in sysp)
+
+# 2b'. the scene-context block: section order and headings from components/context/scene_context_full.prompt, bodies
+# from scene_context.prompt. Checked structurally (order, template sentences), against the stub scenario.
+SCENE_ORDER = ["## Scene Information", "## Current Location\nThe scene is taking place in **The Bannered Mare",
+               "## Current Time\n**Time**: 11:48 PM", "- It's currently late at night - most people would be sleeping",
+               "## Current Weather\n**Weather**: You are indoors and sheltered from the weather. Outside, it is Heavy rain (Raining)",
+               "*Outside, Rain is falling, making outdoor activities unpleasant*", "## Nearby People\nNo one else is nearby.",
+               "## Recent Events\n- **Lucienne** opened Door (happened a while ago)", "- **Jenassa** sat down on Chair (happened moments ago)",
+               "## Scene Summary\n- Lucienne and Jenassa are alone", "- Jenassa is sitting on a Chair"]
+pos = [sysp.find(s) for s in SCENE_ORDER]
+check("scene context: all sections present, in template order", all(p >= 0 for p in pos) and pos == sorted(pos))
+check("scene context follows both bios and precedes the speech profile",
+      sysp.find("## Lucienne - Character Summary") < pos[0] < sysp.find("## Speech Profile of Jenassa"))
+check("no 'Traveling Party' block when no other follower is present (0260 condition)", "Traveling Party" not in sysp)
 check("earlier events rendered as chat messages", "[ earlier events, as chat messages ]\nuser: *Rain hammers" in sysp
       and "assistant: Dry at last." in sysp)
 dj = json.load(open(os.path.join(home, "disposition.json"), encoding="utf-8"))
