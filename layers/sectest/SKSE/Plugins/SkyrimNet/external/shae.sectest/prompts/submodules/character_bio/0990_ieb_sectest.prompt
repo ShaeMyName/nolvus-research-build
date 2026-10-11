@@ -1,0 +1,6 @@
+{% if render_mode == "full" or render_mode == "thoughts" %}
+{# TEST ONLY (SEC-1/2/4): an invented, harmless private matter. The nonsense tokens are what the tests count. #}
+{% if not decnpc(actorUUID).isVirtual and decnpc(actorUUID).name == "Fralia Gray-Mane" %}
+- Private, known to no one else: years ago she found an old zqmoonlamp in the ruins near the river and keeps it locked in a chest at home with a small zqbrasskey she wears on a cord. She has never told her family, because she fears they would think her foolish for treasuring it.
+{% endif %}
+{% endif %}

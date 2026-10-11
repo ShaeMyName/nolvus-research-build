@@ -1,0 +1,11 @@
+{
+  "id": "shae.sectest",
+  "type": "bundle",
+  "title": "SEC test bio (TEST ONLY)",
+  "tagline": "Test only: an invented private matter for one NPC, for the discretion tests SEC-1/2/4.",
+  "description": "Errand Bridge step 8 test layer. One character_bio submodule gated on one NPC's name. Never shipped; never in the real profile.",
+  "author": "shae",
+  "version": "1.0.0",
+  "min_skyrimnet_version": "0.25.0",
+  "nsfw": false
+}
