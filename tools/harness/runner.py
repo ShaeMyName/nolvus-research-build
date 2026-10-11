@@ -88,6 +88,8 @@ class Run:
         "SUStrLen": "SUSTRLEN ",
         "PkgWatch": "PKGWATCH ",
         "PkgUnwatch": "PKGWATCH off",
+        "ScheduleFetch": "ScheduleFetch",
+        "ScheduleDelivery": "ScheduleDelivery",
         "OwnNearestFurniture": "OWNFURN ",
         "CountNearNPCs": "NEARNPC ",
         "SetHour": "CRASHCTX ",

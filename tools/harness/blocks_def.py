@@ -46,7 +46,7 @@ block("U2", "T0", ["tests_u2", "tests_u2_e", "tests_u2_wh", "tests_u2_len", "tes
     # scene stack: joins/leaves first, the three 20-reply scenes last (60 LLM calls)
     "SC-7", "SC-8", "SC-9", "SC-11", "SC-12", "SC-13", "SC-10", "SC-1", "SC-3", "SC-4", "SC-2", "SC-5", "SC-6",
     # notices (the per-decision audit runs after every test anyway)
-    "NT-1", "NT-2",
+    "NT-1", "NT-2", "NT-4",
     # equip-event audience, child addressed, storage
     "X-6", "CS-2", "T10-1", "X-9", "X-10", "X-11", "MA-1", "AZ-11", "T10-3", "T10-7", "T10-8",
     # intimacy profiles (mechanics only; feature switched on per test, T0 reload after each)

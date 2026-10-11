@@ -102,3 +102,106 @@ def nt2(r):
         inc(r, "action-list render failed (template name INFERRED)")
     else:
         r.check("IEB_ReadyProbe" not in out, "the probe is in no rendered action list")
+
+
+@test("NT-4", "NT", reload=True)
+def nt4(r):
+    """A follower's scheduled fetch and scheduled delivery each show IntelEngine's confirmation box exactly once (IE patch
+    nt4): confirm modes set to 1 (followers) for the scheduling and the run-time actions; schedule 'in 1 hour' (time
+    condition format INFERRED); the scheduling box is answered with button 0 (INFERRED = Allow) through the harness;
+    then game time jumps 1.2 h (SetHour) and the task fires with NO second box (ui-state) and the IEB_SCHED_CONFIRMED log
+    line. Confirm modes back to 0 in finally (ie_test_settings' values)."""
+    import sn_harness as SH
+    from block import IE_ACTIONS
+
+    def setting(key, val):
+        r.tool("execute_quest_function", {"quest_editor_id": "IntelEngine", "script_name": "IntelEngine_Core",
+                                          "function_name": "OnDashboardSetting",
+                                          "arguments": ["IntelEngine_DashboardSetting", key, float(val), None]})
+
+    def box_open():
+        try:
+            st = SH.ui_state()
+        except SH.HarnessError:
+            return None
+        return "MessageBoxMenu" in str(st)
+
+    checkpoint(r, "game time +2.4 h")
+    try:
+        for kind, sched_key, run_key, call in (
+                ("fetch", "confirmScheduleFetch", "confirmFetchPerson", ["ScheduleFetch", [F1, "Carlotta Valentia", "in 1 hour"]]),
+                ("deliver", "confirmScheduleDelivery", "confirmDeliverMessage",
+                 ["ScheduleDelivery", [F1, "Carlotta Valentia", "The road is clear.", "in 1 hour"]])):
+            setting(sched_key, 1)
+            setting(run_key, 1)
+            time.sleep(5)
+            t = pap()
+            r.ctl(call[0], call[1], sync=False)
+            first = None
+            for _ in range(20):
+                time.sleep(1)
+                if box_open():
+                    first = True
+                    break
+            if not first:
+                inc(r, "%s: no scheduling box appeared (confirm mode or route INFERRED)" % kind)
+                continue
+            SH.dismiss_ui(button=0)
+            time.sleep(3)
+            m = t.wait(r"\[IEB-TEST\] %s [^\n]*ok=(\w+)" % call[0], 15)
+            if not m or m.group(1).upper() != "TRUE":
+                inc(r, "%s: scheduling not accepted (%s)" % (kind, m.group(0) if m else "no line"))
+                continue
+            h = re.search(r"hour=(-?[\d.]+)", (ctl_hour(r) or ""))
+            hour = float(h.group(1)) if h else 12.0
+            t2 = pap()
+            r.ctl("SetHour", [min(hour + 1.2, 23.5), 0x0001A66C], sync=False)
+            fired = t2.wait(r"IEB_SCHED_CONFIRMED skip second box: %s" % kind, 120)
+            second = any(box_open() for _ in range(10) if not time.sleep(1))
+            r.check(bool(fired), "%s: the scheduled task fired without a second box (IEB_SCHED_CONFIRMED)" % kind)
+            r.check(not second, "%s: no second confirmation box at run time" % kind)
+            if kind != "fetch" or not fired:
+                continue
+            # RV-93-close (b): the mark is not saved into a mid-task save (read after save + load)
+            if game.save(r, "IEB_NT4"):
+                if game.load(r, "IEB_NT4", None):
+                    m2 = ctl_line_su(r, F1, "IEB_SchedConfirmed")
+                    r.check(m2 in (None, 0, -99), "IEB_SchedConfirmed unset after a mid-task save/load (%s)" % m2)
+                else:
+                    inc(r, "load of IEB_NT4 failed")
+            else:
+                inc(r, "save IEB_NT4 failed")
+            r.ctl("Cancel", [F1])
+            time.sleep(5)
+            # RV-93-close (a): a NON-scheduled fetch for the same actor right after still shows its box (no leaked mark)
+            r.ctl("StartTask", [F1, "FetchPerson", "Carlotta Valentia", "1", ""], sync=False)
+            leak_box = False
+            for _ in range(20):
+                time.sleep(1)
+                if box_open():
+                    leak_box = True
+                    break
+            r.check(leak_box, "a non-scheduled fetch right after still shows its confirmation box")
+            if leak_box:
+                SH.dismiss_ui(button=1)          # INFERRED = Deny: the test fetch is not wanted
+                time.sleep(2)
+    finally:
+        for a in IE_ACTIONS:
+            setting("confirm" + a, 0)
+
+
+def ctl_hour(r):
+    t = pap()
+    r.ctl("CrashCtx", [0x0001A66C], sync=False)
+    m = t.wait(r"CRASHCTX [^\n]*", 20)
+    return m.group(0) if m else None
+
+
+def ctl_line_su(r, fid, key):
+    from tests_misc import ctl_line, s32
+    from fidnorm import fid_any_rx
+    m = ctl_line(r, "SUGetInt", [s32(fid), key, -99], r"\[IEB-TEST\] SU (?:%s|none) %s get=(\S+)" % (fid_any_rx(fid), re.escape(key)), 10)
+    try:
+        return int(m.group(1)) if m else None
+    except ValueError:
+        return None

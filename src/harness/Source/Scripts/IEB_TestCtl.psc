@@ -835,6 +835,30 @@ Function ScheduleMeeting(Int aiFormId, String asDest, String asWhen)
     Log("ScheduleMeeting " + a.GetDisplayName() + " dest=" + asDest + " when=" + asWhen + " ok=" + ok)
 EndFunction
 
+Function ScheduleFetch(Int aiFormId, String asTarget, String asWhen)
+    {NT-4: IntelEngine_Schedule.ScheduleFetch(npc, targetName, timeCondition) (Schedule.psc:194).}
+    Actor a = A(aiFormId)
+    IntelEngine_Core core = IEB_IELib.IEQuest() as IntelEngine_Core
+    If a == None || core == None || core.Schedule == None
+        Log("ScheduleFetch: no actor or no IE Schedule")
+        Return
+    EndIf
+    Bool ok = core.Schedule.ScheduleFetch(a, asTarget, asWhen)
+    Log("ScheduleFetch " + a.GetDisplayName() + " when=" + asWhen + " ok=" + ok)
+EndFunction
+
+Function ScheduleDelivery(Int aiFormId, String asTarget, String asMsg, String asWhen)
+    {NT-4: IntelEngine_Schedule.ScheduleDelivery(npc, targetName, msgContent, timeCondition) (Schedule.psc:224).}
+    Actor a = A(aiFormId)
+    IntelEngine_Core core = IEB_IELib.IEQuest() as IntelEngine_Core
+    If a == None || core == None || core.Schedule == None
+        Log("ScheduleDelivery: no actor or no IE Schedule")
+        Return
+    EndIf
+    Bool ok = core.Schedule.ScheduleDelivery(a, asTarget, asMsg, asWhen)
+    Log("ScheduleDelivery " + a.GetDisplayName() + " when=" + asWhen + " ok=" + ok)
+EndFunction
+
 Function SetIEWaitHours(Float afHours)
     {B-13: IntelEngine's default wait hours = its MCM value, a StorageUtil float on the player
      (Gerk Core.psc:1667-1689). afHours < 0 unsets it (IE default 48). Logs the previous value for the restore.}
