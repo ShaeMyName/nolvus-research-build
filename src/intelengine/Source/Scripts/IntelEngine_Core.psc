@@ -532,7 +532,11 @@ Int Function IEB_TaskTypeScan(Bool restore)
                 fac = a.IsInFaction(IntelEngine_TaskFaction)
             EndIf
             If !restore
-                DebugMsg("IEB_LOADKEYS slot=" + i + " state=" + st[i] + " slotType=" + ty[i] + " actor=" + a + " key=" + key + " fac=" + fac)
+                String sib = ""
+                If a
+                    sib = " tgt=" + StorageUtil.GetStringValue(a, "Intel_Target", "") + " islot=" + StorageUtil.GetIntValue(a, "Intel_Slot", -9) + " istate=" + StorageUtil.GetIntValue(a, "Intel_State", -9) + " copy=" + StorageUtil.GetStringValue(a, "IEB_TaskType", "")
+                EndIf
+                DebugMsg("IEB_LOADKEYS slot=" + i + " state=" + st[i] + " slotType=" + ty[i] + " actor=" + a + " key=" + key + " fac=" + fac + sib)
             EndIf
             ; REVIEW_LOG RV-74 (1): AllocateSlot adds the task faction (:753); both teardown paths remove it BEFORE the key
             ; unset (ClearSlot :814 -> :817, Travel :578 -> ClearSlot), so no faction = teardown, never restored

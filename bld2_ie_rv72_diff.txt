@@ -76,3 +76,8 @@ call sites: A 875, B 889
 DIFFERENT
 ## array_none_gate after RV-74
 ARRAY_NONE_GATE PASS: 23 pex, 0 ours, 0 stock upstream
+
+## rv72keys (2026-10-11): IEB_LOADKEYS also logs tgt=Intel_Target islot=Intel_Slot istate=Intel_State copy=IEB_TaskType (log only; no behaviour change). Core vs pre-RV-72 HEAD:
+  ieb_tasktypescan                   storageutil.getintvalue                        0 -> 2
+  ieb_tasktypescan                   storageutil.getstringvalue                     0 -> 3
+ARRAY_NONE_GATE PASS: 6 pex, 0 ours, 0 stock upstream

@@ -1,6 +1,6 @@
 """Post-U1 IntelEngine hunks (post_u1_build_plan §1 timer fix F1/F2, §2 slot race) on build/src/intelengine.
 Usage: apply_patch_ie_s1s2.py <group>. Every anchor must match exactly once (CRLF kept). Same edit() as apply_patch_b.py.
-Groups: f1 | f2 | core-slot | callers | core-expiry | rv68 | rv68b | rv70 | rv72 | rv72sched"""
+Groups: f1 | f2 | core-slot | callers | core-expiry | rv68 | rv68b | rv70 | rv72 | rv72sched | rv72keys"""
 import sys
 
 D = "C:/nolvus-research/build/src/intelengine/Source/Scripts/"
@@ -829,6 +829,19 @@ elif G == "rv72sched":   # REVIEW_LOG RV-72 live proof 2026-10-11: the only arra
         Core.DebugMsg(""",
 """    If !ScheduledAgents
         Core.DebugMsg("""),
+])
+elif G == "rv72keys":   # RV-72 (c) follow-up, 2026-10-11 run 3: key blank at load with the slot active, fac=TRUE, and
+    # HELDPROBE ieType=Travel 3 s before the save. Log her sibling keys too: all blank = her StorageUtil data not loaded
+    # yet at Maintenance; only Intel_TaskType blank = that one string lost; strings blank but ints present = strings.
+    edit("IntelEngine_Core.psc", [
+("""                DebugMsg("IEB_LOADKEYS slot=" + i + " state=" + st[i] + " slotType=" + ty[i] + " actor=" + a + " key=" + key + " fac=" + fac)
+""",
+"""                String sib = ""
+                If a
+                    sib = " tgt=" + StorageUtil.GetStringValue(a, "Intel_Target", "") + " islot=" + StorageUtil.GetIntValue(a, "Intel_Slot", -9) + " istate=" + StorageUtil.GetIntValue(a, "Intel_State", -9) + " copy=" + StorageUtil.GetStringValue(a, "IEB_TaskType", "")
+                EndIf
+                DebugMsg("IEB_LOADKEYS slot=" + i + " state=" + st[i] + " slotType=" + ty[i] + " actor=" + a + " key=" + key + " fac=" + fac + sib)
+"""),
 ])
 else:
     sys.exit("unknown group " + G)
