@@ -35,9 +35,17 @@ def clone_text():
                                                                               "TKN_CLONE_UTHGERD"))
 
 
+PUUID = [None]
+
+
 def render(ctl, content):
-    res = ctl.tool("render_template", {"actor_uuid": ctl.uuid(PLAYER), "content": content + "{# %d #}" % time.time_ns()})
-    return res.get("renderedContent", "") if isinstance(res, dict) else ""
+    if not PUUID[0]:
+        PUUID[0] = ctl.uuid(PLAYER)[0]          # Run.uuid returns (uuid, info)
+    res = ctl.tool("render_template", {"actor_uuid": PUUID[0], "content": content + "{# %d #}" % time.time_ns()})
+    if isinstance(res, dict) and "renderedContent" in res:
+        return res["renderedContent"] or ""
+    say("RENDER ERROR %s" % str(res.get("error") if isinstance(res, dict) else res)[:160])
+    return ""
 
 
 def check(ctl, fid, token, label, expect_full):
