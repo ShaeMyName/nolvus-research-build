@@ -160,7 +160,9 @@ def check_world(base):
     need(iv(w, "poly") == 1, "polygamy global %s, want 1" % w.get("poly"))
     need(iv(w, "nMar") == base["nMar"] + 2, "MARAS married count %s, want %d" % (w.get("nMar"), base["nMar"] + 2))
     need(iv(w, "nEng") == base["nEng"] + 1, "MARAS engaged count %s, want %d" % (w.get("nEng"), base["nEng"] + 1))
-    need(iv(w, "hpVar") == 1 and (iv(w, "key") or 0) >= 1 and is_fid(w.get("own"), PLAYER_FACTION),
+    # hpVar 1 = bought, 2 = bought and entered (vanilla whiterundooraliasscript.psc:16-17 sets 2 on the first entry, which
+    # step 5's DoorUse does); run 7 aborted on == 1
+    need((iv(w, "hpVar") or 0) >= 1 and (iv(w, "key") or 0) >= 1 and is_fid(w.get("own"), PLAYER_FACTION),
          "house purchase state lost (hpVar=%s key=%s own=%s)" % (w.get("hpVar"), w.get("key"), w.get("own")))
     need(iv(w, "f25") == 1 and iv(w, "hcDis") == 0, "housecarl state lost (f25=%s hcDis=%s)" % (w.get("f25"), w.get("hcDis")))
     need(w.get("bzMarker") not in (None, "None"), "Breezehome has no MARAS house marker")
