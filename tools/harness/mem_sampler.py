@@ -109,6 +109,18 @@ def log(f, line):
     os.fsync(f.fileno())
 
 
+HEARTBEAT = "C:/nolvus-research/test_runs/mem_sampler.hb"
+
+
+def beat():
+    """REVIEW_LOG RV-180 (2): a heartbeat every 5 s; launches and blocks refuse or HALT when it is older than 30 s."""
+    try:
+        with open(HEARTBEAT, "w") as h:
+            h.write("%d %s\n" % (os.getpid(), time.strftime("%Y-%m-%d %H:%M:%S")))
+    except OSError:
+        pass
+
+
 def main():
     with open(OUT, "a", encoding="utf-8") as f:
         log(f, "SAMPLER START pid=%d" % os.getpid())
@@ -144,6 +156,7 @@ def main():
             for _ in range(6):                   # the runaway-tool + available checks every 5 s between samples
                 kill_runaway_tools(f)
                 avail_check(f)
+                beat()
                 time.sleep(5)
 
 

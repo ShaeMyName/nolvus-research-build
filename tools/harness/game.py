@@ -348,6 +348,17 @@ def log_findings():
 SAMPLER = os.path.join(os.path.dirname(__file__), "mem_sampler.py")
 
 
+SAMPLER_HB = "C:/nolvus-research/test_runs/mem_sampler.hb"
+
+
+def sampler_alive(max_age=30.0):
+    """REVIEW_LOG RV-180 (2): the memory guard's heartbeat (written every 5 s) is fresh."""
+    try:
+        return time.time() - os.path.getmtime(SAMPLER_HB) <= max_age
+    except OSError:
+        return False
+
+
 def start_sampler():
     """REVIEW_LOG RV-73 (3): one detached 30 s memory sampler per machine session (pid file guards duplicates)."""
     pidf = "C:/nolvus-research/test_runs/mem_sampler.pid"
@@ -376,6 +387,14 @@ def start_sampler():
 def launch(log=print, timeout=20 * 60, voices=True):
     """Start the test profile unattended (voices=False adds -NoTTS: text/state blocks only; the soak and real play
     always run with voices, Shae 2026-10-10); return when MCP answers. False on any failure."""
+    start_sampler()
+    for _ in range(12):                       # REVIEW_LOG RV-180 (2): never launch without a live memory guard
+        if sampler_alive():
+            break
+        time.sleep(2.5)
+    else:
+        log("LAUNCH refused: the memory guard (mem_sampler) has no fresh heartbeat")
+        return False
     running = procs()
     if running:
         log("LAUNCH refused: already running %s" % sorted(running))

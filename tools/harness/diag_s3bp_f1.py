@@ -8,7 +8,8 @@ import re, sys, time
 import post_crash_pipeline as P
 from tests_misc import ctl_line, s32, fid_any_rx
 
-ACTORS = [("F1", 0x000E1BA9), ("F2", 0x00091918), ("Fralia", 0x0001A684)]
+ACTORS = [("F1", 0x000E1BA9), ("F2", 0x00091918), ("Fralia", 0x0001A684),
+          ("Mila", 0x0001A676), ("Carlotta", 0x0001A675)]   # RV-171 (3): Mila leaves her mother since 10-11
 MODE = "v2" if "--v1" not in sys.argv else "v1"
 
 
@@ -24,8 +25,20 @@ def scenep(ctl, tag, fid):
         P.say("  DIAG %s no SCENEP_END (SceneProbe installed?)" % tag)
 
 
+def pkgp(ctl, tag):
+    """RV-171 (3): Mila's and Carlotta's running package (U3MarasProbe pkg=), position and package-override count."""
+    for k, f in (("Mila", 0x0001A676), ("Carlotta", 0x0001A675)):
+        m = ctl_line(ctl, "U3MarasProbe", [s32(f)], r"\[IEB-TEST\] U3MARASPROBE (%s) ([^\n]*)" % fid_any_rx(f), 15)
+        pk = re.search(r"pkg=(\S+)", m.group(2)).group(1) if m else "no line"
+        q = ctl_line(ctl, "RefPos", [s32(f)], r"\[IEB-TEST\] REFPOS (%s) ([^\n]*)" % fid_any_rx(f), 15)
+        P.say("  DIAG %s %s pkg=%s pos=%s" % (tag, k, pk, q.group(2) if q else "none"))
+
+
 def chk(ctl, t):
     rows = {k: [] for k, _ in ACTORS}
+    ctl.tool("execute_console_command", {"command": "set gamehour to 10"})   # RV-171 (3a): daytime, mother and daughter together
+    time.sleep(20)
+    pkgp(ctl, "pkg@start")
     for k, f in ACTORS:
         scenep(ctl, k + "@start", f)
     t0 = time.time()
@@ -35,6 +48,7 @@ def chk(ctl, t):
             rows[k].append(m.group(2) if m else "no QR line")
         P.say("  DIAG %3ds %s" % (time.time() - t0, " | ".join("%s %s" % (k, rows[k][-1]) for k, _ in ACTORS)))
         time.sleep(30)
+    pkgp(ctl, "pkg@end")
     for k, f in ACTORS:
         scenep(ctl, k + "@end", f)
     text = t.read()

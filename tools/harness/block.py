@@ -540,6 +540,10 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
             family_logs(ctl, fam, fam_start, summary)
             fam_start = time.strftime("%Y-%m-%d %H:%M:%S")
         fam = meta["family"]
+        if not game.sampler_alive():                    # REVIEW_LOG RV-180 (2): the memory guard died
+            print("BLOCK HALT %s before %s: memory guard heartbeat stale (> 30 s)" % (name, tid), flush=True)
+            summary.append("| HALT | memory guard heartbeat stale before %s | | |" % tid)
+            break
         try:
             r = Run(tid)
         except Exception as e:          # MCP gone: the game died between tests
