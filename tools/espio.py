@@ -6,6 +6,13 @@ typed codec (decode to Python values, encode back). Everything else is kept as r
 codecs on real plugins: decode every authored subrecord, re-encode it, and re-emit the whole file byte-identically.
 """
 import struct, zlib
+try:                                   # REVIEW_LOG RV-102 (3): binary parsers run under a memory cap
+    import os as _os, sys as _sys
+    _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+    import champ_guard as _cg
+    _cg.limit_self(6144)
+except Exception:
+    pass
 
 # ---------------------------------------------------------------- primitives
 

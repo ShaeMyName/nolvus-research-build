@@ -23,6 +23,38 @@ GROW_MB, CEIL_MB = 800.0, 3072.0             # REVIEW_LOG RV-73: stop on +800 MB
 COMMIT_TRIP_PCT = 85.0                       # REVIEW_LOG RV-73-upd2 (2): stop on system commit > 85 % of the limit
 
 
+AVAIL_TRIP_GB = 1.5          # REVIEW_LOG RV-102 (1): physical memory ran out ~60 s before commit tripped (08:46:13)
+_LOW = [0]
+
+
+def avail_gb():
+    try:
+        import sys
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+        import champ_guard
+        return champ_guard.avail_gb()
+    except Exception:
+        return None
+
+
+def avail_check(f):
+    """Every 5 s: available physical memory < AVAIL_TRIP_GB on 2 consecutive checks kills our build tools, then closes
+    the game (if it runs) and blocks launches."""
+    a = avail_gb()
+    if a is None:
+        return
+    if a < AVAIL_TRIP_GB:
+        _LOW[0] += 1
+        if _LOW[0] == 2:
+            log(f, "AVAILABLE TRIP: %.2f GB < %.1f GB on 2 consecutive checks" % (a, AVAIL_TRIP_GB))
+            kill_runaway_tools(f)
+            game_up = "SkyrimSE.exe" in subprocess.run(["tasklist"], capture_output=True, creationflags=NOWIN, text=True).stdout
+            if game_up and not os.path.exists(FLAG):
+                stop_game(f, "available %.2f GB < %.1f GB" % (a, AVAIL_TRIP_GB))
+    else:
+        _LOW[0] = 0
+
+
 RUNAWAY_TOOLS = ("Champollion.exe", "Caprica.exe", "PapyrusCompiler.exe")   # our build tools only; never anything else
 RUNAWAY_MB = 3072
 
@@ -109,8 +141,9 @@ def main():
                     peak = max(peak, np_)
                     if base is not None and not os.path.exists(FLAG) and (np_ > base + GROW_MB or np_ > CEIL_MB):
                         stop_game(f, "nonpaged %d MB (pre-launch %d MB, limit +%d / %d MB)" % (np_, base, GROW_MB, CEIL_MB))
-            for _ in range(6):                   # the runaway-tool check every 5 s between the 30 s samples
+            for _ in range(6):                   # the runaway-tool + available checks every 5 s between samples
                 kill_runaway_tools(f)
+                avail_check(f)
                 time.sleep(5)
 
 

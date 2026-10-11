@@ -4,8 +4,33 @@ bugchecked (MEMORY.DMP 08:48:50). With the job limit the tool gets an allocation
 of taking the machine down; the job is closed with KILL_ON_JOB_CLOSE, so nothing it started survives either.
 Usage: from champ_guard import run; run([exe, args...], max_mb=4096, timeout=120) -> (returncode, reason)
 reason: "ok" | "timeout" | "memory" (exit while at/over the ceiling) | "error: ..." """
-import ctypes, subprocess, time
+import ctypes, os, subprocess, time
 from ctypes import wintypes
+
+LOG = "C:/nolvus-research/test_runs/champ_guard.log"     # REVIEW_LOG RV-102 (2): every call: argv, input sizes, peak
+MIN_AVAIL_GB = 6.0                                        # RV-102 (4): build checks wait for this much free RAM
+
+
+class MEMORYSTATUSEX(ctypes.Structure):
+    _fields_ = [("dwLength", wintypes.DWORD), ("dwMemoryLoad", wintypes.DWORD), ("ullTotalPhys", ctypes.c_ulonglong),
+                ("ullAvailPhys", ctypes.c_ulonglong), ("ullTotalPageFile", ctypes.c_ulonglong),
+                ("ullAvailPageFile", ctypes.c_ulonglong), ("ullTotalVirtual", ctypes.c_ulonglong),
+                ("ullAvailVirtual", ctypes.c_ulonglong), ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+
+
+def avail_gb():
+    m = MEMORYSTATUSEX()
+    m.dwLength = ctypes.sizeof(m)
+    ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m))
+    return m.ullAvailPhys / 1024.0 ** 3
+
+
+def _log(line):
+    try:
+        with open(LOG, "a", encoding="utf-8") as f:
+            f.write("%s %s\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), line))
+    except OSError:
+        pass
 
 JOB_OBJECT_LIMIT_PROCESS_MEMORY = 0x00000100
 JOB_OBJECT_LIMIT_JOB_MEMORY = 0x00000200
@@ -37,6 +62,11 @@ k32 = ctypes.WinDLL("kernel32", use_last_error=True)
 k32.CreateJobObjectW.restype = wintypes.HANDLE
 k32.OpenProcess.restype = wintypes.HANDLE
 k32.OpenThread.restype = wintypes.HANDLE
+k32.GetCurrentProcess.restype = wintypes.HANDLE
+k32.AssignProcessToJobObject.argtypes = [wintypes.HANDLE, wintypes.HANDLE]
+k32.SetInformationJobObject.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
+k32.QueryInformationJobObject.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD, ctypes.c_void_p]
+k32.CloseHandle.argtypes = [wintypes.HANDLE]
 
 
 def _job(max_mb):
@@ -60,12 +90,24 @@ def _peak_mb(job):
     return -1
 
 
-def run(cmd, max_mb=4096, timeout=120, cwd=None):
+def run(cmd, max_mb=4096, timeout=120, cwd=None, inherit=False, min_avail_gb=None):
     """Start cmd suspended, put it in a memory-capped job, resume it, wait up to timeout. Never raises on the tool's own
     failure; returns (returncode or None, reason)."""
+    waited = 0
+    need = MIN_AVAIL_GB if min_avail_gb is None else min_avail_gb
+    while avail_gb() < need and waited < 600:                # RV-102 (4): never start a tool into low memory
+        time.sleep(5)
+        waited += 5
+    if avail_gb() < need:
+        _log("REFUSED %s: available %.1f GB < %.1f GB after 600 s" % (cmd, avail_gb(), need))
+        return None, "error: low memory (%.1f GB available)" % avail_gb()
+    sizes = [os.path.getsize(a) for a in cmd[1:] if isinstance(a, str) and os.path.isfile(a)]
     job = _job(max_mb)
+    t0 = time.time()
+    res = (None, "error: not started")
     try:
-        p = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        out = subprocess.PIPE if inherit else subprocess.DEVNULL       # inherit: the output is relayed after the run
+        p = subprocess.Popen(cmd, cwd=cwd, stdout=out, stderr=subprocess.STDOUT if inherit else out,
                              creationflags=CREATE_NO_WINDOW | CREATE_SUSPENDED)
         hp = k32.OpenProcess(0x1F0FFF, False, p.pid)
         if not hp or not k32.AssignProcessToJobObject(job, hp):
@@ -74,15 +116,27 @@ def run(cmd, max_mb=4096, timeout=120, cwd=None):
         k32.CloseHandle(hp)
         _resume(p.pid)
         try:
+            if inherit:
+                data, _ = p.communicate(timeout=timeout)
+                import sys as _s
+                _s.stdout.write(data.decode("utf-8", "replace"))
+                _s.stdout.flush()
             rc = p.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             p.kill()
-            return None, "timeout"
+            res = (None, "timeout")
+            return res
         peak = _peak_mb(job)
-        if peak >= max_mb - 16:
-            return rc, "memory"
-        return rc, "ok"
+        if peak >= max_mb - 16 or (rc != 0 and peak >= max_mb // 2):
+            res = (rc, "memory")
+        elif rc not in (0, None) and rc > 255:
+            res = (rc, "crashed")         # e.g. 0xC0000005: Champollion's decompiler on IEB_TestCtl.pex (2026-10-11)
+        else:
+            res = (rc, "ok")
+        return res
     finally:
+        _log("%s rc=%s peak=%dMB cap=%dMB %.1fs in=%s argv=%s" % (res[1], res[0], _peak_mb(job), max_mb, time.time() - t0,
+                                                                   sizes, cmd))
         k32.CloseHandle(job)          # KILL_ON_JOB_CLOSE: anything still in the job dies here
 
 
@@ -107,6 +161,33 @@ def _resume(pid):
     k32.CloseHandle(snap)
 
 
+_SELF_JOB = []
+
+
+def limit_self(max_mb=4096):
+    """RV-102 (3): put THIS Python process (and anything it starts) under a memory-capped job: for our binary parsers
+    (espio users). The job handle is kept for the life of the process."""
+    if _SELF_JOB:
+        return
+    try:
+        job = _job(max_mb)
+        if k32.AssignProcessToJobObject(job, k32.GetCurrentProcess()):
+            _SELF_JOB.append(job)
+    except OSError:
+        pass
+
+
 if __name__ == "__main__":
+    # CLI for shell scripts (Caprica in build_*.sh): champ_guard.py [--max-mb N] [--timeout S] [--min-avail G] -- cmd ...
     import sys
-    print(run(sys.argv[1:], max_mb=int(__import__("os").environ.get("CHAMP_MAX_MB", "4096"))))
+    a = sys.argv[1:]
+    opts = {"--max-mb": "4096", "--timeout": "300", "--min-avail": "3"}
+    while a and a[0] != "--":
+        opts[a[0]] = a[1]
+        a = a[2:]
+    rc, why = run(a[1:], max_mb=int(opts["--max-mb"]), timeout=int(opts["--timeout"]), inherit=True,
+                  min_avail_gb=float(opts["--min-avail"]))
+    if why != "ok":
+        sys.stderr.write("champ_guard: %s (%s)\n" % (why, a[1] if len(a) > 1 else "?"))
+        sys.exit(99)
+    sys.exit(rc or 0)

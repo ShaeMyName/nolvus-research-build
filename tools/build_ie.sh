@@ -19,7 +19,7 @@ cd "$(cygpath -u "$SRC")"
 list=("$@"); [ ${#list[@]} -eq 0 ] && list=(IntelEngine_Core IntelEngine_StoryEngine IntelEngine_Battle IntelEngine_Travel IntelEngine_NPCTasks IntelEngine_Schedule)
 rc=0
 for f in "${list[@]}"; do
-  "$CAP" "${FLAGS[@]}" -o "$OUT" -i "$INC" $f.psc 2>&1 | grep -vE "^Importing|^Imported|W7000|W1004"
+  python C:/nolvus-research/build/tools/champ_guard.py --max-mb 4096 --timeout 300 --min-avail 3 -- "$CAP" "${FLAGS[@]}" -o "$OUT" -i "$INC" $f.psc 2>&1 | grep -vE "^Importing|^Imported|W7000|W1004"
   e=${PIPESTATUS[0]}; [ $e -ne 0 ] && rc=1
   echo "== $f exit $e"
 done

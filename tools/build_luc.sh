@@ -9,7 +9,7 @@ OUT="${1:-C:\nolvus-research\build\bin\luc}"
 mkdir -p "$(cygpath -u "$OUT")"
 cd /c/nolvus-research/build/src/lucienne/Source/Scripts
 for f in LUC_Main LUC_PlayerAliasScript; do
-  "$CAP" "${FLAGS[@]}" -o "$OUT" -i "$SRC;$ST;$IMP" $f.psc 2>&1 | grep -vE "^Importing|^Imported|W7000|W1004"
+  python C:/nolvus-research/build/tools/champ_guard.py --max-mb 4096 --timeout 300 --min-avail 3 -- "$CAP" "${FLAGS[@]}" -o "$OUT" -i "$SRC;$ST;$IMP" $f.psc 2>&1 | grep -vE "^Importing|^Imported|W7000|W1004"
   echo "== $f exit ${PIPESTATUS[0]}"
 done
 # REVIEW_LOG RV-72 (a): post-build gate, fails on any array-vs-None compare in our pex (all our output folders)
