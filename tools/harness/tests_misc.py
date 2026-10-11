@@ -293,6 +293,43 @@ def su_unset(r, fid, key):
     return ctl_line(r, "SUUnset", [s32(fid), key], r"\[IEB-TEST\] SU %s %s unset" % (fid_any_rx(fid), re.escape(key)))
 
 
+def global_val(r, local_id, plugin="ErrandBridge.esp"):
+    """REVIEW_LOG RV-123 (3): read a GlobalVariable back (TestCtl.GlobalProbe). Float, or None."""
+    m = ctl_line(r, "GlobalProbe", [int(local_id), plugin], r"\[IEB-TEST\] GLOBAL \S+ (?:v=(\S+)|none)", 15)
+    try:
+        return float(m.group(1)) if m and m.group(1) is not None else None
+    except ValueError:
+        return None
+
+
+def ref_pos(r, fid):
+    """TestCtl.RefPos -> dict(cell, ws, x, y, z, dis, loaded) or None."""
+    m = ctl_line(r, "RefPos", [s32(fid)], r"\[IEB-TEST\] REFPOS (%s) (.*)" % fid_any_rx(fid), 15)
+    return parse_kv(m.group(2)) if m else None
+
+
+def race_of(r, fid):
+    m = ctl_line(r, "RaceProbe", [s32(fid)], r"\[IEB-TEST\] RACE (%s) race=(\S+)" % fid_any_rx(fid), 15)
+    return m.group(2) if m else None
+
+
+def owner_of(r, fid):
+    m = ctl_line(r, "OwnerProbe", [s32(fid)], r"\[IEB-TEST\] OWNER (%s) (.*)" % fid_any_rx(fid), 15)
+    return parse_kv(m.group(2)) if m else None
+
+
+def fac_rank(r, fid, fac_local, plugin="Skyrim.esm"):
+    """(rank, in) from TestCtl.FactionRankProbe: rank -1 = removed, -2 = never a member; in = IsInFaction."""
+    m = ctl_line(r, "FactionRankProbe", [s32(fid), int(fac_local), plugin],
+                 r"\[IEB-TEST\] FACRANK (%s) \S+ rank=(-?\d+) in=(\d)" % fid_any_rx(fid), 15)
+    return (int(m.group(2)), int(m.group(3))) if m else (None, None)
+
+
+def despawn_state(r, fid):
+    m = ctl_line(r, "DespawnProbe", [s32(fid)], r"\[IEB-TEST\] DESPAWN (%s) (.*)" % fid_any_rx(fid), 15)
+    return parse_kv(m.group(2)) if m else None
+
+
 def take_pat(name):
     return r"(?i)\[IEB\] TAKE actor=%s\b" % re.escape(name)
 
@@ -1155,7 +1192,7 @@ def cs21(r):
     r.check(bio is not None and "## Your Bond With" in bio, "bond prompt section renders for the child")
 
 
-@test("CS-22", "CS")
+@test("CS-22", "CS", reload=True)   # REVIEW_LOG RV-125: restores a global with no read-back yet (GlobalProbe pending)
 def cs22(r):
     """Console write SNRom_PhysMinTier = 4 on the enrolled child, then a drift and a repair request: the prompt JSON
     shows -1 at once (R8, RELD IEB_PhysMinTierShown :1218-1223); the store is -1 after the next sweep (R7,
@@ -1200,7 +1237,7 @@ def cs22(r):
         con(r, "set IEB_TestWatch to 1")
 
 
-@test("CS-12", "CS")
+@test("CS-12", "CS", reload=True)   # REVIEW_LOG RV-125: restores a global with no read-back yet (GlobalProbe pending)
 def cs12(r):
     """Prompt preview, child speaker, scene mode on (R3): casual length tier, no scene line from 0760. Scene mode is
     switched on with an ADULT partner (F1) through the proposed SceneOn wrapper (P2: a child is never a partner; the
