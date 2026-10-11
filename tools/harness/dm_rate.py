@@ -9,7 +9,11 @@ the game hours of a session come from its CRASHCTX lines (hour/days) and are pas
 Threshold: a real-hour rate above ~1.5x the pre-install rate goes to Shae as an API-cost item.
 REVIEW_LOG RV-108 (1): 'dm' counts LOGICAL requests (one SendCustomPromptToLLM line each); OpenRouter retries, timeouts
 and empty replies on the DM variants are counted separately (attributed by thread to the latest variant line), since they
-may inflate the observed rate and may still be billed."""
+may inflate the observed rate and may still be billed.
+RV-108-res: per-ATTEMPT latency is reported separately: an attempt starts at OpenRouterInterface's "Using variant
+'intel_*dm'" line and ends at the next request outcome in time order ("Request completed successfully", "Streaming
+request completed", or an OpenRouterInterface warning/error = failed/retried attempt). FIFO pairing (INFERRED: another
+request in flight can mispair); attempts ending in an error are censored at the timeout."""
 import re, sys
 from datetime import datetime
 
@@ -23,6 +27,7 @@ def rate(path, game_h=None):
     first = last = None
     dm, allc, per = 0, 0, {}
     lastv, extra = {}, {}
+    attempts, att_open = [], []
     with open(path, "rb") as f:
         for raw in f:
             line = raw.decode("utf-8", "replace")
@@ -33,6 +38,12 @@ def rate(path, game_h=None):
             first = first or t
             last = t
             c = CALL.search(line)
+            if "[OpenRouterInterface.cpp" in line and re.search(r"variant 'intel_[a-z_]*dm'", line):
+                att_open.append(t)
+            elif att_open and ("Request completed successfully" in line or "Streaming request completed" in line):
+                attempts.append(((t - att_open.pop(0)).total_seconds(), "ok"))
+            elif att_open and ORE.search(line):
+                attempts.append(((t - att_open.pop(0)).total_seconds(), "fail"))
             v = VAR.search(line)
             if v:
                 lastv[m.group(2)] = v.group(1) or v.group(2)
@@ -54,7 +65,13 @@ def rate(path, game_h=None):
     return dict(file=path.replace("\\", "/").split("/")[-1], start=str(first), hours=round(hours, 2), dm=dm,
                 dm_per_h=round(dm / hours, 2) if hours > 0.05 else None,
                 dm_per_game_h=round(dm / game_h, 2) if game_h else None, custom=allc, by_template=per,
-                dm_openrouter_extra=extra)
+                dm_openrouter_extra=extra, attempts=_att(attempts))
+
+
+def _att(a):
+    ok = sorted(x for x, k in a if k == "ok")
+    q = (lambda f: round(ok[min(len(ok) - 1, int(round(f * (len(ok) - 1))))], 1)) if ok else (lambda f: None)
+    return dict(n=len(a), ok=len(ok), failed=sum(1 for _, k in a if k == "fail"), ok_p50=q(.5), ok_p95=q(.95))
 
 
 if __name__ == "__main__":
