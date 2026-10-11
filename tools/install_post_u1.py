@@ -10,6 +10,7 @@ MANIFEST = B + "out/install_step7.json"
 BACKUP = "C:/nolvus-research/backups/install_post_u1_%s/" % time.strftime("%Y%m%d-%H%M%S")
 SETS = [("Errand Bridge", "bin/eb/"), ("IE NoWipe + Dispatch Guard", "bin/patched/"),
         ("SkyrimNet Relationships - Private Patch", "bin/rel_patched/"), ("Errand Bridge - Test Harness", "bin/harness/")]
+LAYERS = [("Lucienne - Private (TEST STUB)", "layers/lucienne-test/")]
 DRY = "--dry" in sys.argv
 
 
@@ -36,6 +37,15 @@ def main():
             s, d, key = B + src + f, MODS + mod + "/Scripts/" + f, mod + "/Scripts/" + f
             if not os.path.exists(d) or h(s) != h(d):
                 todo.append((s, d, key))
+    for mod, src in LAYERS:     # SkyrimNet layer trees, mirrored file by file (same paths as install_step7.py)
+        root = B + src
+        for dp, _, files in os.walk(root):
+            for f in files:
+                s = os.path.join(dp, f).replace("\\", "/")
+                rel = s[len(root):]
+                d, key = MODS + mod + "/" + rel, mod + "/" + rel
+                if not os.path.exists(d) or h(s) != h(d):
+                    todo.append((s, d, key))
     for s, d, key in todo:
         print("%s %s -> %s (was %s)" % ("WOULD COPY" if DRY else "COPY", key, h(s), h(d) if os.path.exists(d) else "new"))
     if DRY or not todo:
@@ -45,6 +55,7 @@ def main():
         if os.path.exists(d):
             os.makedirs(os.path.dirname(BACKUP + key), exist_ok=True)
             shutil.copy2(d, BACKUP + key)
+        os.makedirs(os.path.dirname(d), exist_ok=True)
         shutil.copy2(s, d)
         if h(d) != h(s):
             sys.exit("ABORT: hash mismatch after copy: " + key)
