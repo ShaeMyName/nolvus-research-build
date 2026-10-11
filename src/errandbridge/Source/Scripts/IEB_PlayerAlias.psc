@@ -3,4 +3,5 @@ Scriptname IEB_PlayerAlias extends ReferenceAlias
 
 Event OnPlayerLoadGame()
     (GetOwningQuest() as IEB_Main).OnGameLoad()
+    IEB_Notice.WatchLateBox()        ; notice N2 (spec §17a): on this alias thread, never in IEB_Main's worker
 EndEvent

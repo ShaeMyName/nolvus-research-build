@@ -1,0 +1,53 @@
+# BLD-2 notices N1-N8 (spec §17a): new hidden global IEB_Notice (never attached); IEB_Main calls at REFUSE x2, DISPATCH_CONFLICT, REJOIN_WAIT, REJOIN_TO_WAIT x2, REJOIN_DONE x2, Setup (N8 mod event + N1 probe registration), new event OnStewardVisit; IEB_PlayerAlias.OnPlayerLoadGame calls WatchLateBox (N2). A = HEAD (7f680dc line, uninstalled), B = this build.
+## IEB_Main
+functions: A 46, B 47
+  FUNC only in B: <auto>.onstewardvisit(('string', 'string', 'float', 'form'), 'none')
+call sites: A 544, B 557
+  cancelorrecall                     ieb_notice.rejoined                            0 -> 1
+  cancelorrecall                     ieb_notice.waitingatend                        0 -> 1
+  classify                           ieb_notice.refused                             0 -> 1
+  dispatchconflict                   getdisplayname                                 1 -> 2
+  dispatchconflict                   ieb_notice.calledoff                           0 -> 1
+  onstewardvisit                     ieb_notice.stewardvisit                        0 -> 1
+  refuse                             getdisplayname                                 2 -> 3
+  refuse                             ieb_notice.refused                             0 -> 1
+  rejoinupkeep                       ieb_notice.rejoined                            0 -> 1
+  rejoinupkeep                       ieb_notice.waitingatend                        0 -> 1
+  release                            ieb_notice.rejoinwait                          0 -> 1
+  setup                              ieb_notice.onload                              0 -> 1
+  setup                              registerformodevent                            4 -> 5
+DIFFERENT
+## IEB_PlayerAlias
+functions: A 3, B 3
+call sites: A 4, B 5
+  onplayerloadgame                   ieb_notice.watchlatebox                        0 -> 1
+DIFFERENT
+## IEB_RankSync
+functions: A 13, B 13
+call sites: A 60, B 60
+IDENTICAL
+## IEB_IELib
+functions: A 18, B 18
+call sites: A 60, B 60
+IDENTICAL
+## IEB_NFFLib
+functions: A 20, B 20
+call sites: A 47, B 47
+IDENTICAL
+## IEB_SALib
+functions: A 25, B 25
+call sites: A 90, B 90
+IDENTICAL
+## IEB_CFData
+functions: A 9, B 9
+call sites: A 142, B 142
+IDENTICAL
+## IEB_CFLib
+functions: A 28, B 28
+call sites: A 99, B 99
+IDENTICAL
+## IEB_EssLib
+functions: A 37, B 37
+call sites: A 334, B 334
+IDENTICAL
+freeze_check PASS; array gate PASS (27 pex).

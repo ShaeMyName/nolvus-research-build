@@ -47,6 +47,8 @@ Function Setup()
     RegisterForModEvent("IntelEngine_TaskEnded", "OnIETaskEnded")
     RegisterForModEvent("maras_status_changed", "OnMarasStatusChanged")
     RegisterForModEvent("SeverActions_FollowerCalledByPlayer", "OnSAFollowerCalled")   ; essential followers §1.0
+    RegisterForModEvent("SeverActions_StewardVisitTravel", "OnStewardVisit")           ; notice N8 (spec §17a)
+    IEB_Notice.OnLoad()                                                                 ; notice N1 probe, once per load
     IEB_EssLib.OnLoad()
     Log(2, "SETUP agents=" + _agents.Length + " enabled=" + IEB_Enabled.GetValueInt())
     If IEB_NFFLib.NFFPresent()                       ; REVIEW_LOG RV-66: once per load (Setup runs on init and on each load)
@@ -77,6 +79,11 @@ Event OnIETaskEnded(String asEventName, String asResult, Float afSlot, Form akSe
         StorageUtil.SetIntValue(a, "IEB_EndedEvt", 1)
     EndIf
     RegisterForSingleUpdate(0.1)
+EndEvent
+
+Event OnStewardVisit(String asEventName, String asStrArg, Float afNumArg, Form akSender)
+    {Notice N8 (spec §17a): SA's quiet steward visit departs; sender = steward, strArg = retainer (signed decimal).}
+    IEB_Notice.StewardVisit(akSender, asStrArg)
 EndEvent
 
 Event OnMarasStatusChanged(String asEventName, String asStatus, Float afStatusEnum, Form akSender)
@@ -272,6 +279,7 @@ Function Classify(Actor a)
         IEB_IELib.MarkPending(a)
         IEB_IELib.CancelSlotOf(a)
         Log(1, "REFUSE actor=" + who + " reason=" + prior + " backstop=1 type=" + live)
+        IEB_Notice.Refused(who)
         Return
     EndIf
     Int origin = 1
@@ -410,6 +418,7 @@ Function Refuse(Actor a, String asReason)
     SkyrimNetApi.RegisterEvent("ieb_errand_refused", a.GetDisplayName() + " could not leave " + RefusalPlace(asReason) + \
         " for that errand.", a, PlayerRef)
     Log(1, "REFUSE actor=" + a.GetDisplayName() + " reason=" + asReason)
+    IEB_Notice.Refused(a.GetDisplayName())
 EndFunction
 
 String Function RefusalPlace(String asReason)
@@ -435,6 +444,7 @@ Function DispatchConflict(Actor a)
         Release(a, "conflict")
     EndIf
     Log(1, "DISPATCH_CONFLICT actor=" + a.GetDisplayName())
+    IEB_Notice.CalledOff(a.GetDisplayName())
 EndFunction
 
 ; ============================================================================ §5 step 3: release scan
@@ -529,6 +539,7 @@ Function Release(Actor a, String asWhy)
     Else
         StorageUtil.SetIntValue(a, "IEB_Held", 2)          ; Gate stays 1
         Log(1, "REJOIN_WAIT actor=" + who)
+        IEB_Notice.RejoinWait(who)
     EndIf
     a.EvaluatePackage()
 EndFunction
@@ -784,6 +795,7 @@ Function RejoinUpkeep(Actor a)
     If !a.Is3DLoaded() && !IEB_NFFLib.AllowWarp()
         ClearKeys(a)
         Log(1, "REJOIN_TO_WAIT actor=" + who + " reason=unloaded_nowarp")
+        IEB_Notice.WaitingAtEnd(who)
         Return
     EndIf
     If RejoinTest(a)
@@ -791,6 +803,7 @@ Function RejoinUpkeep(Actor a)
         ClearKeys(a)
         a.EvaluatePackage()
         Log(1, "REJOIN_DONE actor=" + who)
+        IEB_Notice.Rejoined(who)
         Return
     EndIf
     RefreshParkTimer(a, wfp)
@@ -980,11 +993,13 @@ Function CancelOrRecall(Actor akNPC, Int stayHere)
         If stayHere == 1
             ClearKeys(akNPC)
             Log(1, "REJOIN_TO_WAIT actor=" + who + " reason=told_stay")
+            IEB_Notice.WaitingAtEnd(who)
         Else
             IEB_NFFLib.Follow(akNPC)
             ClearKeys(akNPC)
             akNPC.EvaluatePackage()
             Log(1, "REJOIN_DONE actor=" + who + " reason=recalled")
+            IEB_Notice.Rejoined(who)
         EndIf
     EndIf
     RegisterForSingleUpdate(0.1)

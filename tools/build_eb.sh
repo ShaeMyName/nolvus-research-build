@@ -14,7 +14,7 @@ RELV='C:\nolvus-research\repos\SkyrimNet-Relationships\src\scripts'
 MAR='C:\nolvus-research\repos\maras\Scripts\Source'
 IE='C:\nolvus-research\build\src\intelengine\Source\Scripts;C:\nolvus-research\sdk\ie_roundtrip\src'
 cd /c/nolvus-research/build/src/errandbridge/Source/Scripts
-list=("$@"); [ ${#list[@]} -eq 0 ] && list=(IEB_RankSync IEB_IELib IEB_NFFLib IEB_SALib IEB_CFData IEB_CFLib IEB_EssLib IEB_Main IEB_PlayerAlias)
+list=("$@"); [ ${#list[@]} -eq 0 ] && list=(IEB_RankSync IEB_IELib IEB_NFFLib IEB_SALib IEB_CFData IEB_CFLib IEB_EssLib IEB_Notice IEB_Main IEB_PlayerAlias)
 for f in "${list[@]}"; do
   "$CAP" "${FLAGS[@]}" -o 'C:\nolvus-research\build\bin\eb' -i "$EB;$ST;$REL;$SA;$S\po3;$RELV;$MAR;$IE;$IMP" $f.psc 2>&1 | grep -vE "^Importing|^Imported|W7000|W1004"
   echo "== $f exit ${PIPESTATUS[0]}"
