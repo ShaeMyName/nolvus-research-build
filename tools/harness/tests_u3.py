@@ -53,7 +53,7 @@ SANDBOX_EDID = "TTM_SpouseHomeSandbox"           # MARAS home sandbox (TT_MARAS.
 D3_BASELINE_MOD = None
 # Q-10 writes in our own patch-B mod folder (rename/misspell quest_integrity.json). Not on the C:\Nolvus write list
 # (REVIEW_LOG RV-91-corr): stays a stub until Shae/the reviewer approve it, same reasoning as the 0210 rename.
-Q10_SWAP_APPROVED = False
+Q10_SWAP_APPROVED = True    # Shae 2026-10-11 (REVIEW_LOG RV-135-dec D-S3): backup, swap, run, restore, read-back
 # CS-27 needs (1) SNRom_Sparked = 1 written on an enrolled CHILD (the harness's own SUSetInt guard refuses that key on a
 # child by design) and (2) a session of STOCK Relationships (no child gates: R10 adult prompts possible) with that child
 # enrolled. Both are child-safety calls for Shae, so CS-27 is a stub; no code path writes either.
