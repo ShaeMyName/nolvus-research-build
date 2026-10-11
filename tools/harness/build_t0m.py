@@ -35,6 +35,7 @@ QG_FACTION = 0x000A2CA2  # Favor253QuestGiverFaction: the 0xA2C9E QuestGiver ali
 OUTSIDE = (0x0001B743, 0x0001B74F)   # Riverwood guard refs (Imperial01 / SonsOfSkyrim01): RiverwoodLocation 0x13163,
                                      # not a LocTypeDwelling; one of the two sets is enabled per civil-war state
 RIVERWOOD_LOC = 0x00013163
+WR_GATE_OUT = 0x0001B1F1  # Whiterun main gate, Tamriel side (load door, XTEL -> 0x1B1F3 in WhiterunWorld 0x1A26F)
 HP_PRICE = 25000         # HPWhiterun 0xF728B, winner Nolvus Awakening Economy Patch.esp
 MARAS_LOG = game.DOCS + "SKSE/MARAS.log"
 LOG = []
@@ -280,6 +281,25 @@ def build():
         con("player.moveto %08X" % BZ_DOOR)
         time.sleep(15)
         w = stage25(10)
+        if iv(w, "f25") != 1:
+            # REVIEW_LOG RV-114 (3): if a console moveto does not fire the location event, walk in through the gate
+            say("  moveto re-entry did not start the quest; walking in through the Whiterun gate (DoorUse %08X)"
+                % WR_GATE_OUT)
+            con("player.moveto %08X" % WR_GATE_OUT)
+            time.sleep(12)
+            call("DoorUse", [WR_GATE_OUT], r"DoorUse[^\r\n]*", 30)
+            time.sleep(20)
+            w = stage25(10)
+        if iv(w, "f25") != 1:
+            # Diagnostics for the reviewer (numbers only): does the console return output over MCP (INFERRED), and
+            # what are the Jarl's JobJarlFaction (0x50920, rank -1 in every NPC_ override) / questgiver faction ranks
+            for cmd in ("%08X.getfactionrank 00050920" % JARL, "%08X.getfactionrank %08X" % (JARL, QG_FACTION),
+                        "%08X.getdisabled" % JARL, "%08X.getdead" % JARL):
+                try:
+                    res = RUN[0].tool("execute_console_command", {"command": cmd})
+                except Exception as e:
+                    res = type(e).__name__
+                say("  DIAG %s -> %s" % (cmd, str(res)[:160]))
         need(iv(w, "f25") == 1, "0xA2C9E stage 25 not done after the Jarl faction + Riverwood -> Whiterun re-entry "
                                 "(loc=%s)" % w.get("loc"))
         need(iv(w, "hcDis") == 0, "housecarl 0xA2C94 still disabled")

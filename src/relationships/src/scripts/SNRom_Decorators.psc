@@ -42,7 +42,7 @@ EndFunction
 String Function CanBegin(Actor akActor) Global
     { Hard gates live here, not in an action description, so the model cannot
       talk its way past receptivity or the attraction floor. }
-    If akActor == None || SNRom_Bridge.IsEnrolled(akActor)
+    If akActor == None || SNRom_Bridge.IsEnrolled(akActor) || SNRom_Bridge.IEB_NeverEnroll(akActor)
         Return "false"
     EndIf
     ; FOLLOWERS ONLY, ALWAYS: this enrolls, and the policy is that only

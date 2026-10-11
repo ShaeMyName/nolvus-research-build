@@ -1017,6 +1017,47 @@ Function IEB_ChildOutOfMaras(Actor who, String asStatus)
         "); removed from MARAS (unregister + marriage quests reset). Nothing else was written.")
 EndFunction
 """)
+elif G == "neverenroll":  # REVIEW_LOG 2026-10-11 (mod-followers report): Katana's Shade (Katana.esp NPC_ 0x1724E6) is a
+    # copy of Katana with the same race and must NEVER enrol. One explicit never-enrol list, checked in IsPerson (which
+    # AutoEnroll, EnrollByHand, IEB_EnrollOnCourtship and the roster sweep all ask; the sweep then removes a listed actor
+    # from the roster) and in CanBegin (the BeginSpark path, which does not ask IsPerson). Matched on the base and the
+    # leveled base, so a spawned copy is caught too.
+    edit(B, [
+("""    If akActor == None
+        Return False
+    EndIf
+    Keyword kw = Game.GetFormFromFile(0x00013794, "Skyrim.esm") as Keyword   ; ActorTypeNPC""",
+"""    If akActor == None
+        Return False
+    EndIf
+    If IEB_NeverEnroll(akActor)
+        Return False                            ; Patch never-enrol list (IEB_NeverEnroll)
+    EndIf
+    Keyword kw = Game.GetFormFromFile(0x00013794, "Skyrim.esm") as Keyword   ; ActorTypeNPC"""),
+])
+    edit(DEC, [
+("""    If akActor == None || SNRom_Bridge.IsEnrolled(akActor)
+        Return "false\"""",
+"""    If akActor == None || SNRom_Bridge.IsEnrolled(akActor) || SNRom_Bridge.IEB_NeverEnroll(akActor)
+        Return "false\""""),
+])
+    append(B, """
+; ============================================================================ Patch never-enrol list (2026-10-11)
+
+Bool Function IEB_NeverEnroll(Actor akActor) Global
+    { Actors that must never enter Relationships, by base NPC (plugin + local ID, so load order does not matter). An
+      absent plugin resolves to None and matches nothing. List: Katana's Shade (Katana.esp NPC_ 0x1724E6), a copy of the
+      follower Katana. }
+    If akActor == None
+        Return False
+    EndIf
+    ActorBase shade = Game.GetFormFromFile(0x001724E6, "Katana.esp") as ActorBase
+    If shade != None && (akActor.GetActorBase() == shade || akActor.GetLeveledActorBase() == shade)
+        Return True
+    EndIf
+    Return False
+EndFunction
+""")
 else:
     raise SystemExit("unknown group " + G)
 print("applied", G)

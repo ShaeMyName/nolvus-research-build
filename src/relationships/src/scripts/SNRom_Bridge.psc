@@ -671,6 +671,9 @@ Bool Function IsPerson(Actor akActor)
     If akActor == None
         Return False
     EndIf
+    If IEB_NeverEnroll(akActor)
+        Return False                            ; Patch never-enrol list (IEB_NeverEnroll)
+    EndIf
     Keyword kw = Game.GetFormFromFile(0x00013794, "Skyrim.esm") as Keyword   ; ActorTypeNPC
     If kw == None
         Diag(LOG_ERROR(), "ActorTypeNPC keyword did not resolve from Skyrim.esm - the humans-only " + \
@@ -9105,4 +9108,20 @@ Function IEB_ChildOutOfMaras(Actor who, String asStatus)
     TTM_ServiceMarriageQuest.ResetMarriageQuests(who)
     Diag(LOG_ERROR(), "MARAS reported a CHILD as " + asStatus + " (" + who.GetDisplayName() + \
         "); removed from MARAS (unregister + marriage quests reset). Nothing else was written.")
+EndFunction
+
+; ============================================================================ Patch never-enrol list (2026-10-11)
+
+Bool Function IEB_NeverEnroll(Actor akActor) Global
+    { Actors that must never enter Relationships, by base NPC (plugin + local ID, so load order does not matter). An
+      absent plugin resolves to None and matches nothing. List: Katana's Shade (Katana.esp NPC_ 0x1724E6), a copy of the
+      follower Katana. }
+    If akActor == None
+        Return False
+    EndIf
+    ActorBase shade = Game.GetFormFromFile(0x001724E6, "Katana.esp") as ActorBase
+    If shade != None && (akActor.GetActorBase() == shade || akActor.GetLeveledActorBase() == shade)
+        Return True
+    EndIf
+    Return False
 EndFunction
