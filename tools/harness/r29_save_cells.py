@@ -121,11 +121,17 @@ def cell(ctl, cid, how, errand):
     if errand:
         # 20:05 rerun: without the block setup IE silently skips GoToLocation for a follower (T0 carries
         # SkipFollower* ON); c2/c3/c4 so far had NO errand. Same setup as every U1 block load.
-        say("%s IE test settings: %s" % (cid, "verified" if block.ie_test_settings(ctl) else "NOT VERIFIED"))
+        sett = block.ie_test_settings(ctl)
+        say("%s IE test settings: %s" % (cid, "verified" if sett else "NOT VERIFIED"))
         t = game.Tail(game.LOGS["papyrus"])
         ctl.ctl("StartTask", [F1, "GoToLocation", "Dragonsreach", "1", "1"])
         ok = t.wait(r"(?i)\[IEB\] TAKE actor=Jenassa", 30)
         say("%s errand: %s" % (cid, "TAKE seen" if ok else "NO TAKE (errand not active: cell invalid)"))
+        if not (ok and sett):
+            # REVIEW_LOG RV-67-upd4: no TAKE or unverified settings = no result, never a save outcome
+            RESULT[cid] = (how, errand, "-", "INCONCLUSIVE (TAKE=%s, settings=%s; not saved)" % (bool(ok), sett))
+            say("%s skipped: errand not established" % cid)
+            return False, None
         time.sleep(5)
     menus(ctl, cid)
     sn = game.Tail(game.LOGS["skyrimnet"])
@@ -174,6 +180,11 @@ def load_alone(name, harness):
     t0 = time.time()
     ok = game.load(ctl, name, None, timeout=300)
     say("load-alone %s: %s after %d s" % (name, "OK" if ok else "FAILED", time.time() - t0))
+    if ok:
+        t = game.Tail(game.LOGS["papyrus"])
+        ctl.ctl("HeldProbe", [F1], sync=False)
+        m = t.wait(r"\[IEB-TEST\] HELDPROBE[^\r\n]*", 20)
+        say("load-alone %s state: %s" % (name, m.group(0) if m else "no HELDPROBE line"))
 
 
 def main(mode):

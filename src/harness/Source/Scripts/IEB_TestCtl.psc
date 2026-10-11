@@ -1227,6 +1227,19 @@ Function AutoSaveNow()
     Game.RequestAutoSave()
 EndFunction
 
+Function HeldProbe(Int aiFormId)
+    {REVIEW_LOG RV-67-upd2 (5): after loading a mid-errand save, is the errand still there? IE slot index (-1 = none),
+     the live task type, and the bridge's own hold state.}
+    Actor a = A(aiFormId)
+    If a == None
+        Log("HELDPROBE none")
+        Return
+    EndIf
+    Log("HELDPROBE " + a.GetDisplayName() + " slot=" + IEB_IELib.SlotOf(a) + " type=" + IEB_IELib.DecisionTaskType(a) \
+        + " held=" + StorageUtil.GetIntValue(a, "IEB_Held", 0) + " mode=" + StorageUtil.GetIntValue(a, "IEB_Mode", 0) \
+        + " wfp=" + a.GetActorValue("WaitingForPlayer") + " tm=" + a.IsPlayerTeammate())
+EndFunction
+
 Function MenuProbe()
     {REVIEW_LOG RV-67: which menus are open right before a test save (the Timeline Mismatch box was suspected in R29 c7).
      A paused menu may stop Papyrus entirely: the host then logs "no MENUPROBE line", which is itself the signal.}

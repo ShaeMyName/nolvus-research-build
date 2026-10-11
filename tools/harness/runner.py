@@ -73,6 +73,7 @@ class Run:
         "Despawn": "Despawn|Despawn\\ none",
         "ConfigProbe": "(?i:CONFIGPROBE) ",
         "MenuProbe": "(?i:MENUPROBE) ",
+        "HeldProbe": "HELDPROBE ",
         "AutoSaveNow": "AUTOSAVE requested",
         "NFFGuardOn": "NFFGuardOn",
         "NFFStaleFac": "NFFStaleFac",
