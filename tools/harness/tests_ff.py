@@ -40,12 +40,13 @@ attacks if FF-4 cannot trigger them, a real enchanted / poisoned weapon hit, the
 Known limits: Spell.Cast and Actor.DoCombatSpellApply are the player as caster, but a Papyrus cast skips the cast animation and
 magicka cost; a concentration spell (Fire Breath) fires one burst. Both are INFERRED to carry the same caster test as a hand cast.
 
-PROPOSED block def (NOT registered; paste into blocks_def.py when approved). ~35-45 min incl. 4 reloads of T0:
-    block("FF", "T0", ["tests_ff"], ["FF-0", "FF-1", "FF-2", "FF-3", "FF-4"], est={"FF": 35},
+PROPOSED block def (NOT registered; paste into blocks_def.py when approved). ~75-95 min incl. the block's 4 reloads of T0 and, RV-151, one quick T0 reload after every death / bleedout / failed read-back:
+    block("FF", "T0", ["tests_ff"], ["FF-0", "FF-1", "FF-2", "FF-3", "FF-4"], est={"FF": 75},
           harness=True, voices=False, gamemaster=False)
 """
 import os, re, time
-from block import test, checkpoint
+import game
+from block import test, checkpoint, ie_test_settings
 from tests_misc import F1, F2, con, ctl_line, inc, s32, iv, parse_kv, hx, near_player
 from fidnorm import fid_any_rx
 
@@ -123,26 +124,40 @@ def hp(r, fid):
     return d if "cur" in d else None
 
 
-def calm_to(r, fid, pct, what):
+HP_TOL_PCT = 5.0         # RV-151 (b): start health must read within +-5 points of the target, or the case is not graded
+
+
+def at_target(d, pct):
+    """True when the HealthProbe dict d is alive, not in bleedout and its pct is within HP_TOL_PCT of pct."""
+    got = _fnum(d, "pct") if d else None
+    return bool(d) and iv(d, "dead") == 0 and iv(d, "bleed") == 0 and got is not None and abs(got - pct) <= HP_TOL_PCT
+
+
+def calm_to(r, fid, pct, what, tries=1):
     """FFCalm (revive if dead, end combat, full health) then SetHealthPct(pct), read back with HealthProbe: health within 5 points
-    of pct, alive, not bleeding out (waits up to 20 s for a bleedout to end). Returns the HealthProbe dict or None (inc logged)."""
-    ctl_line(r, "FFCalm", [s32(fid)], r"(?i)\[IEB-TEST\] FF_CALM ", 15)
-    time.sleep(1)
-    ctl_line(r, "SetHealthPct", [s32(fid), float(pct)], r"(?i)\[IEB-TEST\] FF_SETHP ", 12)
-    d = None
-    for _ in range(10):
-        d = hp(r, fid)
-        if d and iv(d, "dead") == 0 and iv(d, "bleed") == 0:
-            break
-        time.sleep(2)
-    if not d or iv(d, "dead") != 0 or iv(d, "bleed") != 0:
-        inc(r, "%s: %s is dead/bleeding out/unreadable after FFCalm (%s)" % (what, hx(fid), d))
-        return None
-    got = _fnum(d, "pct")
-    if got is None or abs(got - pct) > 5.0:
-        inc(r, "read-back %s: health %s %% of max, wanted %.0f (RV-123 (3))" % (what, got, pct))
-        return None
-    return d
+    of pct, alive, not bleeding out (waits up to 20 s for a bleedout to end). tries=2 repeats the whole setup once if the read-back
+    is off target (RV-151 (b)). Returns the HealthProbe dict or None (inc logged, for the last try only)."""
+    d, why = None, ""
+    for n in range(tries):
+        ctl_line(r, "FFCalm", [s32(fid)], r"(?i)\[IEB-TEST\] FF_CALM ", 15)
+        time.sleep(1)
+        ctl_line(r, "SetHealthPct", [s32(fid), float(pct)], r"(?i)\[IEB-TEST\] FF_SETHP ", 12)
+        d = None
+        for _ in range(10):
+            d = hp(r, fid)
+            if d and iv(d, "dead") == 0 and iv(d, "bleed") == 0:
+                break
+            time.sleep(2)
+        if not d or iv(d, "dead") != 0 or iv(d, "bleed") != 0:
+            why = "%s: %s is dead/bleeding out/unreadable after FFCalm (%s)" % (what, hx(fid), d)
+        elif not at_target(d, pct):
+            why = "read-back %s: health setup did not hold, %s %% of max, wanted %.0f (RV-123 (3))" % (what, _fnum(d, "pct"), pct)
+        else:
+            return d
+        if n + 1 < tries:
+            r.log("  %s -> retrying the health setup once" % why)
+    inc(r, why)
+    return None
 
 
 def face(r, fid, dist, what):
@@ -175,14 +190,44 @@ def tol(d):
     return max(TOL_MIN, 0.02 * (_fnum(d, "max", 0.0) or 0.0))
 
 
-def deliver(r, fid, case, what):
+def toggle_ok(r, want_on, what):
+    """RV-151 (a): FFProbe right before an attack, logged. OFF needs the property at 0; ON needs the property at 1 AND the player
+    holding nwsNoTeamDamagePerk. Returns dict(on, perk) or None (INCONCLUSIVE "toggle not confirmed" logged)."""
+    s = ff_state(r)
+    on, perk = (iv(s, "on"), iv(s, "perk")) if s else (None, None)
+    r.log("  %s: FF_STATE before the attack on=%s perk=%s" % (what, on, perk))
+    if on != want_on or (want_on == 1 and perk != 1):
+        inc(r, "%s: toggle not confirmed (wanted on=%d%s; read on=%s perk=%s)" % (what, want_on, " perk=1" if want_on else "", on, perk))
+        return None
+    return dict(on=on, perk=perk)
+
+
+def deliver(r, fid, case, what, on=None, target=None):
     """One measured delivery on a target already at its starting health: face, probe, attack, wait, probe, wait, probe.
-    Returns dict(before, drop, died, bleed, note) or None (inconclusive logged)."""
+    on: wanted NFF toggle value, confirmed by FFProbe right before the attack (RV-151 (a)); target: wanted start health in % of max,
+    read back right before the attack, one re-setup then INCONCLUSIVE "health setup did not hold" (RV-151 (b)); an attack is never
+    delivered, and so never graded, from a start that is not the target. Returns dict(before, drop, died, bleed, note, tog) or None
+    (inconclusive logged)."""
     if not face(r, fid, case["dist"], what):
         return None
-    b = hp(r, fid)
-    if not b:
-        inc(r, "%s: no health read before the attack" % what)
+    tog = None
+    for n in range(2 if target is not None else 1):
+        if on is not None:
+            tog = toggle_ok(r, on, what)
+            if tog is None:
+                return None
+        b = hp(r, fid)
+        if not b:
+            inc(r, "%s: no health read before the attack" % what)
+            return None
+        if target is None or at_target(b, target):
+            break
+        r.log("  %s: start health %s %% of max (dead=%s bleed=%s), wanted %.0f" % (what, b.get("pct"), b.get("dead"), b.get("bleed"), target))
+        if n == 0:
+            if not calm_to(r, fid, target, what + " re-setup") or not face(r, fid, case["dist"], what):
+                return None
+    else:
+        inc(r, "%s: health setup did not hold (start %s %% of max, wanted %.0f); not graded" % (what, b.get("pct"), target))
         return None
     note = attack(r, case, fid)
     if note is None:
@@ -200,7 +245,7 @@ def deliver(r, fid, case, what):
     died = any(iv(x, "dead") == 1 for x in reads)
     bleed = any(iv(x, "bleed") == 1 for x in reads)
     drop = _fnum(b, "cur", 0.0) - (min(lows) if lows else 0.0)
-    return dict(before=_fnum(b, "cur"), drop=drop, died=died, bleed=bleed, tol=tol(b), note=note)
+    return dict(before=_fnum(b, "cur"), drop=drop, died=died, bleed=bleed, tol=tol(b), note=note, tog=tog)
 
 
 def hurt(x):
@@ -209,6 +254,35 @@ def hurt(x):
 
 def fmt(x):
     return "drop %.0f of %.0f%s%s" % (x["drop"], x["before"], ", DIED" if x["died"] else "", ", bleedout" if x["bleed"] else "")
+
+
+def ended_down(x):
+    """The follower died or went to bleedout in this delivery: it needs a clean T0 reload before the next case (RV-151 (c))."""
+    return bool(x) and (x["died"] or x["bleed"])
+
+
+def place_near(r, fid, what):
+    """The per-follower part of start(): alive, moved to the player, distance read back. True, or INCONCLUSIVE (inc) and False."""
+    d = hp(r, fid)
+    if not d or iv(d, "dead") != 0:
+        inc(r, "%s: %s not loaded or dead (%s)" % (what, hx(fid), d))
+        return False
+    con(r, "%08X.moveto player" % fid)
+    return near_player(r, fid, "%s: %s moveto player" % (what, hx(fid)))
+
+
+def reload_t0(r, fids, what):
+    """RV-151 (c): a clean T0 reload (a revived follower failed placement read-backs and started the next case at full health).
+    quick load (no SkyrimNet settle wait: no action is involved), IntelEngine test settings as after every block load, then the
+    followers are placed at the player again with read-backs. The caller re-sets the toggle and health, each with its own read-back.
+    True when the game is back with every follower placed."""
+    r.log("  RELOAD T0 (%s): the follower died / bled out / failed a read-back" % what)
+    if not game.load(r, "T0", None, quick=True):
+        inc(r, "%s: reload of T0 failed" % what)
+        return False
+    ie_test_settings(r)
+    time.sleep(5)
+    return all(place_near(r, f, what) for f in fids)
 
 
 def precision_state():
@@ -317,28 +391,39 @@ def paired(r, fid, label):
         return
     checkpoint(r)
     rows = []
-    dead_for_good = False
+    dirty = False       # RV-151 (c): the follower died / bled out / failed a read-back: reload T0 before the next phase
+    broken = False      # a reload failed, or setup keeps failing right after a clean reload: stop this follower's run
+    fresh_fails = 0
     try:
         for case in CASES:
             what = "%s %s" % (label, case["key"])
-            if dead_for_good:
-                inc(r, "%s: skipped, the follower could not be revived after an earlier case" % what)
+            if broken:
+                inc(r, "%s: skipped, the follower could not be brought back to a clean state after an earlier case" % what)
                 continue
             res = {}
             for on in (0, 1):
-                if not ff_set(r, on, "%s phase" % what):
+                tag = "%s toggle %s" % (what, "ON" if on else "OFF")
+                fresh = False
+                if dirty:
+                    if not reload_t0(r, [fid], tag):
+                        broken = True
+                        res = None
+                        break
+                    dirty, fresh = False, True
+                if not ff_set(r, on, "%s phase" % what) or not calm_to(r, fid, HP_PCT, tag, tries=2):
                     res = None
+                else:
+                    res[on] = deliver(r, fid, case, tag, on=on, target=HP_PCT)
+                    if res[on] is None:
+                        res = None
+                    elif ended_down(res[on]):
+                        dirty = True
+                if res is None:
+                    dirty = True
+                    fresh_fails = fresh_fails + 1 if fresh else 0
+                    broken = fresh_fails >= 2
                     break
-                if not calm_to(r, fid, HP_PCT, "%s toggle %s" % (what, "ON" if on else "OFF")):
-                    # a corpse that FFCalm could not revive ends this follower's run
-                    d = hp(r, fid)
-                    dead_for_good = bool(d) and iv(d, "dead") == 1
-                    res = None
-                    break
-                res[on] = deliver(r, fid, case, "%s toggle %s" % (what, "ON" if on else "OFF"))
-                if res[on] is None:
-                    res = None
-                    break
+                fresh_fails = 0
             if res is None:
                 rows.append((case["key"], "INCONCLUSIVE", "see the INCONCLUSIVE line above"))
                 continue
@@ -350,10 +435,12 @@ def paired(r, fid, label):
                 r.check(False, "LEAK %s: toggle ON still hurt the follower (%s); OFF: %s" % (what, fmt(on_), fmt(off)))
                 rows.append((case["key"], "LEAK", "OFF: %s | ON: %s" % (fmt(off), fmt(on_))))
             else:
-                r.check(True, "%s blocked by the toggle (OFF: %s | ON: %s)" % (what, fmt(off), fmt(on_)))
+                r.check(True, "%s blocked by the toggle (OFF: %s | ON: %s; ON confirmed on=%s perk=%s, start health %.0f/%.0f)"
+                        % (what, fmt(off), fmt(on_), on_["tog"]["on"], on_["tog"]["perk"], off["before"], on_["before"]))
                 rows.append((case["key"], "PASS", "OFF: %s | ON: %s" % (fmt(off), fmt(on_))))
     finally:
-        calm_to(r, fid, 100.0, "%s final refill" % label)
+        if not dirty:       # a downed follower is not refilled: the block reloads T0 after this test
+            calm_to(r, fid, 100.0, "%s final refill" % label)
         restore_toggle(r, orig)
         r.log("  SUMMARY %s (health %.0f %% start; verdicts: PASS = blocked, LEAK = damage with toggle ON)" % (label, HP_PCT))
         for k, v, why in rows:
@@ -397,7 +484,7 @@ def ff3(r):
                     out = None
                     break
                 refs.append(ref)
-                out[on] = deliver(r, ref, case, "cosmetic %s toggle %s" % (key, "ON" if on else "OFF"))
+                out[on] = deliver(r, ref, case, "cosmetic %s toggle %s" % (key, "ON" if on else "OFF"), on=on)
                 despawn(r, ref)
                 if out[on] is None:
                     out = None
@@ -414,6 +501,15 @@ def ff3(r):
 
 # ============================================================================ FF-4: melee power attacks (best effort)
 
+def melee_setup(r, wid, label):
+    """MeleeSetup (equip + draw) with its read-back. True, or INCONCLUSIVE (inc) and False."""
+    m = ctl_line(r, "MeleeSetup", [wid], r"(?i)\[IEB-TEST\] FF_MELEE (?:setup|refused)[^\r\n]*", 20)
+    if not m or "equipped=1" not in m.group(0) or "drawn=1" not in m.group(0):
+        inc(r, "FF-4 %s: weapon not equipped and drawn (%s)" % (label, m and m.group(0)))
+        return False
+    return True
+
+
 @test("FF-4", "FF", save="T0", reload=True)
 def ff4(r):
     """Power attacks 1H (Iron Sword) and 2H (Iron Greatsword), best effort. A deer 110 u ahead is the CONTROL: the swing event that
@@ -428,11 +524,14 @@ def ff4(r):
     val, src = precision_state()
     r.log("  Precision bNoPlayerTeammateAttackCollision = %s (%s)" % (val, src))
     checkpoint(r)
+    dirty = False
     try:
         for label, wid in (("1H", IRON_SWORD), ("2H", IRON_GREATSWORD)):
-            m = ctl_line(r, "MeleeSetup", [wid], r"(?i)\[IEB-TEST\] FF_MELEE (?:setup|refused)[^\r\n]*", 20)
-            if not m or "equipped=1" not in m.group(0) or "drawn=1" not in m.group(0):
-                inc(r, "FF-4 %s: weapon not equipped and drawn (%s)" % (label, m and m.group(0)))
+            if dirty:           # F1 went down in the 1H run: clean T0 before the 2H weapon is equipped
+                if not reload_t0(r, [F1], "FF-4 %s" % label):
+                    break
+                dirty = False
+            if not melee_setup(r, wid, label):
                 continue
             try:
                 ev = None
@@ -459,25 +558,43 @@ def ff4(r):
                 r.log("  FF-4 %s: control hit with event %s%s" % (label, ev, " (a PLAIN swing, proxy for a power attack)" if ev == "attackStart" else ""))
                 hit = {}
                 for on in (0, 1):
-                    if not ff_set(r, on, "melee %s" % label):
-                        hit = None
-                        break
-                    hit[on] = False
+                    hit[on], valid = False, 0
                     for n in range(3):
-                        if not calm_to(r, F1, HP_PCT, "melee %s toggle %d try %d" % (label, on, n + 1)):
+                        tag = "melee %s toggle %d try %d" % (label, on, n + 1)
+                        if dirty:       # RV-151 (c): F1 went down on an earlier swing; reload T0, re-equip, then set up again
+                            if not reload_t0(r, [F1], tag) or not melee_setup(r, wid, label):
+                                hit = None
+                                break
+                            dirty = False
+                        if not ff_set(r, on, "melee %s" % label):
+                            hit = None
+                            break
+                        if not calm_to(r, F1, HP_PCT, tag, tries=2):
                             hit = None
                             break
                         if not face(r, F1, 110.0, "melee %s toggle %d" % (label, on)):
                             hit = None
                             break
+                        if toggle_ok(r, on, tag) is None:       # RV-151 (a): read just before the swing
+                            hit = None
+                            break
                         b = hp(r, F1)
+                        if not at_target(b, HP_PCT):            # RV-151 (b): never graded from a start that is not the target
+                            r.log("    %s: start health %s %% of max, wanted %.0f; try not counted" % (tag, b and b.get("pct"), HP_PCT))
+                            continue
+                        valid += 1
                         ctl_line(r, "MeleeSwing", [ev], r"(?i)\[IEB-TEST\] FF_MELEE swing ", 8)
                         time.sleep(3)
                         a = hp(r, F1)
+                        if a and (iv(a, "dead") == 1 or iv(a, "bleed") == 1):
+                            dirty = True
                         if b and a and (iv(a, "dead") == 1 or iv(a, "bleed") == 1 or _fnum(b, "cur", 0) - _fnum(a, "cur", 0) > tol(b)):
                             hit[on] = True
                             r.log("    %s toggle %s try %d: HURT %.0f -> %.0f" % (label, "ON" if on else "OFF", n + 1, _fnum(b, "cur", 0), _fnum(a, "cur", 0)))
                             break
+                    if hit is not None and not valid:
+                        inc(r, "FF-4 %s toggle %s: health setup did not hold on any of 3 tries; not graded" % (label, "ON" if on else "OFF"))
+                        hit = None
                     if hit is None:
                         break
                 if hit is None:
@@ -492,5 +609,6 @@ def ff4(r):
             finally:
                 ctl_line(r, "MeleeEnd", [wid], r"(?i)\[IEB-TEST\] FF_MELEE (?:end|refused)", 20)
     finally:
-        calm_to(r, F1, 100.0, "FF-4 final refill")
+        if not dirty:       # a downed follower is not refilled: the block reloads T0 after this test
+            calm_to(r, F1, 100.0, "FF-4 final refill")
         restore_toggle(r, orig)

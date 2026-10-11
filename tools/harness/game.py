@@ -399,10 +399,11 @@ def launch(log=print, timeout=20 * 60, voices=True):
     return False
 
 
-def load(run, save, settle_probe=None, timeout=8 * 60):
+def load(run, save, settle_probe=None, timeout=8 * 60, quick=False):
     """Console-load a save, wait for SkyrimNet's PostLoadGame, then settle. settle_probe: (action, uuid-callable) whose
     eligibility must turn True (SeverActions' checks read ineligible for ~2 min after a load, CS-23 2026-10-09);
-    without one, a fixed 120 s."""
+    without one, a fixed 120 s. quick=True (RV-151: tests_ff reloads T0 mid-test, no SkyrimNet action involved): return as soon as
+    the game is in and unpaused, with no eligibility warm-up or settle wait."""
     ess = SAVES + save + ".ess"
     if not os.path.exists(ess) or os.path.exists(ess + ".tmp"):
         # U1 run 15 B-3: loading a save whose write had failed (only IEB_B3.ess.tmp on disk) crashed the game.
@@ -449,6 +450,10 @@ def load(run, save, settle_probe=None, timeout=8 * 60):
     # by F1 (IEB_TestCtl.Narrate = DirectNarration), which builds a prompt.
     global LAST_NUDGE
     LAST_NUDGE = ""
+    if quick:
+        POST_LOAD_AVAIL = available_ram_gb()
+        run.log("LOAD %s: quick, no settle wait (game %.1f GB; %.1f GB RAM available)" % (save, game_private_gb(), POST_LOAD_AVAIL))
+        return True
     warm = r"Completed eligibility pre-warming"
     if not sn.wait(warm, timeout=45):
         LAST_NUDGE = time.strftime("%H:%M:%S")
