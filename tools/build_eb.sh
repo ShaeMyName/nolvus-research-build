@@ -19,3 +19,8 @@ for f in "${list[@]}"; do
   "$CAP" "${FLAGS[@]}" -o 'C:\nolvus-research\build\bin\eb' -i "$EB;$ST;$REL;$SA;$RELV;$MAR;$IE;$IMP" $f.psc 2>&1 | grep -vE "^Importing|^Imported|W7000|W1004"
   echo "== $f exit ${PIPESTATUS[0]}"
 done
+# REVIEW_LOG RV-72 (a): post-build gate, fails on any array-vs-None compare in our pex (all our output folders)
+B=/c/nolvus-research/build/bin
+out=$(python /c/nolvus-research/build/tools/array_none_gate.py --baseline $B/patched=$B/ie_baseline351 --baseline $B/rel_patched=$B/rel_baseline $B/eb $B/harness $B/patched $B/rel_patched $B/luc $B/sc); g=$?
+echo "$out" | tail -12
+[ $g -ne 0 ] && { echo 'ARRAY_NONE_GATE FAIL: build rejected'; exit 1; }

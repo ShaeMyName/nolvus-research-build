@@ -1,0 +1,56 @@
+# BLD-2 RV-72 (a) + RV-72-upd (1) + (c). Tool tools/ie_callsites.py, A = HEAD (installed set 499f86b-era pex), B = this build. Expect: Core gains IEB_TaskTypeScan, OnUpdate, IEB_ReservedAge; Maintenance calls IEB_TaskTypeScan + RegisterForSingleUpdate; FindFree/Reserve/Release/Maintenance If-arr only (no call changes); StoryEngine IEB_FastWhy If-arr only; IEB_IELib DecisionTaskType If-arr only; TestCtl HeldProbe/SlotsProbe rewritten (SlotsProbe reads GetAgentAlias + IEB_ReservedAge). Post-build gate: ARRAY_NONE_GATE PASS, 0 ours, 0 stock.
+
+## bin/patched/IntelEngine_Core.pex
+functions: A 104, B 107
+  FUNC only in B: <auto>.ieb_reservedage(('int',), 'float')
+  FUNC only in B: <auto>.ieb_tasktypescan(('bool',), 'int')
+  FUNC only in B: <auto>.onupdate((), 'none')
+call sites: A 875, B 888
+  ieb_reservedage                    utility.getcurrentrealtime                     0 -> 1
+  ieb_tasktypescan                   debugmsg                                       0 -> 3
+  ieb_tasktypescan                   getactorreference                              0 -> 1
+  ieb_tasktypescan                   getagentalias                                  0 -> 1
+  ieb_tasktypescan                   getdisplayname                                 0 -> 1
+  ieb_tasktypescan                   isdead                                         0 -> 1
+  ieb_tasktypescan                   storageutil.getstringvalue                     0 -> 1
+  ieb_tasktypescan                   storageutil.setstringvalue                     0 -> 1
+  maintenance                        ieb_tasktypescan                               0 -> 1
+  maintenance                        registerforsingleupdate                        0 -> 1
+  onupdate                           ieb_tasktypescan                               0 -> 1
+DIFFERENT
+
+## bin/patched/IntelEngine_StoryEngine.pex
+functions: A 103, B 103
+call sites: A 2004, B 2004
+IDENTICAL
+
+## bin/eb/IEB_IELib.pex
+functions: A 18, B 18
+call sites: A 60, B 60
+IDENTICAL
+
+## bin/harness/IEB_TestCtl.pex
+functions: A 86, B 86
+call sites: A 751, B 757
+  slotsprobe                         getactorreference                              0 -> 2
+  slotsprobe                         getagentalias                                  0 -> 1
+  slotsprobe                         ieb_reservedage                                0 -> 1
+  slotsprobe                         log                                            2 -> 3
+  slotsprobe                         storageutil.getstringvalue                     0 -> 1
+DIFFERENT
+
+## array_none_gate
+ARRAY_NONE_GATE PASS: 23 pex, 0 ours, 0 stock upstream
+## gate on the previous (HEAD) pex, for contrast
+FAIL IEB_IELib.pex <auto>.DecisionTaskType src:96 asm:403  cast ::temp6 None
+FAIL IEB_IELib.pex <auto>.DecisionTaskType src:96 asm:407  cast ::temp7 None
+FAIL IEB_TestCtl.pex <auto>.HeldProbe src:1242 asm:5609  cast ::temp8 None
+FAIL IEB_TestCtl.pex <auto>.SlotsProbe src:1253 asm:5701  cast ::temp4 None
+FAIL IntelEngine_Core.pex <auto>.FindFreeAgentSlot src:540 asm:1447  cast ::temp3 None
+UPSTREAM IntelEngine_Core.pex <auto>.Maintenance src:239 asm:722  cast ::temp7 None
+FAIL IntelEngine_Core.pex <auto>.ReleaseSlotReservation src:605 asm:1681  cast ::temp2 None
+FAIL IntelEngine_Core.pex <auto>.ReserveFreeAgentSlot src:568 asm:1560  cast ::temp2 None
+FAIL IntelEngine_StoryEngine.pex <auto>.IEB_FastWhy src:274 asm:1800  cast ::temp2 None
+FAIL IntelEngine_StoryEngine.pex <auto>.IEB_FastWhy src:279 asm:1820  cast ::temp5 None
+ARRAY_NONE_GATE FAIL: 15 pex, 9 ours, 1 stock upstream
+## freeze_check: out/ErrandBridge.esp bin/eb PASS; out/ErrandBridgeTest.esp bin/harness FREEZE CHECK: PASS. IntelEngine: no property/variable changes (ie_callsites shows none).

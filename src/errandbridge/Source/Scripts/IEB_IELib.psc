@@ -93,7 +93,11 @@ String Function DecisionTaskType(Actor a) Global
     EndIf
     Int[] states = core.SlotStates
     String[] types = core.SlotTaskTypes
-    If states == None || types == None || slot >= states.Length || slot >= types.Length
+    ; REVIEW_LOG RV-72 (a): `arr == None` fails in the VM ("Cannot cast from None to Int[]"); If !arr is the safe test
+    If !states || !types
+        Return t
+    EndIf
+    If slot >= states.Length || slot >= types.Length
         Return t
     EndIf
     If states[slot] == 0

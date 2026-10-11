@@ -1239,8 +1239,15 @@ Function HeldProbe(Int aiFormId)
     Int slot = IEB_IELib.SlotOf(a)
     String raw = " ieType=" + StorageUtil.GetStringValue(a, "Intel_TaskType", "")
     IntelEngine_Core core = IEB_IELib.IEQuest() as IntelEngine_Core
-    If core != None && slot >= 0 && core.SlotStates != None && slot < core.SlotStates.Length
-        raw += " slotState=" + core.SlotStates[slot] + " slotType=" + core.SlotTaskTypes[slot]
+    ; REVIEW_LOG RV-72 (a): no array-vs-None compare (fails in the VM); local copies + If arr
+    If core != None && slot >= 0
+        Int[] st = core.SlotStates
+        String[] ty = core.SlotTaskTypes
+        If st && ty && slot < st.Length && slot < ty.Length
+            raw += " slotState=" + st[slot] + " slotType=" + ty[slot]
+        Else
+            raw += " slotArrays=none"
+        EndIf
     EndIf
     Log("HELDPROBE " + a.GetDisplayName() + " slot=" + slot + " type=" + IEB_IELib.DecisionTaskType(a) + raw \
         + " held=" + StorageUtil.GetIntValue(a, "IEB_Held", 0) + " mode=" + StorageUtil.GetIntValue(a, "IEB_Mode", 0) \
@@ -1248,16 +1255,39 @@ Function HeldProbe(Int aiFormId)
 EndFunction
 
 Function SlotsProbe()
-    {REVIEW_LOG RV-70 (c): every IntelEngine slot right now (is T0 clean?).}
+    {REVIEW_LOG RV-70 (c): every IntelEngine slot right now (is T0 clean?). RV-72: also the §2 reservation stamp
+     (res = real-time age in s of the stamp via Core.IEB_ReservedAge, -1 = none, "na" = no stamp array) and the agent's Intel_TaskType key.}
     IntelEngine_Core core = IEB_IELib.IEQuest() as IntelEngine_Core
-    If core == None || core.SlotStates == None
+    If core == None
+        Log("SLOTSPROBE none")
+        Return
+    EndIf
+    Int[] st = core.SlotStates
+    String[] ty = core.SlotTaskTypes
+    If !st || !ty
         Log("SLOTSPROBE none")
         Return
     EndIf
     String out = ""
     Int i = 0
-    While i < core.SlotStates.Length
-        out += " [" + i + " state=" + core.SlotStates[i] + " type=" + core.SlotTaskTypes[i] + "]"
+    While i < st.Length
+        Float age = core.IEB_ReservedAge(i)
+        String r = "" + age
+        If age <= -2.0
+            r = "na"
+        ElseIf age < 0.0
+            r = "-1"
+        EndIf
+        String key = "-"
+        ReferenceAlias al = core.GetAgentAlias(i)
+        If al && al.GetActorReference()
+            key = StorageUtil.GetStringValue(al.GetActorReference(), "Intel_TaskType", "")
+        EndIf
+        String t = ""
+        If i < ty.Length
+            t = ty[i]
+        EndIf
+        out += " [" + i + " state=" + st[i] + " type=" + t + " key=" + key + " res=" + r + "]"
         i += 1
     EndWhile
     Log("SLOTSPROBE" + out)

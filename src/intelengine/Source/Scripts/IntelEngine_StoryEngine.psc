@@ -271,13 +271,15 @@ String Function IEB_FastWhy()
         return "idle"
     EndIf
     Int[] states = Core.SlotStates
-    If states != None
+    String[] types = Core.SlotTaskTypes
+    ; REVIEW_LOG RV-72 (a): If arr, never arr != None
+    If states
         Int i = 0
         While i < states.Length
             If states[i] != 0
                 String t = ""
-                If Core.SlotTaskTypes != None && i < Core.SlotTaskTypes.Length
-                    t = Core.SlotTaskTypes[i]
+                If types && i < types.Length
+                    t = types[i]
                 EndIf
                 return "slot=" + i + " state=" + states[i] + " type=" + t
             EndIf

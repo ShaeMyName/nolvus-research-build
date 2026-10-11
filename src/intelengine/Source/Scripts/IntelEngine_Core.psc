@@ -238,7 +238,8 @@ Function Maintenance(Bool isFirstLoad = false)
     EndIf
 
     ; Initialize arrays if needed (split check — Papyrus doesn't short-circuit ||)
-    If SlotStates == None
+    ; Patch (REVIEW_LOG RV-72 a): `arr == None` fails in the VM ("Cannot cast from None to Int[]"); stock line rewritten
+    If !SlotStates
         InitializeSlotArrays()
     ElseIf SlotStates.Length != MAX_SLOTS
         InitializeSlotArrays()
@@ -262,6 +263,10 @@ Function Maintenance(Bool isFirstLoad = false)
             RecoverActiveTasks()
             DebugMsg("Task recovery: StorageUtil legacy path")
         EndIf
+    EndIf
+    ; Patch (REVIEW_LOG RV-72-upd 1, RV-72 c): log every active slot's keys as loaded; restore a blank key 5 s later
+    If IEB_TaskTypeScan(false) > 0
+        RegisterForSingleUpdate(5.0)
     EndIf
 
     ; Self-heal script references if CK properties were lost (e.g. after
@@ -496,6 +501,68 @@ EndFunction
 ; SLOT MANAGEMENT
 ; =============================================================================
 
+Int Function IEB_TaskTypeScan(Bool restore)
+    {Patch (REVIEW_LOG RV-72-upd 1): an active slot (SlotStates != 0) whose agent alias holds a live actor must carry
+    that actor's Intel_TaskType. ClearSlot unsets the key (:750) before it clears the alias and sets SlotStates 0, so
+    a blank key on an active slot means "being torn down", and the bridge makes no decision on it (DecisionTaskType).
+    After a load the key was found blank on resumed errands (RV-70 probe): restore it from SlotTaskTypes, but only on
+    the 5 s re-check (restore = true), so a teardown saved mid-ClearSlot finishes first (ClearSlot has no waits) and
+    "" keeps meaning teardown. restore = false: log only (IEB_LOADKEYS, the RV-72 (c) load-side probe) and return how
+    many slots would be restored.}
+    Int[] st = SlotStates
+    String[] ty = SlotTaskTypes
+    If !st || !ty
+        DebugMsg("IEB_LOADKEYS no slot arrays")
+        Return 0
+    EndIf
+    Int found = 0
+    Int i = 0
+    While i < MAX_SLOTS && i < st.Length && i < ty.Length
+        If st[i] != 0
+            Actor a = None
+            ReferenceAlias al = GetAgentAlias(i)
+            If al
+                a = al.GetActorReference()
+            EndIf
+            String key = ""
+            If a
+                key = StorageUtil.GetStringValue(a, "Intel_TaskType", "")
+            EndIf
+            If !restore
+                DebugMsg("IEB_LOADKEYS slot=" + i + " state=" + st[i] + " slotType=" + ty[i] + " actor=" + a + " key=" + key)
+            EndIf
+            If a && !a.IsDead() && key == "" && ty[i] != ""
+                found += 1
+                If restore
+                    StorageUtil.SetStringValue(a, "Intel_TaskType", ty[i])
+                    DebugMsg("TASKTYPE_RESTORED slot=" + i + " type=" + ty[i] + " actor=" + a.GetDisplayName())
+                EndIf
+            EndIf
+        EndIf
+        i += 1
+    EndWhile
+    Return found
+EndFunction
+
+Event OnUpdate()
+    {Patch (REVIEW_LOG RV-72-upd 1): the 5 s re-check registered by Maintenance. Core had no OnUpdate before this patch;
+    single updates are per script, so the other scripts on the quest are unaffected.}
+    IEB_TaskTypeScan(true)
+EndEvent
+
+Float Function IEB_ReservedAge(Int slot)
+    {Patch (REVIEW_LOG RV-72-upd): test read of the slot-race reservation stamp: real-time age in s of the stamp,
+    -1 = no stamp, -2 = no stamp array or bad slot.}
+    Float[] res = IEB_SlotReservedAt
+    If !res || slot < 0 || slot >= res.Length
+        Return -2.0
+    EndIf
+    If res[slot] <= 0.0
+        Return -1.0
+    EndIf
+    Return Utility.GetCurrentRealTime() - res[slot]
+EndFunction
+
 ReferenceAlias Function GetAgentAlias(Int slot)
     If slot == 0
         Return AgentAlias00
@@ -543,7 +610,7 @@ Int Function FindFreeAgentSlot()
     Int i = 0
     While i < MAX_SLOTS
         Bool reserved = false
-        If res != None
+        If res && i < res.Length
             Float r = res[i]
             reserved = r > 0.0 && r <= now && (now - r) < IEB_RESERVE_EXPIRY
         EndIf
@@ -571,7 +638,7 @@ Int Function ReserveFreeAgentSlot()
     ElseIf maxAllowed < 1
         maxAllowed = 1
     EndIf
-    If IEB_SlotReservedAt == None
+    If !IEB_SlotReservedAt
         IEB_SlotReservedAt = new Float[5]
     EndIf
     Float now = Utility.GetCurrentRealTime()
@@ -608,7 +675,7 @@ EndFunction
 
 Function ReleaseSlotReservation(Int slot)
     {Patch (slot race): drop this slot's reservation (abort paths between ReserveFreeAgentSlot and TryAllocateSlot).}
-    If slot >= 0 && slot < MAX_SLOTS && IEB_SlotReservedAt != None
+    If slot >= 0 && slot < MAX_SLOTS && IEB_SlotReservedAt
         IEB_SlotReservedAt[slot] = 0.0
     EndIf
 EndFunction

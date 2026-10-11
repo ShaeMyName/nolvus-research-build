@@ -1,0 +1,98 @@
+"""REVIEW_LOG RV-72 (a): post-build gate. Fails on any array-vs-None comparison in our compiled Papyrus.
+In the Skyrim VM `arr == None` / `arr != None` intermittently fails ("Cannot cast from None to Int[]") and corrupts
+the temps of the expression; the safe form is `If arr` / `If !arr` (cast to Bool).
+Signature in Champollion -a assembly: `cast ::tempN None` where ::tempN is an array-typed local, or a cmp_eq whose
+operands are an array-typed variable and None.
+Usage: array_none_gate.py [--baseline DIR=BASEDIR ...] DIR|file.pex ...
+  A hit is FAIL unless --baseline gives the stock pex of the same name and the same function there has at least as many
+  hits (stock upstream pattern, reported as UPSTREAM, not ours). Exit 1 on any FAIL."""
+import os, re, sys, tempfile, subprocess, collections
+
+CH = "C:/nolvus-research/tools/champollion-dl/Champollion.exe"
+
+
+def asm(pex):
+    d = tempfile.mkdtemp()
+    subprocess.run([CH, "-a", d, "-p", d, pex], capture_output=True)
+    p = os.path.join(d, os.path.splitext(os.path.basename(pex))[0] + ".pas")
+    return open(p, encoding="utf-8", errors="replace").read().splitlines()
+
+
+def hits(pex):
+    """{(state, function): [(asm line no, source line, text)]}"""
+    out = collections.defaultdict(list)
+    objtypes, state, func, types, src = {}, None, None, {}, "?"
+    for n, ln in enumerate(asm(pex), 1):
+        s = ln.strip()
+        m = re.match(r"\.state\s*(\S*)$", s)
+        if m:
+            state = m.group(1) or "<auto>"
+            continue
+        m = re.match(r"\.(variable|local|param)\s+(\S+)\s+(\S+)", s)
+        if m:
+            (objtypes if (m.group(1) == "variable" and func is None) else types)[m.group(2).lower()] = m.group(3).lower()
+            continue
+        m = re.match(r"\.function\s+(\S+)", s)
+        if m:
+            func, types = m.group(1), {}
+            continue
+        if s.startswith(".endFunction"):
+            func = None
+            continue
+        m = re.match(r"; line (\d+)", s)
+        if m:
+            src = m.group(1)
+            continue
+        if func is None:
+            continue
+        ty = lambda v: types.get(v.lower(), objtypes.get(v.lower(), ""))
+        m = re.match(r"cast\s+(\S+)\s+None\b", s)
+        if m and ty(m.group(1)).endswith("[]"):
+            out[(state, func)].append((n, src, s))
+            continue
+        m = re.match(r"cmp_(eq|ne)\s+\S+\s+(\S+)\s+(\S+)", s)
+        if m and "None" in (m.group(2), m.group(3)) and any(ty(v).endswith("[]") for v in (m.group(2), m.group(3))):
+            out[(state, func)].append((n, src, s))
+    return out
+
+
+def main(argv):
+    base, targets = {}, []
+    i = 0
+    while i < len(argv):
+        if argv[i] == "--baseline":
+            d, b = argv[i + 1].split("=", 1)
+            base[os.path.normcase(os.path.abspath(d))] = b
+            i += 2
+        else:
+            targets.append(argv[i])
+            i += 1
+    pexes = []
+    for t in targets:
+        if t.lower().endswith(".pex"):
+            pexes.append(t)
+        else:
+            pexes += [os.path.join(t, f) for f in sorted(os.listdir(t)) if f.lower().endswith(".pex")]
+    fail = up = 0
+    for p in pexes:
+        h = hits(p)
+        if not h:
+            continue
+        bdir = base.get(os.path.normcase(os.path.abspath(os.path.dirname(p))))
+        bp = os.path.join(bdir, os.path.basename(p)) if bdir else None
+        bh = hits(bp) if bp and os.path.exists(bp) else {}
+        for k, lst in sorted(h.items()):
+            stock = len(bh.get(k, [])) >= len(lst)
+            for n, src, s in lst:
+                print("%s %s %s.%s src:%s asm:%d  %s" % ("UPSTREAM" if stock else "FAIL", os.path.basename(p), k[0], k[1],
+                                                       src, n, s))
+            if stock:
+                up += len(lst)
+            else:
+                fail += len(lst)
+    print("ARRAY_NONE_GATE %s: %d pex, %d ours, %d stock upstream" % ("FAIL" if fail else "PASS", len(pexes), fail, up))
+    return 1 if fail else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

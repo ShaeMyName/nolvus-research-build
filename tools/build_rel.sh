@@ -13,3 +13,8 @@ build() { # $1 src dir (posix)  $2 src dir (win)  $3 out (win)
 }
 build /c/nolvus-research/build/src/relationships/src/scripts 'C:\nolvus-research\build\src\relationships\src\scripts' 'C:\nolvus-research\build\bin\rel_patched'
 build /c/nolvus-research/build/upstream/relationships-2.0.1/src/scripts 'C:\nolvus-research\build\upstream\relationships-2.0.1\src\scripts' 'C:\nolvus-research\build\bin\rel_baseline'
+# REVIEW_LOG RV-72 (a): post-build gate, fails on any array-vs-None compare in our pex (all our output folders)
+B=/c/nolvus-research/build/bin
+out=$(python /c/nolvus-research/build/tools/array_none_gate.py --baseline $B/patched=$B/ie_baseline351 --baseline $B/rel_patched=$B/rel_baseline $B/eb $B/harness $B/patched $B/rel_patched $B/luc $B/sc); g=$?
+echo "$out" | tail -12
+[ $g -ne 0 ] && { echo 'ARRAY_NONE_GATE FAIL: build rejected'; exit 1; }

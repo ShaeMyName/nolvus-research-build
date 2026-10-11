@@ -23,4 +23,9 @@ for f in "${list[@]}"; do
   e=${PIPESTATUS[0]}; [ $e -ne 0 ] && rc=1
   echo "== $f exit $e"
 done
+# REVIEW_LOG RV-72 (a): post-build gate, fails on any array-vs-None compare in our pex (all our output folders)
+B=/c/nolvus-research/build/bin
+out=$(python /c/nolvus-research/build/tools/array_none_gate.py --baseline $B/patched=$B/ie_baseline351 --baseline $B/rel_patched=$B/rel_baseline $B/eb $B/harness $B/patched $B/rel_patched $B/luc $B/sc); g=$?
+echo "$out" | tail -12
+[ $g -ne 0 ] && { echo 'ARRAY_NONE_GATE FAIL: build rejected'; exit 1; }
 exit $rc
