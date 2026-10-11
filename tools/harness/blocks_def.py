@@ -30,7 +30,7 @@ block("U1", "T0", ["tests_b", "tests_tm_l", "tests_misc", "tests_ie"], [
 # Unpadded estimates (time plan §5, re-tier §5): B ~2.5 h incl. B-20's 70 min; TM/L ~1.2 h; the rest ~1.2 h
 # (D-4's 29 min moved to the soak). Used only for the live ETA; the pace factor corrects them as tests finish.
 
-block("U2", "T0", ["tests_u2", "tests_u2_e", "tests_u2_wh", "tests_u2_len", "tests_u2_sc", "tests_u2_da", "tests_u2_ip", "tests_u2_misc"], [
+block("U2", "T0", ["tests_u2", "tests_u2_e", "tests_u2_wh", "tests_u2_len", "tests_u2_sc", "tests_u2_da", "tests_u2_ip", "tests_u2_misc", "tests_u2_nt"], [
     # harness API smoke first: every R5 test needs it
     "H-2",
     # witness emitter + perception scope (market)
@@ -45,6 +45,8 @@ block("U2", "T0", ["tests_u2", "tests_u2_e", "tests_u2_wh", "tests_u2_len", "tes
     "LEN-1", "LEN-2", "LEN-3", "LEN-5", "LEN-6", "LEN-8", "SEC-3", "SEC-1", "SEC-2", "SEC-4",
     # scene stack: joins/leaves first, the three 20-reply scenes last (60 LLM calls)
     "SC-7", "SC-8", "SC-9", "SC-11", "SC-12", "SC-13", "SC-10", "SC-1", "SC-3", "SC-4", "SC-2", "SC-5", "SC-6",
+    # notices (the per-decision audit runs after every test anyway)
+    "NT-1", "NT-2",
     # equip-event audience, child addressed, storage
     "X-6", "CS-2", "T10-1", "X-9", "X-10", "X-11", "MA-1", "AZ-11", "T10-3", "T10-7", "T10-8",
     # intimacy profiles (mechanics only; feature switched on per test, T0 reload after each)

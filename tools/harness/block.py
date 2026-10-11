@@ -27,6 +27,46 @@ def test(tid, family, save="T0", reload=False, forced=False):
     return deco
 
 
+# ---------------------------------------------------------------- notice audit (REVIEW_LOG RV-61, spec §17a)
+NOTICE_OF = {"REFUSE": ("N3", "{n} can't go right now."), "REJOIN_WAIT": ("N4", "{n} will rejoin you when you're near."),
+             "DISPATCH_CONFLICT": ("N7", "{n}'s errand was called off.")}
+NOTICE_REASONED = {("REJOIN_DONE", None): ("N5", "{n} has rejoined you."), ("REJOIN_DONE", "recalled"): ("N5", "{n} has rejoined you."),
+                   ("REJOIN_TO_WAIT", "unloaded_nowarp"): ("N6", "{n} is waiting where the errand ended."),
+                   ("REJOIN_TO_WAIT", "told_stay"): ("N6", "{n} is waiting where the errand ended.")}
+DECISION_RX = re.compile(r"\[IEB\] (REFUSE|REJOIN_WAIT|DISPATCH_CONFLICT|REJOIN_DONE|REJOIN_TO_WAIT) actor=(.+?)(?: reason=(\S+)|$| backstop=)")
+NOTICE_RX = re.compile(r"\[IEB\] NOTICE (N\d) (shown|suppressed) text=(.*)$")
+
+
+def notice_audit(r, text):
+    """Every bridge decision with a notice (N3-N7) in this test's Papyrus window must be followed by exactly that notice,
+    for that actor, with the spec's exact text ('shown' or, with IEB_Spare01 = 1, 'suppressed'). Skipped (logged) when
+    the installed bridge has no notices yet (no NOTICE line at all in the window)."""
+    lines = [l.strip() for l in text.splitlines()]
+    decisions, notices = [], []
+    for i, l in enumerate(lines):
+        m = DECISION_RX.search(l)
+        if m:
+            kind, who, why = m.group(1), m.group(2).strip(), m.group(3)
+            want = NOTICE_OF.get(kind) or NOTICE_REASONED.get((kind, why))
+            if want:
+                decisions.append((i, kind, who, want))
+        n = NOTICE_RX.search(l)
+        if n:
+            notices.append((i, n.group(1), n.group(3).strip()))
+    if not decisions:
+        return
+    if not notices:
+        r.log("NOTE %s: %d notice-bearing decision(s), no NOTICE line in the window (notices not installed?)" % (r.name, len(decisions)))
+        return
+    used = set()
+    for i, kind, who, (nid, tmpl) in decisions:
+        text_want = tmpl.format(n=who)
+        hit = next((j for j, (k, x, t) in enumerate(notices) if j not in used and k > i and x == nid and t.lower() == text_want.lower()), None)   # Papyrus string pool may case-fold
+        r.check(hit is not None, "notice %s follows %s for %s with the spec text" % (nid, kind, who))
+        if hit is not None:
+            used.add(hit)
+
+
 # ---------------------------------------------------------------- setup-only pass (one source for both modes)
 class SetupReached(BaseException):
     """Raised by checkpoint() in setup-only mode. A BaseException, so a test's own `except Exception` never swallows
@@ -310,6 +350,11 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
         t0 = time.time()
         call_test(meta["fn"], r)        # a harness bug fails the test, not the block; SetupReached ends a setup-only test
         crashed = "SkyrimSE.exe" not in game.procs()
+        if not setup_only:
+            try:
+                notice_audit(r, r.tails["papyrus"].read())
+            except Exception as e:
+                r.log("NOTE %s: notice audit error %r" % (tid, e))
         if not crashed:
             # REVIEW_LOG RV-87 (1): crash context after every test (game hour, days, Saffir's package/3D: the actor in
             # both 2026-10-10/11 crash logs, signature SkyrimSE+067496C / AI Overhaul pkg 0xCF001957). Fire and forget:
