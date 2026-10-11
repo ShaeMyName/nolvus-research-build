@@ -97,6 +97,15 @@ def main():
         if not game.launch(say, voices=False):
             raise RuntimeError("launch refused or failed")
         ctl = Run("RV72_CONTROL")
+        # REVIEW_LOG RV-94: Flash-vs-Pro step 1, the MCP tool list (names only), read in setup (not an idle window)
+        try:
+            res = ctl.c.request("tools/list", {}, timeout=30)
+            names = sorted(t.get("name", "?") for t in (res.get("result", res).get("tools", []) if isinstance(res, dict) else []))
+            open("C:/nolvus-research/test_runs/mcp_tools_%s.txt" % time.strftime("%Y%m%d-%H%M%S"), "w",
+                 encoding="utf-8").write("\n".join(names) + "\n")
+            say("MCP TOOL LIST read at %s: %d tools" % (time.strftime("%H:%M:%S"), len(names)))
+        except Exception as e:
+            say("MCP TOOL LIST read failed: %r" % (e,))
         # 1. T0
         pap, ok = load(ctl, "T0")
         if not ok:
