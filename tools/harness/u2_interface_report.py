@@ -201,6 +201,11 @@ INVENTORY = [
     I("LG-07", "log", "SeverActions log mentions 'WaitForPlayerHere' when told 'wait here' (count recorded, not asserted)", "G", ["tests_u2_da.py:150,165"], [],
       "INFERRED name (tests_u2_da.py:150); only DA-8 reads it and DA-8 is not in the smoke", ok=[], bad=[],
       note="NOT REACHED by design: record-only, no assertion hangs on it; DA-8 itself reports the count when it runs in U2-A"),
+    I("LG-08", "log", "EquipEventHandler lines: \"Equip event: '<name>' unequipped '<item>'\" (info) and \"Equip event: Actor '<name>' is too far away\" (debug), matched by the NPC's display name", "L",
+      ["tests_u2_misc.py unequip_watch"], ["X-6"],
+      "both formats seen live (RV-160; EquipEventHandler.cpp:65 and :37 in test_runs/CRASH_repro_20261011-071807/raw/*_SkyrimNet.log); that the display name UUIDOf prints equals the logged name is INFERRED",
+      ok=[R(r"^PASS X-6 A \(300 u, in view\): the handler processed", "X-6"), R(r"^PASS X-6 C \(radius \+ 400 u\): the handler skipped it", "X-6")],
+      bad=[R(r"^INCONCLUSIVE X-6 [AC]: no 'Equip event' line within 10 s", "X-6"), R(r"^FAIL X-6 A \(300 u, in view\)", "X-6")]),
 
     # ---- our own Papyrus log formats and TestCtl wrappers (static match against the .psc; first live use)
     I("PL-01", "papyrus", "[IEB-SC] 'WITNESS exposure rc=<n>' on a player undress", "S", ["tests_u2.py:150-166 fire_exposure", "IEB_SceneMain.psc:584,663"], ["WE-1", "CS-2"],
@@ -269,11 +274,11 @@ INVENTORY = [
     # ---- template decorators, event / slot names used in render() calls
     I("TP-01", "template", "has_line_of_sight(npc.UUID, responseTarget.UUID) in a content render with response_target_uuid", "L", ["tests_u2.py:46-49 los", "tests_misc.py:1757 _attire_probe"],
       ["WE-1", "X-6"], "seen live in U1 X-7 (parsed false/true); re-confirmed here",
-      ok=[R(r"^PASS WE-1 A \(300 u, in view\)", "WE-1"), R(r"^\s+equip-type events A", "X-6")],
+      ok=[R(r"^PASS WE-1 A \(300 u, in view\)", "WE-1"), R(r"^\s+equip event A \(", "X-6")],
       bad=[R(r"^INCONCLUSIVE (?:WE-1|X-6) .*(?:without line of sight|line-of-sight setup)")]),
     I("TP-02", "template", "an actor placed at (300, 0, -400) from the player has NO line of sight (terrain blocks it) while the one at (300, 0, 0) has", "G",
       ["tests_u2_misc.py:34-35", "tests_misc.py:1773", "tests_u2.py:7"], ["X-6"], "INFERRED (tests_misc.py:1773 'INFERRED that terrain blocks has_line_of_sight'; self-checked)",
-      ok=[R(r"^\s+equip-type events A", "X-6")], bad=[R(r"^INCONCLUSIVE X-6 line-of-sight setup not as wanted", "X-6")]),
+      ok=[R(r"^\s+RECORD B \(~500 u, no line of sight\)", "X-6")], bad=[R(r"^INCONCLUSIVE X-6 (?:A was placed without line of sight|B's line-of-sight setup)", "X-6")]),
     I("TP-03", "template", "history route: get_recent_events(n, [actorUUID]) + format_event(e, 'compact') + contains() + e.type counted in a for-loop", "S",
       ["tests_u2.py:33-43 hist_hits"], ["WE-1", "PV-3", "PV-4", "CS-2"], "usage VERIFIED in our own layer templates (tests_u2.py:5); first live render through render_template",
       ok=[R(r"^PASS WE-1 A \(300 u, in view\): ieb_witness \+1", "WE-1"), R(r"^\s+PV-4: nonce line hits \(counts only\)", "PV-4")],
@@ -286,13 +291,24 @@ INVENTORY = [
       "type id 'dialogue' is in the DLL event list and used by skyrimnet.base prompts; the '+2 per exchange' count is INFERRED (unmarked)",
       ok=[R(r"^PASS CS-2 \w+: the child replied", "CS-2")], bad=[R(r"^FAIL CS-2 \w+: the child replied", "CS-2")],
       note="a FAIL line shows the before -> after counts; adjust the +2 threshold from them"),
-    I("TP-06", "template", "an equip / unequip event has a type id containing 'equip' (contains(e.type, 'equip'))", "G", ["tests_u2_misc.py:55-60 render_equip", "tests_u2_misc.py:47"], ["X-6"],
-      "INFERRED name (tests_u2_misc.py:17,47); the DLL event list has no 'equip*' id (it names the schema 'Equipment change')",
-      ok=[R(r"^PASS X-6 B \(no line of sight\) gets no equip event", "X-6")], bad=[R(r"^INCONCLUSIVE X-6 no equip-type event reached A", "X-6")]),
-    I("TP-07", "template", "get_worn_equipment slot keys 'feet' / 'hands' exist for non-body items", "G", ["tests_u2_misc.py:23-27"], ["X-6"],
-      "only 'torso' is VERIFIED live (tests_misc.py:386); 'feet'/'hands' unmarked", ok=[R(r"^\s+equip-type events A", "X-6")],
-      bad=[R(r"^INCONCLUSIVE X-6 the player wears nothing on feet or hands", "X-6")],
-      note="a miss may also mean the test player wears nothing there: read the slot keys in worn_rows output before changing the names"),
+    I("TP-06", "template", "the equip / unequip event is type 'equip', EPHEMERAL (Events.yaml persistent false, shortLivedEnabled true): never in get_recent_events", "L",
+      ["tests_u2_misc.py short_equip / unequip_watch / x6"], ["X-6"],
+      "VERIFIED live (RV-160): SkyrimNet.log 'Registered schema for event type 'equip'' (EventSchemaRegistry.cpp:35), 'Equip event: <name> equipped|unequipped <item>' (EquipEventHandler.cpp:65, info) and "
+      "'Registered short-lived event ... of type 'equip' with TTL 45000ms' (SceneContextBuilder.cpp:335) in test_runs/CRASH_repro_20261011-071807/raw/074232_R1_SkyrimNet.log; persistent false at "
+      "SkyrimNet Config - Test/.../config/Events.yaml:106-114. The DLL strings dump has no 'equip' id line only because the id is an inline short string. The old test counted it in the history list, "
+      "where an ephemeral event never is; the new X-6 asserts the short-lived scene list and an UNCHANGED history. Whether the PLAYER's own equips raise it is unobserved, so an NPC is the equipper.",
+      ok=[R(r"^PASS X-6 A: the scene render counts a new short-lived 'equip' event", "X-6"), R(r"^PASS X-6 [AB]: no 'equip' row in the history", "X-6")],
+      bad=[R(r"^FAIL X-6 A: the scene render counts a new short-lived", "X-6"), R(r"^FAIL X-6 [AB]: no 'equip' row in the history", "X-6")],
+      note="FAIL on the history line means the test profile's Events.yaml no longer has equip persistent: false"),
+    I("TP-07", "template", "get_worn_equipment slot keys 'feet' / 'hands' (preferred) exist for an NPC's non-body items; npc_item falls back to any non-torso, non-weapon slot", "G", ["tests_u2_misc.py npc_item"], ["X-6"],
+      "only 'torso' is VERIFIED live (tests_misc.py:386); 'feet'/'hands' unmarked, and the fallback makes a miss harmless unless the NPC wears nothing but a body item", ok=[R(r"^\s+equip event A \(", "X-6")],
+      bad=[R(r"^INCONCLUSIVE X-6 \w wears no non-body item", "X-6")],
+      note="a miss means the NPC wears nothing outside the body slot: read the slot keys in worn_rows output before changing the names"),
+    I("TP-14", "template", "get_short_lived_events_by_type(\"equip\") returns an array whose length() counts the live scene-wide short-lived equip events", "S",
+      ["tests_u2_misc.py short_equip"], ["X-6"],
+      "decorator name and array result VERIFIED as DLL strings (:43670-43680; the stock component_recent_events.prompt reads scene.short_lived_events, 0700_scene_world_decorators.prompt uses the decorators); first live render",
+      ok=[R(r"^PASS X-6 A: the scene render counts a new short-lived 'equip' event", "X-6"), R(r"^\s+equip event A \(.*short-lived 'equip' count \d+ -> \d+", "X-6")],
+      bad=[R(r"^INCONCLUSIVE X-6 A: the short-lived events render failed", "X-6")]),
     I("TP-08", "template", "an inline thought is stored as an event whose type contains 'thought'", "G", ["tests_u2_len.py:153-156,514,747-752"], ["SEC-4"],
       "INFERRED (tests_u2_len.py:737); DLL knows npc_thought / npc_thoughts", ok=[R(r"^\s+RECORD private-token hits in thought events", "SEC-4")],
       bad=[R(r"^INCONCLUSIVE SEC-4 no thought event stored", "SEC-4")]),
@@ -588,7 +604,10 @@ def rule_text(r):
 
 STATIC_NOTES = [
     "The DLL string table (skyrimnet_b25_1_dll_strings.txt) lists the trigger event ids dialogue, dialogue_npc, dialogue_player, npc_thoughts, player_thoughts, activation, "
-    "combat, enter_bleedout, book_read, mod_event ... and NO id containing 'equip' (the equip event's schema is titled 'Equipment change', :56845): TP-06 stays a real guess.",
+    "combat, enter_bleedout, book_read, mod_event ... and NO id line containing 'equip' (the schema is titled 'Equipment change', :56845). RV-160: the id exists anyway, it is 'equip' (an inline "
+    "short string, so not in the dump): the live SkyrimNet.log shows 'Registered schema for event type 'equip'' and 'Equip event: ...' lines; and it is EPHEMERAL in the test profile "
+    "(Events.yaml:106-114 persistent false), so it is never in get_recent_events. X-6 was redesigned to assert what can be observed (TP-06, TP-14, LG-08): an NPC's unequip, the handler's log line, the scene-wide short-lived "
+    "list, an unchanged history, and the distance gate ('too far away'); the spec's 'behind a wall' half cannot be asserted (no line-of-sight gate in the handler strings) and is a RECORD.",
     "The ui-state strings are 'menu_open', 'MessageBoxMenu open but the game thread did not respond' and a log of '<n> menu(s), box=<..>' (:58227-58229), so the response most likely "
     "has menus / box fields; whether str(response) holds the literal 'MessageBoxMenu' while a box is open is HT-03.",
     "dismiss-ui validates 'button must be a non-negative integer' (:58335): an INDEX; which index is Allow is HT-13 (NT-4 reads the scheduling result ok=True afterwards).",
