@@ -1,0 +1,9 @@
+{# TEST STUB with a PLACEHOLDER TOKEN. Real text: lucienne/staging/0956_luc_azura_priestess.prompt. #}
+{% if render_mode == "full" %}
+{% if papyrus_util("GetIntValue", player.UUID, "LUC_Active", 0) == 1 and not decnpc(actorUUID).isVirtual and decnpc(actorUUID).name == "Aranea Ienith" %}
+{% set _luc_pd = distance_between(actorUUID, player.UUID) %}
+{% if _luc_pd > 0 and _luc_pd <= 1600 %}
+TKN_PRIVATE_AZURA_PRIESTESS
+{% endif %}
+{% endif %}
+{% endif %}

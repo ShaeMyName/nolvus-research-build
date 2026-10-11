@@ -364,6 +364,24 @@ When you decide this prayer is over, end your final line with the marker ⟦luc-
 """)
 
 # ------------------------------------------------------------------ canon-derived files
+
+def priestess(body):
+    """Shae 2026-10-10 (DECISIONS, AI behaviour): the priestess at Azura's shrine senses who Lucienne is. Gates
+    (REVIEW_LOG reviewer conditions): render_mode "full" only = her OWN prompts (dialogue, memory, diary, actions;
+    bystanders and the speaker selector get dialogue_target / short_inline / interject_inline, so nobody else reads
+    it, VERIFIED skyrimnet.base 0100_actor_bios.prompt:1-3); Lucienne within talking range (distance_between, config
+    interaction.maxDistance 1600, CONFIGPROBE 2026-10-10), so the entry is absent when she talks to anyone else. Gates
+    wrap this entry only: her own event memories and SkyrimNet's quest context are untouched."""
+    return ("""{% if render_mode == "full" %}
+{% if """ + ACTIVE + """ and not decnpc(actorUUID).isVirtual and decnpc(actorUUID).name == "Aranea Ienith" %}
+{% set _luc_pd = distance_between(actorUUID, player.UUID) %}
+{% if _luc_pd > 0 and _luc_pd <= 1600 %}
+""" + body.strip("\n") + """
+{% endif %}
+{% endif %}
+{% endif %}
+""")
+
 if MODE == "test":
     w("prompts/characters/dusk_virtual.prompt", """{# TEST STUB with PLACEHOLDER TOKENS (no canon text in the test profile). Real text: lucienne/staging/dusk_virtual.prompt. #}
 {# Bland blocks are the real neutral text (spec 11.15.2); identity blocks are tokens (AZ-5 checks they render only in Dusk's own full prompt). #}
@@ -417,6 +435,9 @@ TKN_SHARED_APPEARANCE
 {% endif %}
 {% endif %}
 """)
+    w("prompts/submodules/character_bio/0956_luc_azura_priestess.prompt",
+      "{# TEST STUB with a PLACEHOLDER TOKEN. Real text: lucienne/staging/0956_luc_azura_priestess.prompt. #}\n"
+      + priestess("TKN_PRIVATE_AZURA_PRIESTESS"))
     os.makedirs("C:/nolvus-research/build/out/lucienne", exist_ok=True)
     open("C:/nolvus-research/build/out/lucienne/player_bio_TEST.prompt", "w", encoding="utf-8", newline="\n").write(
         "{# TEST placeholder of Lucienne's per-playthrough player bio (A12). Real text: lucienne/staging/lucienne_player_bio.prompt,\n"
@@ -433,5 +454,7 @@ else:
     s = read(STAGE + "0955_luc_princes.prompt")
     s = sub1(s, "{% if not decnpc(actorUUID).isVirtual %}", "{% if " + ACTIVE + " and not decnpc(actorUUID).isVirtual %}")
     w("prompts/submodules/character_bio/0955_luc_princes.prompt", s)
+    w("prompts/submodules/character_bio/0956_luc_azura_priestess.prompt",
+      priestess(read(STAGE + "0956_luc_azura_priestess.prompt")))
 
 print("shae.lucienne (%s): %d files written" % (MODE, len(files)))

@@ -1,6 +1,6 @@
 {
   "errors": [],
-  "files": 22,
+  "files": 23,
   "not_checked": [
     "decorator names, arities and values (users register their own; every call is listed under unresolved)",
     "action questEditorId / scriptName / executionFunctionName existence (needs game data)",
@@ -641,6 +641,13 @@
       "code": "UNRESOLVED",
       "col": 7,
       "file": "submodules/character_bio/0955_luc_princes",
+      "line": 3,
+      "message": "variable 'papyrus_util' not found"
+    },
+    {
+      "code": "UNRESOLVED",
+      "col": 7,
+      "file": "submodules/character_bio/0956_luc_azura_priestess",
       "line": 3,
       "message": "variable 'papyrus_util' not found"
     },
