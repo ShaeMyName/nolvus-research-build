@@ -227,10 +227,26 @@ def open_prayer(r):
 
 
 def close_prayer(r, timeout=30):
-    """Production end path: Dusk off; the alias poll (2 s, two misses) ends the prayer and requests the summary."""
+    """Production end path: Dusk off; the alias poll (2 s, two misses) ends the prayer and requests the summary.
+    RV-123 (3): the write is read back from LUCDUSK's own dusk= (GetVirtualNPCUUID after the call); a Dusk still on
+    returns None (INCONCLUSIVE logged), else whether the prayer-ended line came."""
     t = tail("papyrus")
     r.ctl("LucDusk", [0])
+    w = t.wait(r"(?i)\[IEB-TEST\] LUCDUSK ([^\r\n]*)", 5)
+    if not w or dusk_of(parse_kv(w.group(1))):
+        inc(r, "read-back LucDusk(0): %s (RV-123 (3))" % ("Dusk still enabled" if w else "no LUCDUSK line"))
+        return None
     return t.wait(r"\[LUC\] prayer \d+ ended[^\r\n]*", timeout) is not None
+
+
+def luc_readback(r, label, shrine=None):
+    """RV-123 (3): read back a reload=False test's restore (Dusk off; LUC_VisitedAzuraShrine if given) by LucProbe.
+    True, or INCONCLUSIVE logged and False."""
+    st = luc_probe(r)
+    if not st or dusk_of(st) or (shrine is not None and iv(st, "shrine", -1) != shrine):
+        inc(r, "read-back %s: %s (RV-123 (3))" % (label, state_line(st) if st else "no LucProbe line"))
+        return False
+    return True
 
 
 def cleanup_prayer(r):
@@ -238,6 +254,9 @@ def cleanup_prayer(r):
     without a journal call (LUC_Praying = 0 first, so the poll never runs EndPrayer; then Dusk off): no LLM call."""
     if getattr(r, "setup_only", False):
         r.ctl("SUSetInt", [PLAYER, "LUC_Praying", 0])
+        st = luc_probe(r)           # RV-123 (3): SU's set= is an echo; LucProbe reads LUC_Praying back
+        if not st or iv(st, "praying") != 0:
+            inc(r, "read-back SUSetInt LUC_Praying=0: %s (RV-123 (3))" % (state_line(st) if st else "no LucProbe line"))
     r.ctl("LucDusk", [0])
 
 
@@ -521,6 +540,7 @@ def az5(r):
                 r.check(n == 0 and not v, "%s: %d/%d identity tokens, veil line %s" % (mode, n, len(toks), v))
     finally:
         r.ctl("LucDusk", [0])
+        luc_readback(r, "AZ-5 restore LucDusk(0)")      # AZ-5 is reload=False: Dusk must not stay on
 
 
 @test("AZ-7", "AZ")
@@ -578,6 +598,10 @@ def az7(r):
         r.check((H["shrine"] in full) == (shrine0 == 0), "shrine nudge %s with LUC_VisitedAzuraShrine=%d"
                 % ("present" if shrine0 == 0 else "absent", shrine0))
         r.ctl("SUSetInt", [PLAYER, "LUC_VisitedAzuraShrine", 1 - min(shrine0, 1)])
+        stf = luc_probe(r)          # RV-123 (3): SU's set= is an echo; LucProbe reads the flag back
+        if not stf or iv(stf, "shrine", -1) != 1 - min(shrine0, 1):
+            return inc(r, "read-back SUSetInt LUC_VisitedAzuraShrine=%d: %s (RV-123 (3))"
+                       % (1 - min(shrine0, 1), state_line(stf) if stf else "no LucProbe line"))
         flipped = None
         for _ in range(6):          # papyrus_util cache
             time.sleep(10)
@@ -593,6 +617,7 @@ def az7(r):
     finally:
         r.ctl("SUSetInt", [PLAYER, "LUC_VisitedAzuraShrine", shrine0])
         r.ctl("LucDusk", [0])
+        luc_readback(r, "AZ-7 restore (shrine flag, LucDusk(0))", shrine=shrine0)    # AZ-7 is reload=False
 
 
 # ============================================================================ AZ-8 journal + digest + rollback
@@ -638,7 +663,8 @@ def az8(r):
                 close_prayer(r)
                 return inc(r, "prayer %d: no thought route reached the history" % k)
             got = bool(new_reply(r, pu, duk, before))
-            close_prayer(r)
+            if close_prayer(r) is None:
+                return              # LucDusk(0) not read back (INCONCLUSIVE logged)
             m = t.wait(r"\[LUC\] (?:journal entry stored|summary failed)[^\r\n]*", 120)
             ok = m is not None and "stored" in m.group(0)
             stored += ok
@@ -661,6 +687,8 @@ def az8(r):
         # read-back in her prompt: journal entries and digest appear in Dusk's full profile (in memory)
         r.ctl("LucDusk", [1])
         st2 = luc_probe(r)
+        if not dusk_of(st2):        # RV-123 (3): read back before the read-back renders depend on Dusk
+            return inc(r, "read-back LucDusk(1): Dusk did not enable (%s)" % (state_line(st2) if st2 else "no probe"))
         seen, total, dig_in = 0, 0, False
         for _ in range(6):          # papyrus_util cache
             jr = render(r, pu, '{%% set _j = papyrus_util("GetStringList", player.UUID, "LUC_PrayerJournal") %%}{%% if '
@@ -783,6 +811,11 @@ def form_of(r, plugin, local):
         return None
 
 
+def _dist(r, fid):
+    from tests_u2_wh import dist        # lazy: tests_u2_wh imports tests_u2 (house pattern, tests_misc.near_player)
+    return dist(r, fid)
+
+
 def runtime_base(rid):
     return rid & 0xFFFFF000 if (rid >> 24) == 0xFE else rid & 0xFF000000
 
@@ -825,6 +858,11 @@ def az11(r):
         u, _, _ = who(r, ref["id"])
         if not u:
             unavailable += 1
+            continue
+        d = _dist(r, ref["id"])         # RV-123 (3) read-back of the player.moveto (tests_u2_wh.dist)
+        if d is None or d > 1500:
+            unavailable += 1
+            r.log("  target: player.moveto not read back (%s u from the target; RV-123 (3))" % d)
             continue
         if setup_skip(r):
             continue
@@ -927,7 +965,8 @@ def az6(r):
     1 Dusk reply + 1 summary LLM calls (+ GameMaster's own)."""
     if not harness_ready(r):
         return
-    market(r)
+    if not market(r):
+        return
     if not ensure_active(r):
         return
     pu, cu = uuids(r, PLAYER, C_NPC)

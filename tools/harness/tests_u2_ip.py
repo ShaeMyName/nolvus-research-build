@@ -11,7 +11,7 @@ import json, os, re, time
 import game
 from block import test, checkpoint
 from tests_misc import (PLAYER, YSOLDA, CHILD, F1, con, ctl_line, inc, rel, ah, su_set, su_get, who, tail, render,
-                        ensure_child_enrolled, s32)
+                        ensure_child_enrolled, s32, near_player)
 from fidnorm import fid_any_rx
 from tests_u2 import uuids, market, place, bring_back
 
@@ -20,7 +20,19 @@ HEADING = "## Your intimacy profile"
 
 
 def intimacy_on(r, on=True):
+    """IEB_IntimacyEnabled on the player, read back Papyrus-side (SUGetInt; SU's set= is only an echo). RV-123 (3).
+    True, or INCONCLUSIVE logged and False."""
     su_set(r, PLAYER, "IEB_IntimacyEnabled", 1 if on else 0)
+    return su_is(r, PLAYER, "IEB_IntimacyEnabled", 1 if on else 0)
+
+
+def su_is(r, fid, key, want):
+    """RV-123 (3) read-back of a SUSetInt: SUGetInt (Papyrus) must give `want`. True, or INCONCLUSIVE logged and False."""
+    v = su_get(r, None, key, fid=fid)
+    if v != want:
+        inc(r, "read-back SUSetInt %08X %s=%d: read %s (RV-123 (3))" % (fid, key, want, v))
+        return False
+    return True
 
 
 def prompt_counts(text):
@@ -65,11 +77,15 @@ def ip1(r):
     ieb_intimacy_author call; snrom 'Intimacy profile stored for <name> (length N)' (N reported); the mirror string
     IEB_IntimacyProfile is non-empty (length only). The durable 'Intimacy' store field is checked through the mirror
     restore in IP-5. 2 LLM calls."""
-    market(r)
+    if not market(r):
+        return
     con(r, "%08X.moveto player" % YSOLDA)
     time.sleep(3)
+    if not near_player(r, YSOLDA, "Ysolda moveto player"):
+        return
     checkpoint(r, "2 LLM calls")
-    intimacy_on(r)
+    if not intimacy_on(r):
+        return
     e = enroll_adult(r, YSOLDA)
     if not e:
         return
@@ -91,7 +107,8 @@ def ip1(r):
 def ip2(r):
     """A child enrolled (CS-11 route) with the feature on: NO ieb_intimacy_author call, no mirror string. Pass/fail only."""
     checkpoint(r, "1 LLM call (the child's own disposition)")
-    intimacy_on(r)
+    if not intimacy_on(r):
+        return
     sn = tail("skyrimnet")
     u, name = ensure_child_enrolled(r)
     if not u:
@@ -108,18 +125,25 @@ def ip3(r):
     """Intimacy NEVER (SNRom_PhysMinTier < 0) on an enrolled, authored adult: even forced and re-queued, no profile call.
     Setup: enroll Ysolda with the feature OFF (no profile), then set PhysMinTier -1 + IEB_ForceIntimacyAuthor 1, switch the
     feature on and call IEB_QueueIntimacy directly. 1 LLM call (disposition)."""
-    market(r)
+    if not market(r):
+        return
     con(r, "%08X.moveto player" % YSOLDA)
     time.sleep(3)
+    if not near_player(r, YSOLDA, "Ysolda moveto player"):
+        return
     checkpoint(r, "1 LLM call")
-    intimacy_on(r, False)
+    if not intimacy_on(r, False):
+        return
     e = enroll_adult(r, YSOLDA)
     if not e:
         return
     u, name, sn, st = e
     su_set(r, YSOLDA, "SNRom_PhysMinTier", -1)
     su_set(r, YSOLDA, "IEB_ForceIntimacyAuthor", 1)
-    intimacy_on(r, True)
+    if not (su_is(r, YSOLDA, "SNRom_PhysMinTier", -1) and su_is(r, YSOLDA, "IEB_ForceIntimacyAuthor", 1)):
+        return
+    if not intimacy_on(r, True):
+        return
     sn.mark()
     rel(r, "IEB_QueueIntimacy", [ah(YSOLDA)])
     time.sleep(40)
@@ -132,11 +156,15 @@ def ip4(r):
     """Heading search only: after IP-1-style authoring, the profile heading is in Ysolda's OWN dialogue_response with scene
     mode on and her as partner; absent with scene mode off (Friend or below); absent from a bystander's (F1) prompt.
     The 'romantic Lover' half needs the Lover rank -> recorded as not covered here. 2 LLM calls."""
-    market(r)
+    if not market(r):
+        return
     con(r, "%08X.moveto player" % YSOLDA)
     time.sleep(3)
+    if not near_player(r, YSOLDA, "Ysolda moveto player"):
+        return
     checkpoint(r, "2 LLM calls")
-    intimacy_on(r)
+    if not intimacy_on(r):
+        return
     e = enroll_adult(r, YSOLDA)
     if not e:
         return
@@ -147,6 +175,9 @@ def ip4(r):
     off = has_heading(r, u, pu)
     ctl_line(r, "SceneOn", [YSOLDA], r"\[IEB-TEST\] SCENE on partner=")
     try:
+        # RV-123 (3): SCENE on only echoes the partner; read the keys SceneOn writes back Papyrus-side
+        if not (su_is(r, YSOLDA, "IEB_IsScenePartner", 1) and su_is(r, PLAYER, "IEB_SceneMode", 1)):
+            return
         time.sleep(6)
         on = has_heading(r, u, pu)
         by = has_heading(r, fu, pu) if fu else None
@@ -162,11 +193,15 @@ def ip4(r):
 def ip5(r):
     """Save, reload: the mirror string is restored after load (length > 0, IEB_IntimacyOnLoad), and again after a second
     reload with harness mode's automatic Delete History (the durable store keeps the field). 2 LLM calls (authoring)."""
-    market(r)
+    if not market(r):
+        return
     con(r, "%08X.moveto player" % YSOLDA)
     time.sleep(3)
+    if not near_player(r, YSOLDA, "Ysolda moveto player"):
+        return
     checkpoint(r, "2 LLM calls + 2 reloads")
-    intimacy_on(r)
+    if not intimacy_on(r):
+        return
     e = enroll_adult(r, YSOLDA)
     if not e:
         return

@@ -15,7 +15,7 @@ import sn_harness as SH
 from block import test, checkpoint
 from fidnorm import fid_any_rx
 from tests_misc import (PLAYER, F1, F2, CARLOTTA, FRALIA, YSOLDA, con, ctl_line, hx, inc, render, rval, truthy, who,
-                        worn_rows, to_formid, su_get)
+                        worn_rows, to_formid, su_get, near_player, body_flag)
 
 A_NPC, B_NPC, C_NPC = FRALIA, YSOLDA, CARLOTTA      # bystanders (market townsfolk, adults, not on errands)
 SC_PLUGIN = "SceneControls.esp"
@@ -64,16 +64,47 @@ def far(r):
 
 
 def place(r, fid, dx, dy, dz):
-    return ctl_line(r, "PlaceRel", [fid, PLAYER, float(dx), float(dy), float(dz)], r"\[IEB-TEST\] PLACE")
+    """PlaceRel onto the player, read back (RV-123 (3)): the PLACE line only echoes the offsets, so the actor's distance
+    to the player (tests_u2_wh.dist, CombatProbe dPlayer) must be within max(250, 15 %) of |offset|. Returns the PLACE
+    match, or None (INCONCLUSIVE logged)."""
+    from tests_u2_wh import dist
+    m = ctl_line(r, "PlaceRel", [fid, PLAYER, float(dx), float(dy), float(dz)], r"\[IEB-TEST\] PLACE")
+    want = (float(dx) ** 2 + float(dy) ** 2 + float(dz) ** 2) ** 0.5
+    d = dist(r, fid)
+    if d is None or abs(d - want) > max(250.0, 0.15 * want):
+        inc(r, "read-back PlaceRel %s: %s u from the player (want ~%d; RV-123 (3))"
+            % (hx(fid), "no CombatProbe line" if d is None else d, want))
+        return None
+    return m
 
 
-def bring_back(r, fid):
+def bring_back(r, fid, readback=True):
+    """'<ref>.moveto player', read back by distance (RV-123 (3)) unless readback=False (a cleanup in a reload=True test,
+    where nothing after it depends on the move). True/False."""
     con(r, "%08X.moveto player" % fid)
+    return near_player(r, fid, "bring_back") if readback else True
 
 
 def market(r):
+    """player.moveto Carlotta (market), read back by distance (RV-123 (3); 1500 u: she may walk off her stall during
+    the 8 s settle). True, or INCONCLUSIVE logged and False."""
     con(r, "player.moveto %08X" % CARLOTTA)
     time.sleep(8)
+    return near_player(r, CARLOTTA, "market (player.moveto Carlotta)", maxd=1500)
+
+
+def set_whisper(r, on):
+    """TestCtl.Whisper, read back from its own WHISPERSET line (maxDistance re-read after the toggle; whisper mode on
+    <=> maxDistance == whisperMax). True, or INCONCLUSIVE logged and False (RV-123 (3))."""
+    m = ctl_line(r, "Whisper", [int(on)], r"\[IEB-TEST\] WHISPERSET want=\S+ maxDistance=(\S+) whisperMax=(\S+)")
+    try:
+        is_on = float(m.group(1)) == float(m.group(2)) if m else None
+    except ValueError:
+        is_on = None
+    if is_on is None or is_on != bool(on):
+        inc(r, "read-back Whisper(%d): %s (RV-123 (3))" % (int(on), m.group(0) if m else "no WHISPERSET line"))
+        return False
+    return True
 
 
 def uuids(r, *fids):
@@ -129,6 +160,9 @@ def fire_exposure(r):
     m = t.wait(r"(?i)\[IEB-SC\] WITNESS (exposure) rc=(-?\d+)", 10)
     if m:
         _LAST_WITNESS["t"] = time.time()
+    if body_flag(r, pu) != 0:       # RV-123 (3) read-back: the torso slot is empty (nonce render, tests_misc.body_flag)
+        inc(r, "read-back player.unequipitem %08X: the player still wears a body garment (RV-123 (3))" % item)
+        return item, False
     return item, m
 
 
@@ -162,7 +196,8 @@ def h2(r):
 def _w_scene(r, label, a_off=None, b_off=None, c_off=None, whisper=False):
     """Shared W body: place A (in view), B (no LOS), C (far) as asked; F1 says a hug line with a nonce to the player;
     return {name: hits} for the placed NPCs plus F1's own history as the positive control."""
-    market(r)
+    if not market(r):
+        return None
     if not harness_ready(r):
         return None
     fu, au, bu, cu, pu = uuids(r, F1, A_NPC, B_NPC, C_NPC, PLAYER)
@@ -177,8 +212,9 @@ def _w_scene(r, label, a_off=None, b_off=None, c_off=None, whisper=False):
             if not uu:
                 inc(r, "%s: %08X not loaded" % (label, fid))
                 return None
-            place(r, fid, *off)
             placed.append(fid)
+            if not place(r, fid, *off):
+                return None
         time.sleep(2)
         for fid, off, uu, want_los in ((A_NPC, a_off, au, True), (B_NPC, b_off, bu, False), (C_NPC, c_off, cu, True)):
             if off is None:
@@ -187,8 +223,8 @@ def _w_scene(r, label, a_off=None, b_off=None, c_off=None, whisper=False):
             if l is None or l != want_los:
                 inc(r, "%s: line-of-sight setup for %08X gave %s (wanted %s)" % (label, fid, l, want_los))
                 return None
-        if whisper:
-            ctl_line(r, "Whisper", [1], r"\[IEB-TEST\] WHISPERSET")
+        if whisper and not set_whisper(r, 1):
+            return None
         checkpoint(r)
         tok = nonce("w")
         if not force_line(r, fu, "*gives %s a brief hug* %s" % ("you", tok), pu):
@@ -202,9 +238,9 @@ def _w_scene(r, label, a_off=None, b_off=None, c_off=None, whisper=False):
         return out
     finally:
         if whisper:
-            ctl_line(r, "Whisper", [0], r"\[IEB-TEST\] WHISPERSET")
+            set_whisper(r, 0)      # SkyrimNet config: a reload may not undo it (INFERRED), so read back
         for fid in placed:
-            bring_back(r, fid)
+            bring_back(r, fid, readback=False)      # every _w_scene caller is reload=True
 
 
 @test("W-1", "W", reload=True)
@@ -248,14 +284,16 @@ def w4(r):
     F1 sends the same mod event the patched Relationships sends from the NPC (TestCtl.SNRomStatusEvent, a nonce in the
     text); a bystander 300 u in view. Pass: SkyrimNet logs the event reaching the trigger; F1 gains an npc_thought-type
     event; the bystander gains NO event carrying the nonce (no persistent public event). 1 LLM call (the thought)."""
-    market(r)
+    if not market(r):
+        return
     if not harness_ready(r):
         return
     fu, au, pu = uuids(r, F1, A_NPC, PLAYER)
     if not (fu and au):
         return inc(r, "actors not loaded")
     try:
-        place(r, A_NPC, 300, 0, 0)
+        if not place(r, A_NPC, 300, 0, 0):
+            return
         time.sleep(2)
         if not los(r, au, pu):
             return inc(r, "bystander placed without line of sight")
@@ -275,7 +313,7 @@ def w4(r):
     except SH.HarnessError as e:
         inc(r, "harness call failed: %s" % e)
     finally:
-        bring_back(r, A_NPC)
+        bring_back(r, A_NPC, readback=False)
 
 
 # ---------------------------------------------------------------------------- WE: the ieb_witness emitter (§11.8)
@@ -288,14 +326,15 @@ def we1(r):
     sn.pos = 0
     r.check(re.search(r"Successfully registered schema for event type 'ieb_witness'", sn.read()) is not None,
             "SkyrimNet: schema registered for 'ieb_witness' (this session)")
-    market(r)
+    if not market(r):
+        return
     au, cu, pu = uuids(r, A_NPC, C_NPC, PLAYER)
     if not (au and cu and pu):
         return inc(r, "bystanders or player not loaded")
     item = None
     try:
-        place(r, A_NPC, 300, 0, 0)
-        place(r, C_NPC, far(r), 0, 0)
+        if not place(r, A_NPC, 300, 0, 0) or not place(r, C_NPC, far(r), 0, 0):
+            return
         time.sleep(2)
         if not los(r, au, pu) or not los(r, cu, pu):
             return inc(r, "bystanders placed without line of sight")
@@ -304,6 +343,8 @@ def we1(r):
             return inc(r, "the player wears no body item to remove")
         checkpoint(r)
         item, m = fire_exposure(r)
+        if m is False:
+            return                  # unequip not read back (INCONCLUSIVE logged)
         r.check(bool(m) and int(m.group(2)) >= 0, "one WITNESS exposure line, rc >= 0 (%s)" % (m.group(0) if m else "none"))
         time.sleep(3)
         a1, c1 = hist_hits(r, au, etype="ieb_witness"), hist_hits(r, cu, etype="ieb_witness")
@@ -311,22 +352,23 @@ def we1(r):
         r.check(c0 is not None and c1 == c0, "C (beyond the radius): no new ieb_witness (%s -> %s)" % (c0, c1))
     finally:
         dress(r, item)
-        bring_back(r, A_NPC)
-        bring_back(r, C_NPC)
+        bring_back(r, A_NPC, readback=False)
+        bring_back(r, C_NPC, readback=False)
 
 
 @test("WE-4", "WE", reload=True)
 def we4(r):
     """Exposure with the bystanders behind a wall (no LOS, ~500 u) and beyond the live radius: neither gets the event; F1 beside
     the player is the positive control."""
-    market(r)
+    if not market(r):
+        return
     fu, bu, cu, pu = uuids(r, F1, B_NPC, C_NPC, PLAYER)
     if not (fu and bu and cu and pu):
         return inc(r, "actors not loaded")
     item = None
     try:
-        place(r, B_NPC, 300, 0, -400)
-        place(r, C_NPC, far(r), 0, 0)
+        if not place(r, B_NPC, 300, 0, -400) or not place(r, C_NPC, far(r), 0, 0):
+            return
         time.sleep(2)
         if los(r, bu, pu) is not False:
             return inc(r, "B's no-line-of-sight placement still has line of sight")
@@ -335,6 +377,8 @@ def we4(r):
             return inc(r, "the player wears no body item to remove")
         checkpoint(r)
         item, m = fire_exposure(r)
+        if m is False:
+            return                  # unequip not read back (INCONCLUSIVE logged)
         if not m:
             return inc(r, "no WITNESS line fired")
         time.sleep(3)
@@ -346,15 +390,16 @@ def we4(r):
         r.check(counts1[2] == counts0[2], "C (beyond the radius): no event")
     finally:
         dress(r, item)
-        bring_back(r, B_NPC)
-        bring_back(r, C_NPC)
+        bring_back(r, B_NPC, readback=False)
+        bring_back(r, C_NPC, readback=False)
 
 
 @test("WE-7", "WE", reload=True)
 def we7(r):
     """Equip a Divine Elegance piece (IEB_MinimalBody[0]): state MINIMAL, exactly one event (state 'wearing only
     smallclothes' is checked by the stored state value, not the text)."""
-    market(r)
+    if not market(r):
+        return
     pu, = uuids(r, PLAYER)
     orig = body_item(r, pu)
     if not orig:
@@ -368,6 +413,8 @@ def we7(r):
         m = ctl_line(r, "EquipFromList", [MINIMAL_LIST, SC_PLUGIN, 0], r"\[IEB-TEST\] (?:EQUIPLIST \S+ size=(\d+) worn=(\w+)|EquipFromList: .*)")
         if not m or not m.group(1):
             return inc(r, "EquipFromList failed (%s)" % (m.group(0) if m else "no line"))
+        if (m.group(2) or "").upper() != "TRUE":    # RV-123 (3): EQUIPLIST worn= is IsEquipped read after the equip
+            return inc(r, "read-back EquipFromList: worn=%s (RV-123 (3))" % m.group(2))
         time.sleep(4)
         _LAST_WITNESS["t"] = time.time()
         fired = re.findall(r"(?i)\[IEB-SC\] WITNESS exposure rc=", t.read())
@@ -381,7 +428,8 @@ def we7(r):
 @test("WE-8", "WE")
 def we8(r):
     """Outfit swap (unequip then re-equip within 0.3 s): no event (1 s debounce); state stays COVERED."""
-    market(r)
+    if not market(r):
+        return
     pu, = uuids(r, PLAYER)
     if not body_item(r, pu):
         return inc(r, "the player wears no body item")
@@ -391,6 +439,8 @@ def we8(r):
     m = ctl_line(r, "BodySwap", [], r"\[IEB-TEST\] BODYSWAP (\S+)(?: worn=(\w+))?")
     if not m or m.group(1) == "none":
         return inc(r, "BodySwap did not run (%s)" % (m.group(0) if m else "no line"))
+    if (m.group(2) or "").upper() != "TRUE":        # RV-123 (3): BODYSWAP worn= is IsEquipped read after the re-equip
+        return inc(r, "read-back BodySwap: body item not worn again (worn=%s; RV-123 (3))" % m.group(2))
     time.sleep(5)
     fired = re.findall(r"(?i)\[IEB-SC\] WITNESS exposure", t.read())
     r.check(not fired, "no WITNESS line after a 0.3 s swap (%d)" % len(fired))

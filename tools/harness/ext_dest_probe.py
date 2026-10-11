@@ -44,7 +44,8 @@ def probe(ctl, fid):
 def one(ctl, phrase):
     if not game.load(ctl, "T0", None):
         return dict(phrase=phrase, err="load failed")
-    block.ie_test_settings(ctl)
+    if not block.ie_test_settings(ctl):          # RV-123 (3): SkipProbe read-back
+        return dict(phrase=phrase, err="IE test settings not verified")
     ie = game.Tail(IELOG)
     pap = game.Tail(game.LOGS["papyrus"])
     ctl.ctl("StartTask", [F1, "GoToLocation", phrase, "1", "1"])
@@ -70,8 +71,8 @@ def main():
     phrases = sys.argv[1].split(";") if len(sys.argv) > 1 else PHRASES
     run_id = "EXT_DEST_%s" % time.strftime("%Y%m%d-%H%M%S")
     game.set_archive(run_id)
-    if not game.harness_mode():
-        game.set_harness_mode(True, say)
+    if not game.harness_mode() and not game.set_harness_mode(True, say):
+        sys.exit("ABORT: harness mode could not be set on (Harness.yaml read-back)")
     if not game.launch(say, voices=False):
         sys.exit("ABORT: launch failed")
     ctl = Run("EXTDEST")

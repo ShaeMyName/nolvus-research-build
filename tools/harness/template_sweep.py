@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import game
 from runner import Run
-from tests_misc import PLAYER, F1, CHILD, FRALIA, render, who, worn_rows, to_formid, con, ctl_line
+from tests_misc import PLAYER, F1, CHILD, FRALIA, render, who, worn_rows, to_formid, con, ctl_line, su_get, qr, iv
 
 LAYERS = "C:/nolvus-research/build/layers/"
 MODS = "C:/Nolvus/Instances/Nolvus Awakening/MODS/mods/"
@@ -88,21 +88,47 @@ def main():
                 out = render(run, a, texts[f["rel"]] + "{# %d #}" % time.time_ns(), t)
                 results[f["rel"]][(c, state)] = None if out is None else len(out.strip())
 
+    def torso(fid):
+        return fid in [to_formid(x[1]) for x in (worn_rows(run, u["player"]) or []) if x[0].lower() == "torso"]
+
     sweep("base")
     ctl_line(run, "SceneOn", [F1], r"\[IEB-TEST\] SCENE on partner=")
     time.sleep(6)
-    sweep("scene")
+    # RV-123 (3): each state's write is read back before its sweep; a miss leaves that state unrun ('-' = FAIL below)
+    sp = su_get(run, u["F1"], "IEB_IsScenePartner", fid=F1)
+    sm = su_get(run, u["player"], "IEB_SceneMode", fid=PLAYER)
+    if sp == 1 and sm == 1:
+        sweep("scene")
+    else:
+        print("READBACK FAIL SceneOn: IEB_IsScenePartner=%s IEB_SceneMode=%s; scene state not swept" % (sp, sm))
     ctl_line(run, "SceneOff", [], r"\[IEB-TEST\] SCENE off")
+    sm = su_get(run, u["player"], "IEB_SceneMode", fid=PLAYER)
+    if sm != 0:
+        print("READBACK FAIL SceneOff: IEB_SceneMode=%s" % sm)
     body = [to_formid(x[1]) for x in (worn_rows(run, u["player"]) or []) if x[0].lower() == "torso"]
     if body and body[0]:
         con(run, "player.unequipitem %08X" % body[0])
         time.sleep(3)
-        sweep("exposed")
+        if not torso(body[0]):
+            sweep("exposed")
+        else:
+            print("READBACK FAIL unequipitem %08X: still worn; exposed state not swept" % body[0])
         con(run, "player.equipitem %08X" % body[0])
+        time.sleep(3)
+        if not torso(body[0]):
+            print("READBACK FAIL equipitem %08X: not worn again (errand state runs exposed)" % body[0])
     run.ctl("StartTask", [F1, "GoToLocation", "Dragonsreach", "1", "1"])
     time.sleep(20)
-    sweep("errand")
+    q = qr(run, F1)
+    if q and iv(q, "slot") >= 0:
+        sweep("errand")
+    else:
+        print("READBACK FAIL StartTask: F1 holds no IE slot (%s); errand state not swept" % q)
     run.ctl("Cancel", [F1])
+    time.sleep(3)
+    q = qr(run, F1)
+    if not q or iv(q, "slot") >= 0:
+        print("READBACK FAIL Cancel: F1 IE slot after cancel %s" % (q and q.get("slot")))
 
     lines = ["# Template live sweep %s" % time.strftime("%Y-%m-%d %H:%M"), "",
              "Lengths of the rendered output (characters, stripped) per context/state; None = render failed; '-' = state "

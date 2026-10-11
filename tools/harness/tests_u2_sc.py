@@ -15,7 +15,7 @@ import game
 import sn_harness as SH
 from block import test, checkpoint
 from tests_misc import (PLAYER, F1, F2, CHILD, FRALIA, YSOLDA, CARLOTTA, con, ctl_line, hx, inc, qf, ah, su_get, su_set,
-                        who, eligible)
+                        who, eligible, near_player, player_pos, player_moved)
 from fidnorm import fid_any_rx
 from tests_u2 import market, uuids, place, bring_back, radius, hist_hits, harness_ready
 
@@ -54,6 +54,19 @@ def partner_flag(r, fid):
     return su_get(r, pu, "IEB_IsScenePartner", fid=fid)
 
 
+def scene_on_checked(r, fid):
+    """SceneOn + RV-123 (3) read-back: the partner's IEB_IsScenePartner = 1 (SceneOn's own line only echoes the call).
+    True, or INCONCLUSIVE and False."""
+    if not scene_on(r, fid):
+        inc(r, "SceneOn wrapper gave no line")
+        return False
+    v = partner_flag(r, fid)
+    if v != 1:
+        inc(r, "SceneOn read-back: %08X IEB_IsScenePartner = %s (want 1)" % (fid, v))
+        return False
+    return True
+
+
 def _setup_scene(r, a_fid, extra=()):
     """Market, partner A beside the player with scene mode on, extra NPCs placed 300 u away. Returns uuids or None."""
     market(r)
@@ -62,10 +75,10 @@ def _setup_scene(r, a_fid, extra=()):
         time.sleep(1)
         place(r, f, 150 if i == 0 else 300, 60 * i, 0)
     time.sleep(2)
-    if not scene_on(r, a_fid):
-        inc(r, "SceneOn wrapper gave no line")
-        return False
-    return True
+    for f in (a_fid,) + tuple(extra):           # RV-123 (3): moveto + PlaceRel read back
+        if not near_player(r, f, "moveto player + PlaceRel"):
+            return False
+    return scene_on_checked(r, a_fid)
 
 
 def _cleanup(r, fids):
@@ -160,8 +173,13 @@ def sc11(r):
         r.check(bool(lm) and "(left)" in lm.group(0), "PARTNER_LEFT B (left)")
         r.check(partner_flag(r, B) in (0, -99), "B's partner flag cleared at once")
         t = pap()
-        place(r, A, 2 * radius(r) + 400, 0, 0)
+        dd = 2 * radius(r) + 400
+        place(r, A, dd, 0, 0)
         t0 = time.time()
+        from tests_u2_wh import dist
+        da = dist(r, A)                         # RV-123 (3): PlaceRel read back (its PLACE line only echoes the offset)
+        if da is None or da < dd / 2:
+            return inc(r, "PlaceRel read-back: A at %s u from the player, wanted ~%d" % (da, dd))
         am = t.wait(r"\[IEB-SC\] PARTNER_LEFT [^\n]*", 40)
         r.check(bool(am), "A removed after walking beyond 2x the radius")
         if am:
@@ -206,6 +224,9 @@ def sc13(r):
                 return
             au, = uuids(r, A)
             su_set(r, A, "SNRom_Exclusivity", excl)
+            ex = su_get(r, au, "SNRom_Exclusivity", fid=A)      # RV-123 (3): SU line only echoes the value
+            if ex != excl:
+                return inc(r, "run %d: SNRom_Exclusivity read-back %s, wanted %d" % (run, ex, excl))
             if run == 1:
                 checkpoint(r)
             h0 = hist_hits(r, au, "did not join the scene")
@@ -234,15 +255,21 @@ def sc10(r):
     judgement (S-C / JUDGE)."""
     A, B = F1, F2
     try:
+        w0 = player_pos(r)
         con(r, "coc WhiterunBreezehome")
         time.sleep(12)
+        if not player_moved(r, w0, "coc WhiterunBreezehome"):         # RV-123 (3)
+            return
         for f, d in ((A, 120), (B, 160)):
             con(r, "%08X.moveto player" % f)
             time.sleep(1)
             place(r, f, d, 0, 0)
         time.sleep(2)
-        if not scene_on(r, A):
-            return inc(r, "SceneOn wrapper gave no line")
+        for f, d in ((A, 120), (B, 160)):       # RV-123 (3): moveto + PlaceRel read back
+            if not near_player(r, f, "moveto player + PlaceRel", maxd=d + 150):
+                return
+        if not scene_on_checked(r, A):
+            return
         m = join(r, B)
         if not m or m.group(1) != "ACCEPTED":
             return inc(r, "B could not join (%s)" % (m.group(0) if m else "no line"))
@@ -303,8 +330,9 @@ def _scene_20(r, npc):
     con(r, "set IEB_WitnessEnabled to 0")
     replies = []
     try:
-        if not scene_on(r, npc):
-            inc(r, "SceneOn wrapper gave no line")
+        if not near_player(r, npc, "moveto player + PlaceRel"):    # RV-123 (3)
+            return None
+        if not scene_on_checked(r, npc):
             return None
         SH.pacing(True)
         for line in _SCENE_LINES:

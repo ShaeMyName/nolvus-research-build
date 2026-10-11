@@ -6,7 +6,7 @@ import re, time
 import game
 import sn_harness as SH
 from block import test, checkpoint
-from tests_misc import PLAYER, F1, CHILD, con, inc, who, worn_rows, to_formid, ensure_child_enrolled
+from tests_misc import PLAYER, F1, CHILD, con, inc, who, worn_rows, to_formid, ensure_child_enrolled, near_player
 from tests_u2 import (A_NPC, B_NPC, market, uuids, place, bring_back, los, hist_hits, harness_ready, nonce, radius,
                       fire_exposure, dress, witness_wait)
 
@@ -29,12 +29,17 @@ def x6(r):
         place(r, A_NPC, 300, 0, 0)
         place(r, B_NPC, 300, 0, -400)
         time.sleep(2)
+        if not (near_player(r, A_NPC, "PlaceRel 300") and near_player(r, B_NPC, "PlaceRel 300,0,-400", maxd=800)):
+            return                              # RV-123 (3): placements read back (los() does not show distance)
         if not los(r, au, pu) or los(r, bu, pu) is not False:
             return inc(r, "line-of-sight setup not as wanted")
         a0, b0 = [render_equip(r, u) for u in (au, bu)]
         checkpoint(r)
         con(r, "player.unequipitem %08X" % item)
         time.sleep(4)
+        wr = worn_rows(r, pu)                                            # RV-123 (3): the item is off
+        if wr is None or item in [to_formid(x[1]) for x in wr]:
+            return inc(r, "unequipitem read-back: %08X %s" % (item, "worn list render failed" if wr is None else "still worn"))
         a1, b1 = [render_equip(r, u) for u in (au, bu)]
         r.log("  equip-type events A %s -> %s, B %s -> %s" % (a0, a1, b0, b1))
         if a0 is None or a1 is None:
@@ -67,6 +72,8 @@ def cs2(r):
         return inc(r, "child not loaded or not IsChild")
     con(r, "%08X.moveto player" % CHILD)
     time.sleep(3)
+    if not near_player(r, CHILD, "moveto player"):                       # RV-123 (3)
+        return
     checkpoint(r, "2 LLM calls")
     item = None
     try:
@@ -75,6 +82,9 @@ def cs2(r):
                 item, m = fire_exposure(r)
                 if not item:
                     return inc(r, "could not take off the player's body item")
+                wr = worn_rows(r, uuids(r, PLAYER)[0])                  # RV-123 (3): the body item is off
+                if wr is None or item in [to_formid(x[1]) for x in wr]:
+                    return inc(r, "unequipitem read-back: %08X %s" % (item, "worn list render failed" if wr is None else "still worn"))
             d0 = hist_hits(r, cu, etype="dialogue") or 0
             SH.inject_player_input("Hello there. Are you all right?", cu)
             SH.await_idle(90)

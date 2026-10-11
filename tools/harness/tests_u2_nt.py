@@ -8,7 +8,7 @@ import re, time
 import game
 from block import test, checkpoint
 from runner import eligible
-from tests_misc import PLAYER, F1, con, inc, who, render
+from tests_misc import PLAYER, F1, con, inc, who, render, qr, iv
 from tests_tm_l import H, DEST_NEAR, sa_call, hexarg, probe, start_errand
 
 NOTICE_RX = r"\[IEB\] NOTICE (N\d) (shown|suppressed) text=([^\n]*)"
@@ -156,6 +156,12 @@ def nt4(r):
             hour = float(h.group(1)) if h else 12.0
             t2 = pap()
             r.ctl("SetHour", [min(hour + 1.2, 23.5), 0x0001A66C], sync=False)
+            # RV-123 (3): SetHour logs CRASHCTX hour= after the write (IEB_TestCtl.SetHour -> CrashCtx): read it back
+            hb = t2.wait(r"CRASHCTX hour=(-?[\d.]+)", 20)
+            if not hb or abs(float(hb.group(1)) - min(hour + 1.2, 23.5)) > 0.25:
+                inc(r, "%s: SetHour read-back %s, wanted %.2f" % (kind, hb.group(1) if hb else "no CRASHCTX line",
+                                                                   min(hour + 1.2, 23.5)))
+                continue
             fired = t2.wait(r"IEB_SCHED_CONFIRMED skip second box: %s" % kind, 120)
             second = any(box_open() for _ in range(10) if not time.sleep(1))
             r.check(bool(fired), "%s: the scheduled task fired without a second box (IEB_SCHED_CONFIRMED)" % kind)
@@ -173,6 +179,10 @@ def nt4(r):
                 inc(r, "save IEB_NT4 failed")
             r.ctl("Cancel", [F1])
             time.sleep(5)
+            q = qr(r, F1)                       # RV-123 (3): the cancel freed F1's IE slot before the leak check
+            if not q or iv(q, "slot") >= 0:
+                inc(r, "Cancel read-back: F1 IE slot %s (want none)" % (q.get("slot") if q else "no QR line"))
+                continue
             # RV-93-close (a): a NON-scheduled fetch for the same actor right after still shows its box (no leaked mark)
             r.ctl("StartTask", [F1, "FetchPerson", "Carlotta Valentia", "1", ""], sync=False)
             leak_box = False

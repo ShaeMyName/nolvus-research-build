@@ -84,8 +84,9 @@ def arm(name):
     before = crash_files()
     if game.procs():
         game.close(None, timeout=60, force=True)
-    if not game.harness_mode():
-        game.set_harness_mode(True, say)
+    if not game.harness_mode() and not game.set_harness_mode(True, say):
+        say("%s ABORT: harness mode could not be set on (Harness.yaml read-back)" % name)
+        return None
     if not game.launch(say, voices=False):
         say("%s ABORT: launch refused or failed" % name)
         return None
@@ -141,7 +142,9 @@ def arm(name):
             return None
     t_arr = None
     if name in ("R1", "R3"):
-        block.ie_test_settings(ctl)
+        if not block.ie_test_settings(ctl):      # RV-123 (3): SkipProbe read-back
+            say("%s INCONCLUSIVE: IE test settings not verified" % name)
+            return None
         t = game.Tail(game.LOGS["papyrus"])
         if name == "R3":
             ctl.ctl("StartTask", [F1, "GoToLocation", "Dragonsreach", "1", "1"])

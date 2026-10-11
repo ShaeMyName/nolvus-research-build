@@ -88,7 +88,8 @@ def inconclusive(r, why):
 
 
 def console(r, cmd):
-    return r.tool("execute_console_command", {"command": cmd})
+    from tests_misc import con_args
+    return r.tool("execute_console_command", con_args(cmd))
 
 
 # Door refs: never a player.moveto target (lands inside the door frame / wall).

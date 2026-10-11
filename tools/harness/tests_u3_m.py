@@ -16,7 +16,7 @@ import json, re, time
 import sn_harness as SH
 from block import test, checkpoint
 from tests_misc import (F2, con, ctl_line, inc, s32, who, rank, rval, iv, tail, su_get, su_set, su_unset, _set_pts,
-                        _ranksync, DEST_NEAR)
+                        _ranksync, DEST_NEAR, near_player)
 from tests_tm_l import Accelerated
 from tests_u2 import harness_ready
 from tests_u3 import (T0M, SANDBOX_EDID, cast, status_is, maras_probe, maras_debug, maras_promote, gift_rank, maras_counts,
@@ -29,9 +29,11 @@ MA45_HOURS, MA45_WALL_MAX_S = 24.0, 25 * 60
 
 
 def to_spouse(r, fid):
-    """Player beside the actor (her cell loads); MCP uuid then resolves."""
+    """Player beside the actor (her cell loads); MCP uuid then resolves. RV-123 (3): read back by distance; False =
+    INCONCLUSIVE already logged."""
     con(r, "player.moveto %08X" % fid)
     time.sleep(10)
+    return near_player(r, fid, "player.moveto", maxd=1000)
 
 
 def clock(r):
@@ -244,10 +246,13 @@ def ma6(r):
     if not mp or not d or flag(line, "saHome") != "1":
         return inc(r, "spouse1 not SA-posted or not found")
     name = mp.get("name", "")
-    to_spouse(r, s1)
+    if not to_spouse(r, s1):
+        return
     t0 = tail("papyrus")
-    ctl_line(r, "Snapshot", [s32(s1)], r"\[IEB-TEST\] snapshot [^\n]*", 20)
-    ctl_line(r, "ExpectLend", [s32(s1)], r"\[IEB-TEST\] ExpectLend[^\n]*", 10)
+    if not ctl_line(r, "Snapshot", [s32(s1)], r"\[IEB-TEST\] snapshot [^\n]*", 20):
+        return inc(r, "read-back: no Snapshot line for spouse1 (I1-I10 baseline not confirmed; RV-123 (3))")
+    if not ctl_line(r, "ExpectLend", [s32(s1)], r"\[IEB-TEST\] ExpectLend[^\n]*", 10):
+        return inc(r, "read-back: no ExpectLend line for spouse1 (EBT_WasLent not confirmed; RV-123 (3))")
     checkpoint(r)
     r.ctl("StartTask", [s32(s1), "GoToLocation", DEST_NEAR, "", ""])
     m = t0.wait(r"(?i)\[IEB\] (LEND|TAKE|TAKE_SKIP|REFUSE) actor=%s\b[^\n]*" % re.escape(name), 30)
@@ -308,6 +313,8 @@ def km3(r):
         return
     con(r, "%08X.moveto player" % fs)
     time.sleep(4)
+    if not near_player(r, fs, "moveto player"):
+        return
     checkpoint(r)
     t_pap, t_mar = tail("papyrus"), maras_tail()
     r.ctl("StartTask", [s32(fs), "GoToLocation", DEST_NEAR, "", ""])
@@ -352,7 +359,31 @@ def _apply(r, fid, n=1):
 
 
 def _setrank(r, fid, v):
+    """SetRank (its SETRANK line only echoes the value), read back by RankProbe (RV-123 (3)). False = INCONCLUSIVE."""
     ctl_line(r, "SetRank", [s32(fid), int(v)], r"\[IEB-TEST\] SETRANK", 15)
+    k = rank(r, fid)
+    if not k or iv(k, "r") != int(v):
+        inc(r, "read-back: SetRank %d on %08X reads rank %s (RV-123 (3))" % (int(v), fid, k and k.get("r")))
+        return False
+    return True
+
+
+def _gift(r, fid, v):
+    """U3GiftRank write, asserted on the rank it reads back (RV-123 (3)). False = INCONCLUSIVE."""
+    g = gift_rank(r, fid, v)
+    if g != int(v):
+        inc(r, "read-back: RDO gift counter on %08X reads %s, want %d (RV-123 (3))" % (fid, g, int(v)))
+        return False
+    return True
+
+
+def _su_is(r, fid, key, v, what):
+    """StorageUtil int read back through SUGetInt (su_set's 'set=' only echoes; unset reads -99). False = INCONCLUSIVE."""
+    got = su_get(r, None, key, fid=fid)
+    if got != v:
+        inc(r, "read-back %s: %s on %08X reads %s, want %s (RV-123 (3))" % (what, key, fid, got, v))
+        return False
+    return True
 
 
 @test("RS-2", "RS", save="T0-M", reload=True)
@@ -368,7 +399,8 @@ def rs2(r):
     k0 = rank(r, fid)
     r.check(bool(k0) and iv(k0, "r") == 4, "rank 4 at marriage (%s)" % (k0 and k0.get("r")))
     checkpoint(r)
-    _setrank(r, fid, 3)
+    if not _setrank(r, fid, 3):
+        return
     t = tail("papyrus")
     _apply(r, fid)
     hits = _ranksync(t.read(), name)
@@ -391,7 +423,7 @@ def rs5(r):
     if iv(rank(r, F2) or {}, "tier", -1) < 0:
         return inc(r, "F2 not enrolled")
     _set_pts(r, F2, 1100)
-    _setrank(r, F2, 1)
+    ctl_line(r, "SetRank", [s32(F2), 1], r"\[IEB-TEST\] SETRANK", 15)     # read back with the apply at k0 below
     _apply(r, F2)
     k0 = rank(r, F2)
     if not k0 or iv(k0, "tier") != 2 or iv(k0, "r") != 1:
@@ -399,7 +431,8 @@ def rs5(r):
     checkpoint(r)
     try:
         su_set(r, F2, "SeverCombat_OriginalRelationship", 1)
-        _setrank(r, F2, 0)
+        if not _su_is(r, F2, "SeverCombat_OriginalRelationship", 1, "su_set") or not _setrank(r, F2, 0):
+            return
         t = tail("papyrus")
         _apply(r, F2, 2)
         hits = _ranksync(t.read(), name)
@@ -409,6 +442,8 @@ def rs5(r):
                 "no write while the saved value exists (rank stays 0)")
     finally:
         su_unset(r, F2, "SeverCombat_OriginalRelationship")
+    if not _su_is(r, F2, "SeverCombat_OriginalRelationship", -99, "su_unset"):
+        return
     t = tail("papyrus")
     _apply(r, F2)
     hits = _ranksync(t.read(), name)
@@ -426,7 +461,9 @@ def rs8d(r):
     if not sp:
         return
     fid, name = sp
-    _set_pts(r, fid, 2100)
+    kp = _set_pts(r, fid, 2100)
+    if not kp or iv(kp, "pts") != 2100:
+        return inc(r, "read-back: spouse1 points %s, want 2100 (RV-123 (3))" % (kp and kp.get("pts")))
     _apply(r, fid)
     k0 = rank(r, fid)
     if not k0 or iv(k0, "r") != 4:
@@ -464,8 +501,8 @@ def rs10be(r):
     # (b)
     fid, name = s1
     su_set(r, fid, "IEB_GiftUndone", 1)
-    gift_rank(r, fid, 5)
-    _setrank(r, fid, -1)
+    if not _su_is(r, fid, "IEB_GiftUndone", 1, "(b) su_set") or not _gift(r, fid, 5) or not _setrank(r, fid, -1):
+        return
     t = tail("papyrus")
     _apply(r, fid, 3)
     hits = _ranksync(t.read(), name)
@@ -474,8 +511,8 @@ def rs10be(r):
             and not any(h["why"] == "gift_undo" for h in hits), "(b) stays -1 over three sweeps, skip:negative")
     # (c)
     fid, name = s2
-    gift_rank(r, fid, 2)
-    _setrank(r, fid, -1)
+    if not _gift(r, fid, 2) or not _setrank(r, fid, -1):
+        return
     t = tail("papyrus")
     _apply(r, fid)
     hits = _ranksync(t.read(), name)
@@ -485,8 +522,10 @@ def rs10be(r):
     # (e)
     for key in ("IEB_GiftUndone", "IEB_RankSyncTier", "IEB_RankSyncRom"):
         su_unset(r, fid, key)
-    gift_rank(r, fid, 5)
-    _setrank(r, fid, 4)
+        if not _su_is(r, fid, key, -99, "(e) su_unset"):
+            return
+    if not _gift(r, fid, 5) or not _setrank(r, fid, 4):
+        return
     t = tail("papyrus")
     _apply(r, fid)
     hits = _ranksync(t.read(), name)
@@ -494,7 +533,8 @@ def rs10be(r):
     k = rank(r, fid)
     r.check(stamped == 1 and bool(k) and iv(k, "r") == 4 and not any(h.get("f") for h in hits),
             "(e) first sync stamps IEB_GiftUndone without writing (stamp %s)" % stamped)
-    _setrank(r, fid, -1)
+    if not _setrank(r, fid, -1):
+        return
     t = tail("papyrus")
     _apply(r, fid)
     k = rank(r, fid)
@@ -504,8 +544,8 @@ def rs10be(r):
     p = maras_promote(r, fid, "divorced")
     if not status_is(p, "divorced"):
         return inc(r, "(d) MARAS native divorce did not take (%s)" % (p.get("st") if p else "no probe"))
-    gift_rank(r, fid, 5)
-    _setrank(r, fid, -2)
+    if not _gift(r, fid, 5) or not _setrank(r, fid, -2):
+        return
     t = tail("papyrus")
     _apply(r, fid)
     hits = _ranksync(t.read(), name)
@@ -543,7 +583,8 @@ def da9(r):
     mp = maras_probe(r, sp)
     if not mp or not status_is(mp, "married") or iv(mp, "housed", -2) < 0:
         return inc(r, "spouse2 is not a housed MARAS spouse")
-    to_spouse(r, sp)
+    if not to_spouse(r, sp):
+        return
     su, _, _ = who(r, sp)
     if not su:
         return inc(r, "spouse2 not loaded beside the player")
@@ -565,6 +606,8 @@ def da9(r):
         return
     con(r, "player.moveto %08X" % fr)
     time.sleep(10)
+    if not near_player(r, fr, "player.moveto", maxd=1000):
+        return
     fu, _, _ = who(r, fr)
     if not fu:
         return inc(r, "rdo_friend not loaded")
@@ -618,7 +661,8 @@ def _provoke(r, key, line, action):
     mp = maras_probe(r, fid)
     if not mp or not status_is(mp, want):
         return inc(r, "%s is not MARAS-%s" % (key, want))
-    to_spouse(r, fid)
+    if not to_spouse(r, fid):
+        return
     u, _, _ = who(r, fid)
     if not u:
         return inc(r, "%s not loaded beside the player" % key)

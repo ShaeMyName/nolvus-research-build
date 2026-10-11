@@ -38,6 +38,20 @@ def op(ctl, fid, name, n=0):
     return {k: int(v) for k, v in d.items()} if line else None
 
 
+SETUP_WANT = {"luc": lambda r, n: r["luc"] == n, "setpts": lambda r, n: r["pts"] == n,
+              "unenroll": lambda r, n: r["enrolled"] == 0,
+              "reset": lambda r, n: r["enrolled"] == 0 and r["bank"] == 0 and r["latch"] == 0}
+#   reset's pts is not asserted: PointsOf reads Romantasy's number until the import (SNRom_Bridge.psc:1314-1326)
+
+
+def setup(ctl, fid, name, n=0):
+    """RV-123 (3): a setup op, read back from its own HSOP line before a verdict depends on it."""
+    r = op(ctl, fid, name, n)
+    if not (r and SETUP_WANT[name](r, n)):
+        verdict("setup_%s_%s_%d" % (hex(fid), name, n), None, "read-back %s" % r)
+    return r
+
+
 def main():
     if game.procs():
         sys.exit("ABORT: game or MO2 running")
@@ -45,15 +59,15 @@ def main():
     game.set_archive(run_id)
     snrom0 = os.path.getsize(SNROM) if os.path.exists(SNROM) else 0
     try:
-        if not game.harness_mode():
-            game.set_harness_mode(True, say)
+        if not game.harness_mode() and not game.set_harness_mode(True, say):
+            raise RuntimeError("harness mode could not be set on (Harness.yaml read-back)")
         if not game.launch(say, voices=False):
             raise RuntimeError("launch refused or failed")
         ctl = Run("HS_CONTROL")
         if not game.load(ctl, "T0", None):
             raise RuntimeError("T0 load failed")
-        op(ctl, P, "luc", 1)
-        op(ctl, P, "reset")
+        setup(ctl, P, "luc", 1)
+        setup(ctl, P, "reset")
         # A by hand + B
         r = op(ctl, P, "byhand")
         verdict("A_byhand_floor", r and r["enrolled"] == 1 and r["pts"] == 999 and r["latch"] == 1, str(r))
@@ -63,28 +77,28 @@ def main():
         r0 = r["pts"] if r else 0
         r = op(ctl, P, "moment", -20)
         verdict("B_negative_x1", r and r["pts"] - r0 == -20, "delta %s" % (r and r["pts"] - r0))
-        op(ctl, P, "setpts", 1970)
+        setup(ctl, P, "setpts", 1970)
         r = op(ctl, P, "moment", 20)
         verdict("B_truncation_1970_plus_20", r and r["pts"] == 1999 and r["bank"] == 0, str(r))
         # latch: unenrol (latch kept), drop to 100, enrol again -> no second floor
-        op(ctl, P, "unenroll")
-        op(ctl, P, "setpts", 100)
+        setup(ctl, P, "unenroll")
+        setup(ctl, P, "setpts", 100)
         r = op(ctl, P, "byhand")
         verdict("A_latch_reenrol", r and r["enrolled"] == 1 and r["pts"] == 100 and r["latch"] == 1, str(r))
         # M4' courtship route
-        op(ctl, P, "reset")
+        setup(ctl, P, "reset")
         r = op(ctl, P, "courtship")
         verdict("A_courtship_floor", r and r["enrolled"] == 1 and r["pts"] == 999 and r["latch"] == 1, str(r))
         # BeginSpark route: +25 (+25 bonus) then the floor -> 999, never 1049
-        op(ctl, P, "reset")
+        setup(ctl, P, "reset")
         r = op(ctl, P, "beginspark")
         if r and r["enrolled"] == 0:
             verdict("A_beginspark_floor", None, "BeginSpark declined (CanBegin gate): %s" % r)
         else:
             verdict("A_beginspark_floor", r and r["pts"] == 999 and r["latch"] == 1, str(r))
         # LUC_Active off: no head start
-        op(ctl, P, "luc", 0)
-        op(ctl, P, "reset")
+        setup(ctl, P, "luc", 0)
+        setup(ctl, P, "reset")
         r = op(ctl, P, "byhand")
         ok = r and r["enrolled"] == 1 and r["pts"] < 999 and r["latch"] == 0
         r0 = r["pts"] if r else 0
@@ -92,8 +106,8 @@ def main():
         verdict("luc_off_no_headstart", ok and r and r["pts"] - r0 == 20, "after enrol pts %s; moment delta %s"
                 % (r0, r and r["pts"] - r0))
         # adult control actor with LUC on: nothing
-        op(ctl, U, "luc", 1)
-        op(ctl, U, "reset")
+        setup(ctl, U, "luc", 1)
+        setup(ctl, U, "reset")
         r = op(ctl, U, "byhand")
         ok = r and r["enrolled"] == 1 and r["pts"] < 999 and r["latch"] == 0
         r0 = r["pts"] if r else 0

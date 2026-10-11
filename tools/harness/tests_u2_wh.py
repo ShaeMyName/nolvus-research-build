@@ -19,7 +19,7 @@ from datetime import datetime
 import game
 import sn_harness as SH
 from block import test, checkpoint, settle_probe
-from tests_misc import PLAYER, F1, CARLOTTA, FRALIA, YSOLDA, WR_GUARDS, con, ctl_line, hx, inc, su_get
+from tests_misc import PLAYER, F1, CARLOTTA, FRALIA, YSOLDA, WR_GUARDS, con, ctl_line, hx, inc, su_get, near_player, player_moved
 from tests_u2 import (radius, market, uuids, place, bring_back, los, hist_hits, force_line, harness_ready, nonce,
                       witness_wait, _LAST_WITNESS)
 
@@ -119,7 +119,16 @@ def scene_on(r, fid=F1):
     if not m or "refused" in m.group(0):
         inc(r, "SceneOn did not start (%s)" % (m.group(0) if m else "no line"))
         return False
+    v = su_get(r, "", "IEB_IsScenePartner", fid=fid)     # RV-123 (3): SceneOn's line only echoes; read the key back
+    if v != 1:
+        inc(r, "SceneOn read-back: %s IEB_IsScenePartner = %s (want 1)" % (hx(fid), v))
+        return False
     return True
+
+
+def placed_at(m, x, y, tol=150.0):
+    """RV-123 (3): a PlayerPlace PLAYERPOS match (x, y groups) lands within tol of (x, y)."""
+    return bool(m) and ((float(m.group(1)) - x) ** 2 + (float(m.group(2)) - y) ** 2) ** 0.5 <= tol
 
 
 def scene_off(r):
@@ -418,9 +427,13 @@ def wh5a(r):
     fids = [F1] + WR_GUARDS[:1]
     try:
         market(r)
-        ctl_line(r, "SetHour", [2.0, 0x0001A66C], r"\[IEB-TEST\] CRASHCTX")
+        hb = ctl_line(r, "SetHour", [2.0, 0x0001A66C], r"\[IEB-TEST\] CRASHCTX hour=(-?[\d.]+)")
+        if not hb or abs(float(hb.group(1)) - 2.0) > 0.25:         # RV-123 (3): CRASHCTX reads GameHour after the write
+            return inc(r, "SetHour read-back: hour %s, wanted 2.0" % (hb.group(1) if hb else "no CRASHCTX line"))
         time.sleep(45)                                  # packages re-evaluate; townsfolk head home
         bring_back(r, F1)
+        if not near_player(r, F1, "moveto player"):    # RV-123 (3)
+            return
         n = near(r, radius(r), F1)
         if n is None:
             return
@@ -430,6 +443,8 @@ def wh5a(r):
         ok, secs, c = wait_whisper(r, True, timeout=25)
         r.check(not ok, "exterior, partner only: whisper stays off for 25 s")
         place(r, WR_GUARDS[0], 400, 0, 0)
+        if not near_player(r, WR_GUARDS[0], "PlaceRel 400", maxd=700):     # RV-123 (3)
+            return
         ok, secs, c = wait_whisper(r, True, timeout=20, step=2.0)
         r.check(not ok, "a guard approaching: still off")
     finally:
@@ -448,10 +463,15 @@ def wh5b(r):
     furniture (else rules i/ii keep it on): self-checked by the OFF step itself (stays on -> INCONCLUSIVE, not FAIL)."""
     fids = [F1, FRALIA]
     try:
+        w0 = where(r)
         con(r, "coc %s" % WH5B_CELL)
         time.sleep(12)
+        if not player_moved(r, w0, "coc %s" % WH5B_CELL):          # RV-123 (3)
+            return
         bring_back(r, F1)
         time.sleep(4)
+        if not near_player(r, F1, "moveto player"):                 # RV-123 (3)
+            return
         n = near(r, radius(r), F1)
         if n is None:
             return
@@ -465,6 +485,8 @@ def wh5b(r):
         time.sleep(1)
         place(r, FRALIA, 300, 0, 0)
         t0 = time.time()
+        if not near_player(r, FRALIA, "moveto player + PlaceRel 300"):     # RV-123 (3)
+            return
         ok, secs, c = wait_whisper(r, False, timeout=40, step=2.0)
         r.check(ok and time.time() - t0 <= HYST_S + 8, "an NPC enters the radius: whisper off within about 10 s (%d s)" % secs)
     finally:
@@ -487,7 +509,9 @@ def wh6(r):
         w0 = where(r)
         checkpoint(r)
         t = ptail()
-        ctl_line(r, "Whisper", [1], r"\[IEB-TEST\] WHISPERSET want=1", 15)
+        ws = ctl_line(r, "Whisper", [1], r"\[IEB-TEST\] WHISPERSET want=1 maxDistance=(-?[\d.]+) whisperMax=(-?[\d.]+)", 15)
+        if not ws or abs(float(ws.group(1)) - float(ws.group(2))) >= 0.5:      # RV-123 (3): WHISPERSET reads the config back
+            return inc(r, "Whisper(1) read-back: %s" % (ws.group(0).split("] ", 1)[-1] if ws else "no WHISPERSET line"))
         m = t.wait(r"(?i)\[IEB-SC\] WHISPER manual override detected \(on=true\)", 20)
         r.check(bool(m), "manual override detected and logged")
         if not m:
@@ -578,14 +602,18 @@ def wh8(r):
         checkpoint(r)
         t = ptail()
         t0, visits, nxt = time.time(), 0, time.time() + EVERY_S
+        pos_rx, bad = r"\[IEB-TEST\] PLAYERPOS cell=\S+ ws=\S+ x=(-?[\d.]+) y=(-?[\d.]+)", 0
         while time.time() - t0 < DUR_S:
             if time.time() >= nxt:
-                ctl_line(r, "PlayerPlace", [p_in["x"], p_in["y"], p_in["z"] + 20.0], r"\[IEB-TEST\] PLAYERPOS ", 15)
-                ctl_line(r, "PlayerPlace", [p_out["x"], p_out["y"], p_out["z"] + 20.0], r"\[IEB-TEST\] PLAYERPOS ", 15)
+                mi = ctl_line(r, "PlayerPlace", [p_in["x"], p_in["y"], p_in["z"] + 20.0], pos_rx, 15)
+                mo = ctl_line(r, "PlayerPlace", [p_out["x"], p_out["y"], p_out["z"] + 20.0], pos_rx, 15)
+                bad += 0 if placed_at(mi, p_in["x"], p_in["y"]) and placed_at(mo, p_out["x"], p_out["y"]) else 1   # RV-123 (3)
                 visits += 1
                 nxt = time.time() + EVERY_S
             time.sleep(2)
         time.sleep(2 * HYST_S)
+        if bad:
+            return inc(r, "PlayerPlace read-back: %d of %d visits did not land at the in/out spots" % (bad, visits))
         ev = hysteresis_events(t.read())
         gaps = [(ev[i][0] - ev[i - 1][0]).total_seconds() for i in range(1, len(ev))]
         r.log("  30 min: %d visits, %d automatic toggles, gaps (s): %s" % (visits, len(ev), [int(g) for g in gaps][:20]))
@@ -695,6 +723,8 @@ def pv3(r):
         t = ptail()
         t0 = time.time()
         place(r, NEWCOMER, 120, 0, 0)
+        if not near_player(r, NEWCOMER, "PlaceRel 120", maxd=400):          # RV-123 (3)
+            return
         m = t.wait(r"\[IEB-SC\] PRIVATE 1->0", 15, poll=0.5)
         dt = time.time() - t0
         r.check(bool(m), "IEB_ScenePrivate flipped 1 -> 0 after the arrival (%.1f s incl. controller latency)" % dt)

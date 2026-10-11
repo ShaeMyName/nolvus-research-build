@@ -14,9 +14,9 @@ import re, time
 import game
 import sn_harness as SH
 from block import test, checkpoint
-from tests_misc import PLAYER, F1, F2, con, ctl_line, inc, who
+from tests_misc import PLAYER, F1, F2, con, ctl_line, inc, who, near_player, player_pos, player_moved
 from tests_u2 import (A_NPC, B_NPC, C_NPC, nonce, radius, far, hist_hits, los, place, bring_back, market, uuids, harness_ready,
-                      force_line, _w_scene)
+                      force_line, _w_scene, set_whisper)
 
 
 def _utterance_for(uid):
@@ -37,7 +37,8 @@ def e2(r):
     """subtitlesOnly on: a forced F1 line '*<action>* <spoken>' -> the action part is not voiced. Checked on the harness
     utterance record: the played/voiced text (field names INFERRED: played_text*, text) lacks the action token while
     the spoken token is present. Booleans only. 0 LLM calls (forced line)."""
-    market(r)
+    if not market(r):
+        return
     if not harness_ready(r):
         return
     fu, pu = uuids(r, F1, PLAYER)
@@ -82,14 +83,16 @@ def e5(r):
     """Whisper hotkey vs the chat '^' modifier, audience of the NPC REPLY: player whispers to F1 with A at 300 u.
     Hotkey (TestCtl.Whisper 1): A gets neither line. '^' prefix without the hotkey: A gets F1's reply (expected,
     INFERRED: '^' covers only the player's own message). 2 LLM calls."""
-    market(r)
+    if not market(r):
+        return
     if not harness_ready(r):
         return
     fu, au, pu = uuids(r, F1, A_NPC, PLAYER)
     if not (fu and au):
         return inc(r, "actors not loaded")
     try:
-        place(r, A_NPC, 300, 0, 0)
+        if not place(r, A_NPC, 300, 0, 0):
+            return
         time.sleep(2)
         if not los(r, au, pu):
             return inc(r, "A placed without line of sight")
@@ -100,10 +103,12 @@ def e5(r):
             f0 = hist_hits(r, fu, etype="dialogue")
             a0 = hist_hits(r, au, etype="dialogue")
             if mode == "hotkey":
-                ctl_line(r, "Whisper", [1], r"\[IEB-TEST\] WHISPERSET")
+                if not set_whisper(r, 1):
+                    return
                 SH.inject_player_input("Quietly, %s: stay close." % tok, fu)
             else:
-                ctl_line(r, "Whisper", [0], r"\[IEB-TEST\] WHISPERSET")
+                if not set_whisper(r, 0):
+                    return
                 SH.inject_player_input("^Quietly, %s: stay close." % tok, fu)
             SH.await_idle(90)
             time.sleep(3)
@@ -121,8 +126,8 @@ def e5(r):
     except SH.HarnessError as e:
         inc(r, "harness call failed: %s" % e)
     finally:
-        ctl_line(r, "Whisper", [0], r"\[IEB-TEST\] WHISPERSET")
-        bring_back(r, A_NPC)
+        set_whisper(r, 0)          # SkyrimNet config: a reload may not undo it (INFERRED), so read back
+        bring_back(r, A_NPC, readback=False)
 
 
 @test("E-7", "E", reload=True)
@@ -130,14 +135,16 @@ def e7(r):
     """The player types '*I hug her*' in Say mode (harness inject): a bystander at 300 u in view has the line in history
     (the player's own asterisk text follows the same audience). Player-TTS of the asterisk part is S (Shae's ear).
     1 LLM call (F1's reply)."""
-    market(r)
+    if not market(r):
+        return
     if not harness_ready(r):
         return
     fu, au, pu = uuids(r, F1, A_NPC, PLAYER)
     if not (fu and au):
         return inc(r, "actors not loaded")
     try:
-        place(r, A_NPC, 300, 0, 0)
+        if not place(r, A_NPC, 300, 0, 0):
+            return
         time.sleep(2)
         if not los(r, au, pu):
             return inc(r, "A placed without line of sight")
@@ -151,14 +158,15 @@ def e7(r):
     except SH.HarnessError as e:
         inc(r, "harness inject failed: %s" % e)
     finally:
-        bring_back(r, A_NPC)
+        bring_back(r, A_NPC, readback=False)
 
 
 @test("E-8", "E", reload=True)
 def e8(r):
     """'!' vs '#' prefixes with the same text to F1 (INFERRED SkyrimNet chat semantics: '!' forces one reply, '#' none):
     count F1 dialogue rows added and whether the text persists in history. Up to 1 LLM call."""
-    market(r)
+    if not market(r):
+        return
     if not harness_ready(r):
         return
     fu, = uuids(r, F1)
@@ -189,10 +197,15 @@ def re3(r):
     spec's 75% silence. 5 LLM calls at most."""
     if not harness_ready(r):
         return
+    w0 = player_pos(r)
     con(r, "coc WhiterunBreezehome")   # an interior nobody else is in at T0 (INFERRED; self-checked below by QScan)
     time.sleep(12)
+    if not player_moved(r, w0, "coc WhiterunBreezehome"):
+        return
     con(r, "%08X.moveto player" % F1)
     time.sleep(5)
+    if not near_player(r, F1, "F1 moveto player"):
+        return
     fu, = uuids(r, F1)
     if not fu:
         return inc(r, "F1 not loaded")

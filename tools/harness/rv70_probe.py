@@ -28,8 +28,9 @@ def fresh(save):
         if not game.procs():
             break
         time.sleep(2)
-    if not game.harness_mode():
-        game.set_harness_mode(True, say)
+    if not game.harness_mode() and not game.set_harness_mode(True, say):
+        say("ABORT: harness mode could not be set on (Harness.yaml read-back)")
+        sys.exit(1)
     if not game.launch(say, voices=False):
         say("ABORT: launch failed")
         sys.exit(1)
@@ -75,7 +76,8 @@ def main(only=None):
         for l in fast_lines(text):
             say("c3 " + l)
         t = game.Tail(game.LOGS["papyrus"])
-        block.ie_test_settings(ctl)
+        if not block.ie_test_settings(ctl):      # RV-123 (3): SkipProbe read-back
+            say("c3 IE test settings NOT VERIFIED: the c3 results below are INCONCLUSIVE")
         # 23:03 run: she had already arrived during the settle (22:49), so waiting for a new arrival line timed out
         if "Jenassa arrived at" in text + pap.read() or wait_arrival(t):
             time.sleep(5)
@@ -90,7 +92,8 @@ def main(only=None):
     # 3. same errand without a load in between
     ctl, pap, ok = fresh("T0") if "3" in steps else (None, None, False)
     if ok:
-        block.ie_test_settings(ctl)
+        if not block.ie_test_settings(ctl):      # RV-123 (3): SkipProbe read-back
+            say("no-load IE test settings NOT VERIFIED: the no-load results below are INCONCLUSIVE")
         t = game.Tail(game.LOGS["papyrus"])
         ctl.ctl("StartTask", [F1, "GoToLocation", "Dragonsreach", "1", "1"])
         take = t.wait(r"(?i)\[IEB\] TAKE actor=Jenassa", 30)

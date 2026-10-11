@@ -12,6 +12,7 @@ AI acceptance: not automated here; GATE-2/GATE-3 drive the same OnMarasStatusCha
 import re, time
 from block import test, checkpoint
 from tests_misc import F1, FRALIA, con, ctl_line, inc, s32, rank, iv, tail, su_set, parse_kv, fid_any_rx, _set_pts
+from tests_misc import PLAYER, who, worn_rows, to_formid, near_player
 from tests_u3 import T0M, cast, maras_probe, maras_promote, status_is
 
 CONSUMING_MIN = 88      # SNRom_Bridge.psc CONSUMING_MIN() (Return 88)
@@ -68,10 +69,14 @@ def gate1(r):
     checkpoint(r)
     t = tail("snrom")
     lo = _pts(r, F1, 1100)
+    if not lo or iv(lo, "pts") >= SPOUSE_MIN:
+        return inc(r, "read-back: F1 points %s, want below %d (RV-123 (3))" % (lo and lo.get("pts"), SPOUSE_MIN))
     r.check(bool(lo) and iv(lo, "kw") == 1, "below %d: TTM_IgnoreProposal on the ref (kw=%s)" % (SPOUSE_MIN, lo and lo.get("kw")))
     r.check(bool(lo) and iv(lo, "pmf") == -2, "below: out of PotentialMarriageFaction (pmf=%s)" % (lo and lo.get("pmf")))
     r.check(bool(lo) and iv(lo, "pmfRm") == 1, "below: IEB_PMFRemoved=1 (%s)" % (lo and lo.get("pmfRm")))
     hi = _pts(r, F1, SPOUSE_MIN + 100)
+    if not hi or iv(hi, "pts") < SPOUSE_MIN:
+        return inc(r, "read-back: F1 points %s, want >= %d (RV-123 (3))" % (hi and hi.get("pts"), SPOUSE_MIN))
     r.check(bool(hi) and iv(hi, "kw") == 0, "at/above %d: keyword removed (kw=%s)" % (SPOUSE_MIN, hi and hi.get("kw")))
     r.check(bool(hi) and iv(hi, "pmf") >= 0, "above: back in PotentialMarriageFaction (pmf=%s)" % (hi and hi.get("pmf")))
     r.check(bool(hi) and iv(hi, "pmfRm") == 0, "above: IEB_PMFRemoved unset (%s)" % (hi and hi.get("pmfRm")))
@@ -80,6 +85,16 @@ def gate1(r):
 
 
 AMULET = 0x000C891B     # Skyrim.esm Amulet of Mara (the proposal INFOs' GetEquipped, run on the player)
+
+
+def _amulet_worn(r):
+    """RV-123 (3) read-back of the amulet console writes: True / False from the player's worn list (worn_rows), None if
+    the list is unreadable."""
+    pu, _, _ = who(r, PLAYER)
+    rows = worn_rows(r, pu) if pu else None
+    if rows is None:
+        return None
+    return any(to_formid(x[1]) == AMULET for x in rows)
 
 
 @test("GATE-1b", "GATE", save="T0-M", reload=True)
@@ -96,6 +111,8 @@ def gate1b(r):
         return inc(r, "Fralia is enrolled in T0-M; this test needs a never-enrolled actor")
     con(r, "%08X.moveto player" % FRALIA)
     con(r, "%08X.addfac 00019809 1" % FRALIA)
+    if not near_player(r, FRALIA, "Fralia moveto player"):
+        return
     time.sleep(3)
     g1 = gate(r, FRALIA)
     if not g1 or iv(g1, "pmf") != 1:
@@ -105,12 +122,16 @@ def gate1b(r):
     con(r, "player.additem %08X 1" % AMULET)
     con(r, "player.equipitem %08X" % AMULET)
     time.sleep(8)
+    if _amulet_worn(r) is not True:
+        return inc(r, "read-back: the Amulet of Mara is not in the player's worn list after additem/equipitem (RV-123 (3))")
     on = gate(r, FRALIA)
     r.check(bool(on) and iv(on, "pmf") == -2 and iv(on, "pmfRm") == 1,
             "amulet worn: never-enrolled Fralia out of PotentialMarriageFaction (pmf=%s pmfRm=%s)"
             % (on and on.get("pmf"), on and on.get("pmfRm")))
     con(r, "player.unequipitem %08X" % AMULET)
     time.sleep(5)
+    if _amulet_worn(r) is not False:
+        return inc(r, "read-back: the Amulet of Mara still worn (or worn list unreadable) after unequipitem (RV-123 (3))")
     off = gate(r, FRALIA)
     r.check(bool(off) and iv(off, "pmf") == 1, "amulet off: back in the faction AT RANK 1 (pmf=%s)" % (off and off.get("pmf")))
     r.check(bool(off) and iv(off, "pmfRm") == 0, "amulet off: IEB_PMFRemoved cleared (%s)" % (off and off.get("pmfRm")))
@@ -163,7 +184,10 @@ def gate4(r):
     checkpoint(r)
     for n in (1, 2):
         t = tail("snrom")
-        ctl_line(r, "VanillaEngage", [s32(FRALIA)], r"(?i)\[IEB-TEST\] VENG \S+ set", 15)
+        mv = ctl_line(r, "VanillaEngage", [s32(FRALIA)], r"(?i)\[IEB-TEST\] VENG \S+ set(?: stage=(-?\d+))?", 15)
+        if not mv:                  # stage= is logged, not asserted: the undo under test may already have run (race)
+            return inc(r, "round %d: no 'VENG ... set' line, VanillaEngage not confirmed (RV-123 (3))" % n)
+        r.log("  round %d: VanillaEngage stage read back %s" % (n, mv.group(1)))
         deadline, txt = time.time() + 30, ""
         while time.time() < deadline and "Vanilla-path engagement UNDONE for" not in txt:
             time.sleep(2)
@@ -201,7 +225,11 @@ def _backstop(r, why, setup):
         return
     checkpoint(r)
     t = tail("snrom")
+    tp = tail("papyrus")
     maras_promote(r, F1, "engaged")
+    ms = re.search(r"(?i)T0M_SET %s want=1 ok=(\d)" % fid_any_rx(F1), tp.read())
+    if not ms or ms.group(1) != "1":         # T0M_SET reads the status right after the native (the backstop reverts it)
+        return inc(r, "read-back: MarasSet engaged on F1 not ok=1 (%s; RV-123 (3))" % (ms.group(0) if ms else "no T0M_SET line"))
     deadline, txt = time.time() + 60, ""
     while time.time() < deadline:
         txt += t.read()
@@ -249,7 +277,11 @@ def gate3(r):
             inc(r, "setup: SNRom_Exclusivity write refused")
             return False
         g = _pts(r, F1, SPOUSE_MIN + 100)
-        if not g or iv(g, "other") < 1:
+        if not g or iv(g, "pts") < SPOUSE_MIN or iv(g, "excl") < CONSUMING_MIN:
+            inc(r, "setup: read-back pts %s (want >= %d), SNRom_Exclusivity %s (want >= %d) (RV-123 (3))"
+                % (g and g.get("pts"), SPOUSE_MIN, g and g.get("excl"), CONSUMING_MIN))
+            return False
+        if iv(g, "other") < 1:
             inc(r, "setup: OtherPartners(F1) is %s, need >= 1 (T0-M spouses not counted yet?)" % (g and g.get("other")))
             return False
         r.check(iv(g, "kw") == 1, "M3: gate stays closed at %s pts with exclusivity %s and %s other partner(s) (kw=%s)"

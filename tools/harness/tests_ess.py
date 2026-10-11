@@ -46,7 +46,7 @@ import game
 from block import test, checkpoint, settle_probe, ie_test_settings
 from fidnorm import fid_any_rx, fid_norm
 from tests_misc import (CHILD, WR_GUARDS, YSOLDA, FRALIA, KV, con, ctl_line, inc, hx, s32, who, rval, iv, tail, rank, rel, ah,
-                        dm, ensure_child_enrolled, su_set, su_unset)
+                        dm, ensure_child_enrolled, su_set, su_unset, near_player, player_pos, player_moved)
 from tests_tm_l import sa_call, hexarg
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -297,6 +297,8 @@ def pick_npcs(r, n=1, **want):
         exp.update({k.lower(): v for k, v in want.items()})
         if any(g(d, k) != v for k, v in exp.items()):
             continue
+        if not near_player(r, ref, "pick_npcs moveto player"):     # RV-123 (3): read back the moveto
+            return []
         out.append(dict(fid=ref, name=name, row=row, d=d, base=base))
         if len(out) >= n:
             break
@@ -380,10 +382,15 @@ def _tbl(r, table, bad):
     ie_test_settings(r)
     con(r, "%08X.moveto player" % n["fid"])
     time.sleep(3)
+    if not near_player(r, n["fid"], "moveto player after the T0 load"):
+        return
     try:
         m = t.wait(r"(?i)\[IEB\] WARN ESS_TABLE bad=%s" % bad, 90)
         r.check(bool(m), "WARN ESS_TABLE bad=%s logged after the load" % bad)
         r.ctl("NFFRecruit", [s32(n["fid"])])
+        dr = ex(r, n["fid"])                    # RV-123 (3): the recruit seated the NPC (else 'no ESS_APPLY' is vacuous)
+        if not dr or g(dr, "seat") != 1:
+            return inc(r, "read-back: NFF recruit did not seat the NPC (seat=%s)" % (dr and dr.get("seat")))
         sweeps(3)
         txt = t.read()
         r.check(len(re.findall(r"(?i)\[IEB\] WARN ESS_TABLE", txt)) == 1, "exactly one WARN ESS_TABLE for this load (%d)"
@@ -468,6 +475,8 @@ def e_nff2(r):
             return inc(r, "could not make the base flag authored")
         r.ctl("NFFRecruit", [s32(n["fid"])])
         d1 = ex(r, n["fid"])
+        if not d1 or g(d1, "seat") != 1:            # RV-123 (3): read back the recruit
+            return inc(r, "read-back: NFF recruit did not seat the NPC (seat=%s)" % (d1 and d1.get("seat")))
         sweeps(2)
         d2 = ex(r, n["fid"])
         txt = t.read()
@@ -593,8 +602,13 @@ def e_imp_f(r):
             k = n_lines(txt, "ESS_APPLY", n["name"])
             if k > seen:
                 seen = k
-                quiet(r.ctl, "EssFacSet", [s32(n["fid"]), 0])
-                quiet(r.ctl, "EssSet", [s32(n["fid"]), 0])
+                mf = quiet(ctl_line, r, "EssFacSet", [s32(n["fid"]), 0],
+                           r"(?i)\[IEB-TEST\] ESSFAC %s on=0 in=(\d)" % fid_any_rx(n["fid"]))
+                me = quiet(ctl_line, r, "EssSet", [s32(n["fid"]), 0],
+                           r"(?i)\[IEB-TEST\] ESSSET %s on=0 now=(\d)" % fid_any_rx(n["fid"]))
+                if not mf or mf.group(1) != "0" or not me or me.group(1) != "0":   # RV-123 (3): wrapper read-backs
+                    return inc(r, "read-back: faction/base-flag strip did not take (in=%s now=%s)"
+                               % (mf and mf.group(1), me and me.group(1)))
             if has_line(txt, r"WARN ESS_IMPORT_FAIL actor=%s" % re.escape(n["name"])):
                 break
             time.sleep(2)
@@ -612,6 +626,8 @@ def e_imp_f(r):
         nff_dismiss(r, n["fid"])
         sweeps(2)
         d2 = ex(r, n["fid"])
+        if not d2 or g(d2, "seat") != 0:            # RV-123 (3): read back the dismiss
+            return inc(r, "read-back: NFF dismiss did not unseat the NPC (seat=%s)" % (d2 and d2.get("seat")))
         if d2:
             r.check(g(d2, "ieb_essfail") == -1, "after the dismiss IEB_EssFail is cleared (%s)" % d2.get("ieb_essfail"))
     finally:
@@ -736,6 +752,8 @@ def e_sa2(r):
         if not save_reload(r, "IEB_ESS_SA2"):
             return
         con(r, "%08X.moveto player" % n["fid"])
+        if not near_player(r, n["fid"], "moveto player after the reload"):
+            return
         time.sleep(30)
         txt = t.read()
         d1 = ex(r, n["fid"])
@@ -765,7 +783,9 @@ def e_saopt1(r):
         if txt is None:
             return
         t = tail("papyrus")
-        r.ctl("SAEssUI", [s32(n["fid"]), 0])
+        mu = ctl_line(r, "SAEssUI", [s32(n["fid"]), 0], r"(?i)\[IEB-TEST\] SAEssUI %s on=0 saOff=(\d)" % fid_any_rx(n["fid"]))
+        if not mu or mu.group(1) != "1":            # RV-123 (3): the wrapper's read-back of SA EssentialOff
+            return inc(r, "read-back: SA UI toggle OFF did not set EssentialOff (saOff=%s)" % (mu and mu.group(1)))
         sweeps(2)
         txt = t.read()
         r.check(n_lines(txt, "ESS_OPTOUT", n["name"], r" via=sa_ui") == 1, "ESS_OPTOUT via=sa_ui exactly once")
@@ -775,6 +795,8 @@ def e_saopt1(r):
         if not save_reload(r, "IEB_ESS_SAOPT1"):
             return
         con(r, "%08X.moveto player" % n["fid"])
+        if not near_player(r, n["fid"], "moveto player after the reload"):
+            return
         sweeps(2)
         txt = t.read()
         d2 = ex(r, n["fid"])
@@ -803,7 +825,9 @@ def e_saopt2(r):
         if txt is None:
             return
         t = tail("papyrus")
-        r.ctl("EssSet", [s32(n["fid"]), 0])
+        me = ctl_line(r, "EssSet", [s32(n["fid"]), 0], r"(?i)\[IEB-TEST\] ESSSET %s on=0 now=(\d)" % fid_any_rx(n["fid"]))
+        if not me or me.group(1) != "0":            # RV-123 (3): the wrapper's read-back of the base flag
+            return inc(r, "read-back: base flag not cleared (now=%s)" % (me and me.group(1)))
         sweeps(2)
         txt = t.read()
         r.check(n_lines(txt, "ESS_REASSERT", n["name"], r" why=external") == 1, "ESS_REASSERT why=external exactly once")
@@ -863,6 +887,8 @@ def e_casual_enrolled(r):
         if not save_reload(r, "IEB_ESS_CASUAL"):
             return
         con(r, "%08X.moveto player" % n["fid"])
+        if not near_player(r, n["fid"], "moveto player after the reload"):
+            return
         sweeps(2)
         d2 = ex(r, n["fid"])
         if d2:
@@ -958,6 +984,8 @@ def e_shr(r):
         d = ex(r, gref) if u and not child else None
         if not d or g(d, "uniq") != 0 or g(d, "baseess") != 0 or g(d, "saroster") != 0 or g(d, "ieb_ess") != -1:
             continue
+        if not near_player(r, gref, "guard moveto player"):     # RV-123 (3): read back the moveto of a guard we use
+            return
         seen.setdefault(d.get("base"), []).append((gref, name))
         if len(seen[d.get("base")]) >= 2:
             pair = seen[d.get("base")][:2]
@@ -997,10 +1025,15 @@ def _kill_setup(r):
     if not pool:
         return None, None
     n = pool[0]
+    w0 = player_pos(r)
     con(r, "coc WhiterunBreezehome")                    # an interior nobody else is in at T0 (INFERRED, as tests_u2_e.re3)
     time.sleep(12)
+    if not player_moved(r, w0, "coc WhiterunBreezehome"):   # RV-123 (3): read back the coc
+        return None, None
     con(r, "%08X.moveto player" % n["fid"])
     time.sleep(4)
+    if not near_player(r, n["fid"], "moveto player in the interior"):
+        return None, None
     txt, d = nff_confirmed(r, n)
     if txt is None:
         return None, None
@@ -1027,7 +1060,9 @@ def e_k1(r):
     try:
         t = tail("papyrus")
         r.ctl("EssKill", [s32(n["fid"]), 0])
-        m = t.wait(r"(?i)\[IEB-TEST\] ESSKILL \S+ mode=0 dead=(\d) bleed=(\d)", 15)
+        m = t.wait(r"(?i)\[IEB-TEST\] ESSKILL \S+ mode=0 dead=(\d) bleed=(\d) hp=(-?\d+)", 15)
+        if not m or (m.group(2) != "1" and int(m.group(3)) > 0):    # RV-123 (3): the damage landed (else 'not dead' is vacuous)
+            return inc(r, "read-back: Health damage did not land (bleed=%s hp=%s)" % (m and m.group(2), m and m.group(3)))
         r.check(bool(m) and m.group(1) == "0", "damage with no attacker: not dead (bleedout=%s)" % (m and m.group(2)))
         time.sleep(15)
         d1 = ex(r, n["fid"])
@@ -1059,7 +1094,9 @@ def e_k2(r):
     try:
         t = tail("papyrus")
         r.ctl("EssKill", [s32(n["fid"]), 2])
-        m = t.wait(r"(?i)\[IEB-TEST\] ESSKILL \S+ mode=2 dead=(\d) bleed=(\d)", 15)
+        m = t.wait(r"(?i)\[IEB-TEST\] ESSKILL \S+ mode=2 dead=(\d) bleed=(\d) hp=(-?\d+)", 15)
+        if not m or (m.group(1) == "0" and m.group(2) != "1" and int(m.group(3)) > 0):   # RV-123 (3): the Kill landed
+            return inc(r, "read-back: Kill(player) had no effect (bleed=%s hp=%s)" % (m and m.group(2), m and m.group(3)))
         r.check(bool(m) and m.group(1) == "0", "Kill(player): not dead (bleedout=%s)" % (m and m.group(2)))
         time.sleep(15)
         d1 = ex(r, n["fid"])
@@ -1084,7 +1121,11 @@ def e_k3(r):
         return
     checkpoint(r)
     try:
-        r.ctl("SpawnHostile", [BANDIT])
+        ms = ctl_line(r, "SpawnHostile", [BANDIT], r"(?i)\[IEB-TEST\] SpawnHostile \S+ ref=(0x[0-9A-Fa-f]+)")
+        if not ms or not near_player(r, fid_norm(ms.group(1)), "spawned hostile", maxd=1500):
+            if not ms:                              # RV-123 (3): the hostile exists (else 'never dead' is vacuous)
+                inc(r, "read-back: SpawnHostile logged no spawned ref")
+            return
         dead, bleed = 0, 0
         for _ in range(9):
             time.sleep(5)
@@ -1119,11 +1160,15 @@ def e_dis1(r):
         nff_dismiss(r, n["fid"])
         sweeps(2)
         d1 = ex(r, n["fid"])
+        if not d1 or g(d1, "seat") != 0:            # RV-123 (3): read back the dismiss (else 'still essential' is vacuous)
+            return inc(r, "read-back: NFF dismiss did not unseat the NPC (seat=%s)" % (d1 and d1.get("seat")))
         if d1:
             r.check(g(d1, "baseess") == 1 and g(d1, "fac") == 1 and g(d1, "ieb_ess") == 2, "after the dismiss: essential, in the faction, IEB_Ess = 2")
         if not save_reload(r, "IEB_ESS_DIS1"):
             return
         con(r, "%08X.moveto player" % n["fid"])
+        if not near_player(r, n["fid"], "moveto player after the reload"):
+            return
         sweeps(2)
         d2 = ex(r, n["fid"])
         if d2:
@@ -1151,9 +1196,14 @@ def e_dis2(r):
         t = tail("papyrus")
         sa_dismiss(r, n["fid"])
         sweeps(2)
+        dd = ex(r, n["fid"])
+        if not dd or g(dd, "saroster") != 0:        # RV-123 (3): read back the SA dismiss
+            return inc(r, "read-back: SA dismiss left the NPC rostered (saRoster=%s)" % (dd and dd.get("saroster")))
         if not save_reload(r, "IEB_ESS_DIS2"):
             return
         con(r, "%08X.moveto player" % n["fid"])
+        if not near_player(r, n["fid"], "moveto player after the reload"):
+            return
         sweeps(2)
         d1 = ex(r, n["fid"])
         if d1:
@@ -1180,7 +1230,9 @@ def e_opt(r):
         if txt is None:
             return
         t = tail("papyrus")
-        r.ctl("NFFEssToggle", [s32(n["fid"])])
+        mt = ctl_line(r, "NFFEssToggle", [s32(n["fid"])], r"(?i)\[IEB-TEST\] NFFEssToggle %s fac=(\d)" % fid_any_rx(n["fid"]))
+        if not mt or mt.group(1) != "0":            # RV-123 (3): the wrapper's read-back of nwsFF_EssFac (toggle OFF)
+            return inc(r, "read-back: NFF toggle OFF left the NPC in nwsFF_EssFac (fac=%s)" % (mt and mt.group(1)))
         sweeps(3)
         txt = t.read()
         r.check(n_lines(txt, "ESS_OPTOUT", n["name"], r" via=nff_mcm") == 1, "ESS_OPTOUT via=nff_mcm exactly once")
@@ -1190,12 +1242,16 @@ def e_opt(r):
         if not save_reload(r, "IEB_ESS_OPT"):
             return
         con(r, "%08X.moveto player" % n["fid"])
+        if not near_player(r, n["fid"], "moveto player after the reload"):
+            return
         sweeps(2)
         d2 = ex(r, n["fid"])
         txt = t.read()
         r.check(n_lines(txt, "ESS_APPLY", n["name"]) == 1 and n_lines(txt, "ESS_REASSERT", n["name"]) == 0 and bool(d2) and g(d2, "baseess") == 0,
                 "no re-apply, no re-assert, flag still off after the reload")
-        r.ctl("NFFEssToggle", [s32(n["fid"])])
+        mt = ctl_line(r, "NFFEssToggle", [s32(n["fid"])], r"(?i)\[IEB-TEST\] NFFEssToggle %s fac=(\d)" % fid_any_rx(n["fid"]))
+        if not mt or mt.group(1) != "1":            # RV-123 (3): toggle ON put the NPC back in nwsFF_EssFac
+            return inc(r, "read-back: NFF toggle ON did not restore nwsFF_EssFac (fac=%s)" % (mt and mt.group(1)))
         sweeps(2)
         txt = t.read()
         d3 = ex(r, n["fid"])
@@ -1261,7 +1317,11 @@ def e_ie2(r):
             return inc(r, "IEB_EssKeep is not 1 after the confirm")
         t = tail("papyrus")
         su_set(r, n["fid"], "Intel_WasEssential", 1)
-        r.ctl("EssSet", [s32(n["fid"]), 0])
+        me = ctl_line(r, "EssSet", [s32(n["fid"]), 0], r"(?i)\[IEB-TEST\] ESSSET %s on=0 now=(\d)" % fid_any_rx(n["fid"]))
+        dh = ex(r, n["fid"])                        # RV-123 (3): read back the IE-hold key and the cleared base flag
+        if not me or me.group(1) != "0" or not dh or g(dh, "intel_wasessential") != 1:
+            return inc(r, "read-back: hold setup did not take (now=%s Intel_WasEssential=%s)"
+                       % (me and me.group(1), dh and dh.get("intel_wasessential")))
         sweeps(2)
         d1 = ex(r, n["fid"])
         if d1:
@@ -1269,6 +1329,9 @@ def e_ie2(r):
         r.check(n_lines(t.read(), "ESS_REASSERT", n["name"]) == 0, "no ESS_REASSERT while held")
         su_unset(r, n["fid"], "Intel_WasEssential")
         sweeps(2)
+        du = ex(r, n["fid"])
+        if not du or g(du, "intel_wasessential") != -1:     # RV-123 (3): read back the unset
+            return inc(r, "read-back: Intel_WasEssential still set (%s)" % (du and du.get("intel_wasessential")))
         r.check(n_lines(t.read(), "ESS_REASSERT", n["name"], r" why=ie_restore") == 1, "ESS_REASSERT why=ie_restore once after the hold ends")
         d2 = ex(r, n["fid"])
         if d2:
@@ -1296,14 +1359,22 @@ def e_ie3(r):
         su_set(r, n["fid"], "Intel_WasEssential", 1)
         r.ctl("EssSet", [s32(n["fid"]), 1])
         r.ctl("NFFRecruit", [s32(n["fid"])])
+        dh = ex(r, n["fid"])                        # RV-123 (3): read back the key, the base flag and the seat
+        if not dh or g(dh, "intel_wasessential") != 1 or g(dh, "baseess") != 1 or g(dh, "seat") != 1:
+            return inc(r, "read-back: hold setup did not take (Intel_WasEssential=%s baseEss=%s seat=%s)"
+                       % (dh and dh.get("intel_wasessential"), dh and dh.get("baseess"), dh and dh.get("seat")))
         sweeps(2)
         txt = t.read()
         d1 = ex(r, n["fid"])
         r.check(n_lines(txt, "ESS_SKIP", n["name"], r" why=ie_hold") == 1, "ESS_SKIP why=ie_hold exactly once")
         if d1:
             r.check(g(d1, "ieb_essauth") != 1, "IEB_EssAuth not written as 1 (%s)" % d1.get("ieb_essauth"))
-        r.ctl("EssSet", [s32(n["fid"]), 0])
+        me = ctl_line(r, "EssSet", [s32(n["fid"]), 0], r"(?i)\[IEB-TEST\] ESSSET %s on=0 now=(\d)" % fid_any_rx(n["fid"]))
         su_unset(r, n["fid"], "Intel_WasEssential")
+        du = ex(r, n["fid"])                        # RV-123 (3): read back the restore and the unset
+        if not me or me.group(1) != "0" or not du or g(du, "intel_wasessential") != -1:
+            return inc(r, "read-back: hold restore did not take (now=%s Intel_WasEssential=%s)"
+                       % (me and me.group(1), du and du.get("intel_wasessential")))
         sweeps(3)
         d2 = wait_ess(r, n["fid"], 1, CONFIRM_S)
         r.check(bool(d2) and g(d2, "ieb_ess") >= 1 and g(d2, "ieb_essauth") == 0, "normal apply after the hold: tracked, IEB_EssAuth = 0")
@@ -1336,14 +1407,18 @@ def e_ra(r):
     q = _quest(r, 3)
     if not q or q[0] != 1:
         return inc(r, "synthetic story quest not running at start (%s)" % (q,))
-    quiet(_quest, r, 2, 0)
+    q0 = quiet(_quest, r, 2, 0)
+    if not q0 or q0[1] >= SYNTH_LO:                 # RV-123 (3): read back the reset (window closed at the start)
+        return inc(r, "read-back: synthetic quest not reset below stage %d (%s)" % (SYNTH_LO, q0))
     checkpoint(r)
     try:
         txt, d0 = nff_confirmed(r, n)
         if txt is None:
             return
         t = tail("papyrus")
-        r.ctl("EssSet", [s32(n["fid"]), 0])
+        me = ctl_line(r, "EssSet", [s32(n["fid"]), 0], r"(?i)\[IEB-TEST\] ESSSET %s on=0 now=(\d)" % fid_any_rx(n["fid"]))
+        if not me or me.group(1) != "0":            # RV-123 (3): the wrapper's read-back of the base flag
+            return inc(r, "read-back: (a) base flag not cleared (now=%s)" % (me and me.group(1)))
         sweeps(2)
         d1 = ex(r, n["fid"])
         r.check(n_lines(t.read(), "ESS_REASSERT", n["name"], r" why=external") == 1 and bool(d1) and g(d1, "baseess") == 1,
@@ -1352,14 +1427,18 @@ def e_ra(r):
         if not q2 or q2[1] < SYNTH_LO:
             return inc(r, "could not move the synthetic quest to stage %d (%s)" % (SYNTH_LO, q2))
         t2 = tail("papyrus")
-        r.ctl("EssSet", [s32(n["fid"]), 0])
+        me = ctl_line(r, "EssSet", [s32(n["fid"]), 0], r"(?i)\[IEB-TEST\] ESSSET %s on=0 now=(\d)" % fid_any_rx(n["fid"]))
+        if not me or me.group(1) != "0":            # RV-123 (3): the wrapper's read-back of the base flag
+            return inc(r, "read-back: (b) base flag not cleared (now=%s)" % (me and me.group(1)))
         sweeps(2)
         d2 = ex(r, n["fid"])
         r.check(n_lines(t2.read(), "ESS_LOST", n["name"], r" why=external") == 1, "(b) ESS_LOST why=external exactly once")
         r.check(bool(d2) and g(d2, "baseess") == 0, "(b) not re-asserted inside the window")
         sweeps(2)
         r.check(n_lines(t2.read(), "ESS_LOST", n["name"]) == 1 and n_lines(t2.read(), "ESS_REASSERT", n["name"]) == 0, "(b) still one ESS_LOST, no re-assert")
-        _quest(r, 0)
+        qs = _quest(r, 0)
+        if not qs or qs[0] != 0:                    # RV-123 (3): read back the Stop() (window closed)
+            return inc(r, "read-back: synthetic quest still running after Stop() (%s)" % (qs,))
         sweeps(2)
         d3 = ex(r, n["fid"])
         r.check(bool(d3) and g(d3, "baseess") == 1 and n_lines(t2.read(), "ESS_REASSERT", n["name"]) == 1, "(b) re-asserted after the synthetic quest stopped")
@@ -1384,7 +1463,9 @@ def e_win_synth(r):
     q = _quest(r, 3)
     if not q or q[0] != 1:
         return inc(r, "synthetic story quest not running at start (%s)" % (q,))
-    quiet(_quest, r, 2, 0)
+    q0 = quiet(_quest, r, 2, 0)
+    if not q0 or q0[1] >= SYNTH_LO:                 # RV-123 (3): read back the reset (window closed at the start)
+        return inc(r, "read-back: synthetic quest not reset below stage %d (%s)" % (SYNTH_LO, q0))
     checkpoint(r)
     try:
         txt, d0 = nff_confirmed(r, n)
@@ -1399,7 +1480,9 @@ def e_win_synth(r):
         r.check(n_lines(t.read(), "ESS_SUSPEND", n["name"], r" by=2 row=%d" % n["row"]) == 1, "ESS_SUSPEND by=2 row=%d" % n["row"])
         if d1:
             r.check(g(d1, "baseess") == 0 and g(d1, "fac") == 1 and g(d1, "ieb_esssusp") == 1, "base off, faction kept, IEB_EssSusp = 1")
-        _quest(r, 0)
+        qs = _quest(r, 0)
+        if not qs or qs[0] != 0:                    # RV-123 (3): read back the Stop() (window closed)
+            return inc(r, "read-back: synthetic quest still running after Stop() (%s)" % (qs,))
         sweeps(2)
         d2 = ex(r, n["fid"])
         r.check(n_lines(t.read(), "ESS_RESUME", n["name"], r" by=2") == 1, "ESS_RESUME by=2")
@@ -1426,7 +1509,9 @@ def e_win_synth_any(r):
     q = _quest(r, 3)
     if not q or q[0] != 1:
         return inc(r, "synthetic story quest not running at start (%s)" % (q,))
-    quiet(_quest, r, 2, 0)
+    q0 = quiet(_quest, r, 2, 0)
+    if not q0 or q0[1] >= SYNTH_LO:                 # RV-123 (3): read back the reset (window closed at the start)
+        return inc(r, "read-back: synthetic quest not reset below stage %d (%s)" % (SYNTH_LO, q0))
     checkpoint(r)
     try:
         r.ctl("EssSet", [s32(b["fid"]), 1])
@@ -1434,13 +1519,21 @@ def e_win_synth_any(r):
         txt, d0 = nff_confirmed(r, a)
         if txt is None:
             return
+        db0 = ex(r, b["fid"])                       # RV-123 (3): the authored one is essential AND a follower
+        if not db0 or g(db0, "baseess") != 1 or g(db0, "seat") != 1:
+            return inc(r, "read-back: authored follower setup did not take (baseEss=%s seat=%s)"
+                       % (db0 and db0.get("baseess"), db0 and db0.get("seat")))
         t = tail("papyrus")
-        _quest(r, 2, SYNTH_LO)
+        q2 = _quest(r, 2, SYNTH_LO)
+        if not q2 or q2[1] < SYNTH_LO:              # RV-123 (3): read back the stage move (window open)
+            return inc(r, "could not move the synthetic quest to stage %d (%s)" % (SYNTH_LO, q2))
         sweeps(2)
         da, db = ex(r, a["fid"]), ex(r, b["fid"])
         r.check(n_lines(t.read(), "ESS_SUSPEND", a["name"]) == 1 and bool(da) and g(da, "baseess") == 0, "the bridge-set follower is suspended")
         r.check(n_lines(t.read(), "ESS_SUSPEND", b["name"]) == 0 and bool(db) and g(db, "baseess") == 1, "the authored follower is untouched")
-        _quest(r, 0)
+        qs = _quest(r, 0)
+        if not qs or qs[0] != 0:                    # RV-123 (3): read back the Stop() (window closed)
+            return inc(r, "read-back: synthetic quest still running after Stop() (%s)" % (qs,))
         sweeps(2)
         da2 = ex(r, a["fid"])
         r.check(bool(da2) and g(da2, "baseess") == 1 and n_lines(t.read(), "ESS_RESUME", a["name"]) == 1, "the bridge-set follower resumes")
@@ -1483,7 +1576,9 @@ def e_spar(r):
         txt = t.read()
         r.check(n_lines(txt, "ESS_APPLY", n["name"]) == 0, "no ESS_APPLY during the spar")
         r.log("  ESS_SKIP why=sparring seen: %s (level-2 line)" % ("yes" if n_lines(txt, "ESS_SKIP", n["name"], r" why=sparring") else "no"))
-        r.ctl("NFFSparSet", [s32(n["fid"]), 0])
+        mp = ctl_line(r, "NFFSparSet", [s32(n["fid"]), 0], r"(?i)\[IEB-TEST\] NFFSparSet %s on=0 spar=(\d)" % fid_any_rx(n["fid"]))
+        if not mp or mp.group(1) != "0":            # RV-123 (3): the wrapper's read-back of the spar flag
+            return inc(r, "read-back: spar flag not cleared (spar=%s)" % (mp and mp.group(1)))
         d = wait_ess(r, n["fid"], 2, APPLY_S + CONFIRM_S)
         r.check(bool(d) and g(d, "ieb_ess") == 2 and g(d, "baseess") == 1, "after the spar: applied and confirmed")
         unexpected(r, t.read())

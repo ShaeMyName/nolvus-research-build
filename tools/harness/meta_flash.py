@@ -40,8 +40,12 @@ def main(check):
     b2 = b[:m.start()] + m.group(1) + FLASH + m.group(3) + b"openrouter-actions" + m.group(5) + b[m.end():]
     diff = [i for i in range(min(len(b), len(b2))) if b[i] != b2[i]]
     open(YAML, "wb").write(b2)
+    after = state(open(YAML, "rb").read())
     print("backup %s; meta now: model=%s provider=%s; bytes %d -> %d; CRLF %d -> %d"
-          % (BACKUP, *state(open(YAML, "rb").read()), len(b), len(b2), b.count(b"\r\n"), b2.count(b"\r\n")))
+          % (BACKUP, *(after or ("?", "?")), len(b), len(b2), b.count(b"\r\n"), b2.count(b"\r\n")))
+    if after != (FLASH.decode(), "openrouter-actions"):      # RV-123 (3): read-back assert
+        print("READ-BACK FAILED: meta is %s; restore from %s" % (after, BACKUP))
+        return 1
     return 0
 
 

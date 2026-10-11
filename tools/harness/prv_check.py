@@ -76,8 +76,8 @@ def main():
     res = []
     try:
         game.set_archive("PRV_check_%s" % time.strftime("%Y%m%d-%H%M%S"))
-        if not game.harness_mode():
-            game.set_harness_mode(True, say)
+        if not game.harness_mode() and not game.set_harness_mode(True, say):
+            raise RuntimeError("harness mode could not be set on (Harness.yaml read-back)")
         if not game.launch(say, voices=False):
             raise RuntimeError("launch failed")
         ctl = Run("PRV_CONTROL")
@@ -101,7 +101,16 @@ def main():
             res.append(("Uthgerd where she stands", check(ctl, F2, "TKN_CLONE_UTHGERD", "A", None)))
             ctl.ctl("MoveRel", [F2, PLAYER, 150.0, 0.0, 0.0])
             time.sleep(5)
-            res.append(("Uthgerd next to the player", check(ctl, F2, "TKN_CLONE_UTHGERD", "B", True)))
+            d = render(ctl, "{{ distance_between(formid_to_uuid(%d), player.UUID) }}" % F2).strip()
+            try:
+                near = 0 < float(d) <= 600
+            except ValueError:
+                near = False
+            if near:        # RV-123 (3): MoveRel read back before case B depends on it
+                res.append(("Uthgerd next to the player", check(ctl, F2, "TKN_CLONE_UTHGERD", "B", True)))
+            else:
+                say("PRV B INCONCLUSIVE: MoveRel read-back distance %s (want <= 600)" % d)
+                res.append(("Uthgerd next to the player", None))
             res.append(("priestess far away", check(ctl, PRIESTESS, "TKN_PRIVATE_AZURA_PRIESTESS", "C", False)))
             pu = "formid_to_uuid(%d)" % PRIESTESS
             say("priestess live: isChild=%s race=%s" % (render(ctl, "{{ decnpc(%s).isChild }}" % pu).strip(),

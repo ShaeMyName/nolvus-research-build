@@ -12,7 +12,7 @@ import game
 import sn_harness as SH
 from block import test, checkpoint
 from fidnorm import fid_norm
-from tests_misc import PLAYER, F1, F2, con, ctl_line, inc, who, qscan, iv
+from tests_misc import PLAYER, F1, F2, con, ctl_line, inc, who, qscan, iv, near_player
 from tests_u2 import uuids, place, bring_back, harness_ready, market
 
 LAYER_ID = "shae.dialogue-actions"
@@ -68,6 +68,8 @@ def da3(r):
         return inc(r, "innkeeper not found in the inn (QScan by name)")
     con(r, "player.moveto %08X" % fid)
     time.sleep(4)
+    if not near_player(r, fid, "player.moveto the speaker"):
+        return
     checkpoint(r)
     t = sn_tail()
     say_to(r, u, "I'd like to rent a room for the night, please.")
@@ -88,6 +90,8 @@ def da4(r):
         return inc(r, "innkeeper not found")
     con(r, "player.moveto %08X" % fid)
     time.sleep(4)
+    if not near_player(r, fid, "player.moveto the speaker"):
+        return
     checkpoint(r)
     t = sn_tail()
     say_to(r, u, "Maybe later I'll want a room.")
@@ -110,6 +114,8 @@ def da5(r):
         return inc(r, "merchant-trainer not found")
     con(r, "player.moveto %08X" % fid)
     time.sleep(4)
+    if not near_player(r, fid, "player.moveto the speaker"):
+        return
     checkpoint(r)
     t = sn_tail()
     say_to(r, u, "Help me out.")
@@ -128,6 +134,8 @@ def da6(r):
         return inc(r, "innkeeper not found")
     con(r, "player.moveto %08X" % fid)
     time.sleep(4)
+    if not near_player(r, fid, "player.moveto the speaker"):
+        return
     checkpoint(r)
     t = sn_tail()
     say_to(r, u, "Could you forge me a steel sword?")
@@ -142,7 +150,8 @@ def da8(r):
     on A (SA log 'WaitForPlayerHere', INFERRED name); B does not stop (B's WaitingForPlayer stays 0 via Probe).
     The 'press E on B and leave' half needs the dialogue menu: replaced by targeting A in text (INFERRED equivalent for
     the race). 1 LLM call."""
-    market(r)
+    if not market(r):
+        return
     if not harness_ready(r):
         return
     au, bu = uuids(r, F1, F2)
@@ -150,6 +159,8 @@ def da8(r):
         return inc(r, "followers not loaded")
     con(r, "%08X.moveto player" % F2)
     time.sleep(3)
+    if not near_player(r, F2, "F2 moveto player"):
+        return
     checkpoint(r)
     t, sa = sn_tail(), game.Tail(game.LOGS["sa"])
     say_to(r, au, "Jenassa, wait here.")

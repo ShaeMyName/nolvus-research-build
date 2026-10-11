@@ -87,8 +87,21 @@ def s32(x):
     return fid_s32(x)
 
 
+_REF_PREFIX = re.compile(r"^\s*(?:0x)?([0-9A-Fa-f]{6,8})\.(.+)$")
+
+
+def con_args(cmd):
+    """REVIEW_LOG RV-123: the MCP execute_console_command runs via Script::CompileAndRun against `target_form_id` (default
+    the PLAYER); a "<hexref>.<cmd>" prefix is NOT resolved (VERIFIED 2026-10-11 run 6: every response said target
+    0x00000014). So a leading hex-ref prefix becomes target_form_id. "player.<cmd>" is left as is (works)."""
+    m = _REF_PREFIX.match(cmd)
+    if m:
+        return {"command": m.group(2), "target_form_id": "0x%08X" % int(m.group(1), 16)}
+    return {"command": cmd}
+
+
 def con(r, cmd):
-    return r.tool("execute_console_command", {"command": cmd})
+    return r.tool("execute_console_command", con_args(cmd))
 
 
 def retval(res):
@@ -448,6 +461,49 @@ def su_get(r, uuid, key, dflt=-99, fid=None):
     return v
 
 
+# ---------------------------------------------------------------------------- RV-123 (3) write read-backs
+# Every console / MCP state write is read back before the test goes on. Positions: the existing reads
+# tests_u2_wh.dist (CombatProbe dPlayer, actors only) and tests_u2_wh.where (PlayerWhere), imported lazily
+# (tests_u2_wh imports this module).
+
+def near_player(r, fid, what, maxd=600, tries=3):
+    """Read-back for '<ref>.moveto player', 'player.moveto <actor>', PlaceRel/MoveRel onto the player: the actor's
+    distance to the player (tests_u2_wh.dist). True, or INCONCLUSIVE (inc) and False. Logs the distance read."""
+    from tests_u2_wh import dist
+    d = None
+    for i in range(tries):
+        d = dist(r, fid)
+        if d is not None and d <= maxd:
+            r.log("  read-back %s: %s at %d u from the player" % (what, hx(fid), d))
+            return True
+        time.sleep(2)
+    inc(r, "read-back %s: %s is %s u from the player (want <= %d; RV-123 (3))"
+        % (what, hx(fid), "no CombatProbe line" if d is None else d, maxd))
+    return False
+
+
+def player_pos(r):
+    """PlayerWhere -> dict(cell, ws, x, y, z) or None (tests_u2_wh.where)."""
+    from tests_u2_wh import where
+    return where(r)
+
+
+def player_moved(r, w0, what, mind=300.0):
+    """Read-back for 'player.moveto <non-actor ref>' / 'coc <cell>': the player's cell changed or the position moved
+    more than `mind` units from `w0` (player_pos before the write). True, or INCONCLUSIVE (inc) and False."""
+    time.sleep(2)
+    w1 = player_pos(r)
+    if not w0 or not w1:
+        inc(r, "read-back %s: no PLAYERPOS before/after (RV-123 (3))" % what)
+        return False
+    moved = ((w1["x"] - w0["x"]) ** 2 + (w1["y"] - w0["y"]) ** 2) ** 0.5
+    if w1["cell"] != w0["cell"] or moved > mind:
+        r.log("  read-back %s: cell %s -> %s, moved %d u" % (what, w0["cell"], w1["cell"], moved))
+        return True
+    inc(r, "read-back %s: player did not move (cell %s, %d u; RV-123 (3))" % (what, w1["cell"], moved))
+    return False
+
+
 def dm(r, payload):
     """Force a Story DM verdict through the DM's own entry point, OnDungeonMasterResponse(response, success)
     (patched StoryEngine :1375), so E1-E7 run exactly as for an LLM verdict. A plain member function: callable over
@@ -542,8 +598,11 @@ def q1(r):
 
     con(r, "player.moveto %08X" % CARLOTTA)     # market: Fralia's stall is within the 3000-unit scan by day
     time.sleep(8)
-    before = fralia(qscan(r))
-    if not before:
+    at_market = near_player(r, CARLOTTA, "player.moveto Carlotta (market)")
+    before = fralia(qscan(r)) if at_market else None
+    if not at_market:
+        pass            # INCONCLUSIVE already counted by the read-back; the generic scan below still runs
+    elif not before:
         inc(r, "Fralia 0x%s not in QScan range" % hx(FRALIA))
     elif iv(before, "story") > 0 or iv(before, "t1") != 0:
         inc(r, "Fralia already story-aliased or reserved before QPFill (story=%s t1=%s)" % (before.get("story"), before.get("t1")))
@@ -553,15 +612,21 @@ def q1(r):
             r.ctl("QPFill", [FRALIA])
             time.sleep(2)
             filled = fralia(qscan(r))
-            r.check(bool(filled) and iv(filled, "story") >= 1 and iv(filled, "t1") == 1,
-                    "test story quest alias -> IEB_QuestReserved(tier 1) true for Fralia (story=%s t1=%s)"
-                    % (filled and filled.get("story"), filled and filled.get("t1")))
+            if not filled or iv(filled, "story") < 1:     # RV-123 (3): read back the QPFill write first
+                inc(r, "read-back QPFill: Fralia not in the test story quest alias (story=%s)" % (filled and filled.get("story")))
+            else:
+                r.check(iv(filled, "story") >= 1 and iv(filled, "t1") == 1,
+                        "test story quest alias -> IEB_QuestReserved(tier 1) true for Fralia (story=%s t1=%s)"
+                        % (filled.get("story"), filled.get("t1")))
         finally:
             r.ctl("QPClear", [])
             time.sleep(2)
         cleared = fralia(qscan(r))
-        r.check(bool(cleared) and iv(cleared, "story") == 0 and iv(cleared, "t1") == 0,
-                "after QPClear -> not reserved (story=%s t1=%s)" % (cleared and cleared.get("story"), cleared and cleared.get("t1")))
+        if not cleared or iv(cleared, "story") != 0:      # RV-123 (3): read back the QPClear write (Q-1 is reload=False)
+            inc(r, "read-back QPClear: Fralia still in a story alias (story=%s)" % (cleared and cleared.get("story")))
+        else:
+            r.check(iv(cleared, "story") == 0 and iv(cleared, "t1") == 0,
+                    "after QPClear -> not reserved (story=%s t1=%s)" % (cleared.get("story"), cleared.get("t1")))
     checkpoint(r)       # setup-only: reached here only after a Fralia precondition miss (SETUP FAIL with its reason)
     scan = qscan(r)
     if not scan:
@@ -632,6 +697,9 @@ def q2(r):
         time.sleep(2)
         h2, _ = qalias()
     r.log("  after stage %d: running=%s completed=%s" % (done, h2 and h2.get("running"), h2 and h2.get("completed")))
+    if not h2 or (iv(h2, "running") == 1 and iv(h2, "completed") != 1):     # RV-123 (3): setstage/stopquest read-back
+        return inc(r, "read-back setstage %d / stopquest: quest 0x%s still running, not completed (running=%s completed=%s)"
+                   % (done, hx(qid), h2 and h2.get("running"), h2 and h2.get("completed")))
     for a in held:
         d = qr(r, a)
         other = d is not None and (iv(d, "story") > 0 or iv(d, "open") > 0 or iv(d, "scene") > 0)
@@ -799,6 +867,9 @@ def q6(r):
         se(r, "CleanupStoryDispatch", [])
         con(r, "%s.stopcombat" % hx(amb["fid"]))
         time.sleep(3)
+        cp = ctl_line(r, "CombatProbe", [s32(amb["fid"])], r"\[IEB-TEST\] CombatProbe .*? combat=(\d)", 10)
+        if not cp or cp.group(1) != "0":      # RV-123 (3): stopcombat read-back (the rescue half follows)
+            inc(r, "read-back %s.stopcombat: 0x%s combat=%s" % (hx(amb["fid"]), hx(amb["fid"]), cp.group(1) if cp else "no line"))
         b1 = qr(r, amb["fid"])
         r.log("  ambush 0x%s: during ess=%d baseEss=%d" % (hx(amb["fid"]), seen_ess, seen_base))
         r.check(b0 is not None and b1 is not None and b0.get("baseEss") == b1.get("baseEss"),
@@ -893,6 +964,10 @@ def rel1(r):
         su_set(r, F1, "SNRom_AskPending", 1)
         su_unset(r, F1, "SNRom_LastAskAttempt")
         su_unset(r, F1, "SNRom_AskAttempts")
+        ask = (su_get(r, u, "SNRom_AskPending", fid=F1), su_get(r, u, "SNRom_LastAskAttempt", fid=F1),
+               su_get(r, u, "SNRom_AskAttempts", fid=F1))
+        if ask != (1, -99, -99):            # RV-123 (3): read back the forced 'owed' state (-99 = unset)
+            return inc(r, "read-back: AskPending/LastAskAttempt/AskAttempts = %s, want (1, unset, unset)" % (ask,))
         if not pt.wait(r"(?i)\[IEB\] (REJOIN_WAIT|RELEASE\w*|REJOIN_DONE) actor=%s\b" % re.escape(name), timeout=10 * 60):
             return inc(r, "errand did not end within 10 min")
         m = st.wait(r"%s is raising the question in her own words" % re.escape(name), timeout=10 * 60)

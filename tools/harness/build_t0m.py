@@ -17,6 +17,7 @@ import os, re, sys, time
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import game
+from tests_misc import con_args
 from runner import Run, OUT
 from fidnorm import fid_any_rx, fid_s32, fid_hex8
 
@@ -96,7 +97,8 @@ def need(ok, why):
 
 
 def con(cmd):
-    RUN[0].tool("execute_console_command", {"command": cmd})
+    from tests_misc import con_args
+    RUN[0].tool("execute_console_command", con_args(cmd))
 
 
 def step(n, name, detail):
@@ -123,13 +125,15 @@ def check_spouse(fid, housed):
     for k in ("pmf", "pf", "bed"):
         need(iv(p, k) is not None and iv(p, k) >= 0, "%s not in married faction %s (%s)" % (tag, k, p.get(k)))
     for k in ("ask", "crt"):
-        need(iv(p, k) == -2, "%s still in engagement faction %s (%s)" % (tag, k, p.get(k)))
+        # rank -1 = removed (engine RemoveFromFaction on a runtime-added faction leaves rank -1; IsInFaction False:
+        # MARAS ActorUtils.h:11-21); -2 = never a member. Both are "not in the faction" (run 6 aborted on -1).
+        need(iv(p, k) is not None and iv(p, k) < 0, "%s still in engagement faction %s (%s)" % (tag, k, p.get(k)))
     if housed:
         need(iv(p, "housed") is not None and iv(p, "housed") >= 0, "%s not in TTM_SpouseHoused (%s)" % (tag, p.get("housed")))
         need(is_fid(p.get("house"), BZ_LOC), "%s tenant house %s, want %s" % (tag, p.get("house"), fid_hex8(BZ_LOC)))
         need(iv(p, "tm") == 0, "%s housed spouse is a teammate" % tag)
     else:
-        need(iv(p, "housed") == -2, "%s unexpectedly housed (%s)" % (tag, p.get("housed")))
+        need(iv(p, "housed") is not None and iv(p, "housed") < 0, "%s unexpectedly housed (%s)" % (tag, p.get("housed")))
     if iv(p, "rings") in (None, 0):
         say("  WARN %s holds no matrimony ring (only the engaged->married route gives one, "
             "TTM_ServiceMarriageQuest.psc:118-133)" % tag)
@@ -145,7 +149,7 @@ def check_fiance(fid):
     need(iv(p, "trk") == 1, "%s TTM_TrackedNpcs rank %s, want 1" % (tag, p.get("trk")))
     for k in ("ask", "crt"):
         need(iv(p, k) is not None and iv(p, k) >= 0, "%s not in engagement faction %s (%s)" % (tag, k, p.get(k)))
-    need(iv(p, "pmf") == -2, "%s already in PlayerMarriedFaction" % tag)
+    need(iv(p, "pmf") is not None and iv(p, "pmf") < 0, "%s already in PlayerMarriedFaction" % tag)
     need(iv(p, "lia") == 1, "%s does not fill LoveInterest of 0x74793 (StartEngagement, "
                             "TTM_ServiceMarriageQuest.psc:19-37)" % tag)
     return p
@@ -235,6 +239,9 @@ def build():
     else:
         con("player.additem 0000000F %d" % HP_PRICE)
         time.sleep(1)
+        wg = world()        # RV-123 (3): read the gold back before the purchase depends on it
+        need(base["gold"] is not None and (iv(wg, "gold") or 0) >= base["gold"] + HP_PRICE,
+             "player.additem gold: gold %s, want >= %s + %d" % (wg.get("gold"), base["gold"], HP_PRICE))
         con("setstage 000A7B33 10")
         w = None
         for _ in range(10):
@@ -285,13 +292,21 @@ def build():
             need(out is not None, "could not reach RiverwoodLocation for the location-change start (loc=%s)" % w.get("loc"))
             con("player.moveto %08X" % BZ_DOOR)
             time.sleep(15)
+            wb = world()    # RV-123 (3): the moveto read back (left RiverwoodLocation) before the stage depends on it
+            need(not is_fid(wb.get("loc"), RIVERWOOD_LOC), "player.moveto %08X: still in RiverwoodLocation (loc=%s)"
+                 % (BZ_DOOR, wb.get("loc")))
             w = stage25(10)
             if iv(w, "f25") != 1:
                 # REVIEW_LOG RV-114 (3): if a console moveto does not fire the location event, walk in through the gate
                 say("  moveto re-entry did not start the quest; walking in through the Whiterun gate (DoorUse %08X)"
                     % WR_GATE_OUT)
+                p0 = where()
                 con("player.moveto %08X" % WR_GATE_OUT)
                 time.sleep(12)
+                p1 = where()    # RV-123 (3): the moveto read back (cell changed or moved > 300 u) before DoorUse
+                need(p0 is not None and p1 is not None and (p1[0] != p0[0] or abs(float(p1[2]) - float(p0[2]))
+                                                            + abs(float(p1[3]) - float(p0[3])) > 300),
+                     "player.moveto %08X: player did not move (%s -> %s)" % (WR_GATE_OUT, p0, p1))
                 call("DoorUse", [WR_GATE_OUT], r"DoorUse[^\r\n]*", 30)
                 time.sleep(20)
                 w = stage25(10)
@@ -301,7 +316,7 @@ def build():
                 for cmd in ("%08X.getfactionrank 00050920" % JARL, "%08X.getfactionrank %08X" % (JARL, QG_FACTION),
                             "%08X.getdisabled" % JARL, "%08X.getdead" % JARL):
                     try:
-                        res = RUN[0].tool("execute_console_command", {"command": cmd})
+                        res = RUN[0].tool("execute_console_command", con_args(cmd))
                     except Exception as e:
                         res = type(e).__name__
                     say("  DIAG %s -> %s" % (cmd, str(res)[:160]))
@@ -316,7 +331,7 @@ def build():
                          ["prid %X" % HOUSECARL, "enable"]):
                 for c in cmds:
                     try:
-                        res = RUN[0].tool("execute_console_command", {"command": c})
+                        res = RUN[0].tool("execute_console_command", con_args(c))
                     except Exception as e:
                         res = type(e).__name__
                     say("  CONSOLE %s -> %s" % (c, str(res)[:200]))
@@ -420,7 +435,7 @@ def main():
     ok = False
     try:
         if not game.harness_mode():
-            game.set_harness_mode(True, say)
+            need(game.set_harness_mode(True, say), "harness mode could not be set on (Harness.yaml read-back)")
         if not game.launch(say, voices=False):
             raise Abort("launch refused or failed")
         RUN[0] = Run("T0M_BUILD")

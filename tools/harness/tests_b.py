@@ -48,6 +48,7 @@ import game
 from block import test, settle_probe, checkpoint, setup_skip
 from runner import eligible
 from fidnorm import fid_norm, fid_any_rx, fid_hex8   # one FormID normaliser (REVIEW_LOG R48)
+from tests_misc import near_player, player_pos, player_moved   # RV-123 (3) read-backs
 
 # ---------------------------------------------------------------- T0 cast and places (AGENT_BRIEF.md T0 table)
 PLAYER = 0x14
@@ -109,7 +110,8 @@ def fresh(kind="papyrus"):
 
 def con(r, cmd):
     """Console over MCP. Output is not relied on (AGENT_BRIEF: INFERRED that MCP returns it); checks use the logs."""
-    res = r.tool("execute_console_command", {"command": cmd})
+    from tests_misc import con_args
+    res = r.tool("execute_console_command", con_args(cmd))
     if isinstance(res, dict) and res.get("error"):
         r.log("  console %r -> error %s" % (cmd, res["error"]))
     return res
@@ -234,19 +236,35 @@ def ieb_errors(text):
 # ---------------------------------------------------------------- game-side steps
 
 
+class WriteNotConfirmed(Exception):
+    """RV-123 (3): a shared setup helper's write was not confirmed by its read-back (already logged INCONCLUSIVE by the
+    read-back). Raised so the test stops there; block.call_test records it as INCONCLUSIVE, `finally:` teardown runs."""
+
+
+ACTORS = (F1, F2, H, PROT)      # player.moveto targets that CombatProbe can measure (markers cannot: no RefPos probe yet)
+
+
 def watch_on(r):
     con(r, "set IEB_TestWatch to 1")       # GLOB 0x801 ErrandBridgeTest.esp (VERIFIED EditorID in the plugin)
+    # RV-123 (3): no read-back yet (needs a TestCtl GlobalProbe); see investigation/round10/readback_sweep.md
 
 
 def player_to(r, ref, wait=4.0):
     con(r, "player.moveto %s" % hexid(ref))
     time.sleep(wait)
+    # RV-123 (3): read-back for an actor target; a marker target (MARKET/GATE/STABLES) needs a RefPos probe, and call
+    # sites where the player is known to be elsewhere check player_moved themselves.
+    if ref in ACTORS and not near_player(r, ref, "player.moveto %s" % hexid(ref)):
+        raise WriteNotConfirmed("player.moveto %s" % hexid(ref))
 
 
 def bring(r, *fids):
     for f in fids:
         con(r, "%s.moveto player" % hexid(f))
     time.sleep(3)
+    for f in fids:                          # RV-123 (3) read-back
+        if not near_player(r, f, "%s.moveto player" % hexid(f)):
+            raise WriteNotConfirmed("%s.moveto player" % hexid(f))
 
 
 def base(r, *fids, where=MARKET):
@@ -365,7 +383,10 @@ def finish_by_visit(r, fid, tail, leave_to=GATE, timeout=90, visit=None):
     player_to(r, fid, wait=visit)       # IE CheckWaiting: player < 1000 u -> arrival handling (Travel.psc:717-728)
     ticks = [l[1:23] for l in pt.read().splitlines() if "Story: StartScheduler" in l]
     r.log("  visit %d s; IntelEngine ticks during it: %s" % (visit, ticks or "none"))
+    w0 = player_pos(r)
     player_to(r, leave_to)
+    if not player_moved(r, w0, "player.moveto %s (leave the visit)" % hexid(leave_to)):    # RV-123 (3)
+        raise WriteNotConfirmed("player.moveto %s" % hexid(leave_to))
     return wait_ieb(tail, REL_KW, name(r, fid), timeout)
 
 
@@ -582,6 +603,9 @@ def b1(r):
             time.sleep(2)
             ri1 = rejoin_info(r) or {}
             r.log("  rejoin inputs after the player came back: %s" % ri1)
+            if not need(r, ri1.get("dist") is not None and ri1["dist"] <= (ri1.get("N") or N_DEFAULT),
+                        "read-back MoveRel: player within N of F1 (dist=%s N=%s; RV-123 (3))" % (ri1.get("dist"), ri1.get("N"))):
+                return
             d = wait_ieb(tr, REJOIN_EXIT, nm, 30)
             for l in tr.read().splitlines():
                 if "[IEB]" in l and nm in l:
@@ -729,7 +753,12 @@ def b4(r):
         m = pt.wait(r"\[IEB-TEST\] SpawnHostile \S+ ref=(\S+)", 15)
         bref = fid_norm(m.group(1)) if m else None   # unsigned; runner.s32arg signs it for Papyrus (0xFF...... refs)
         if bref is not None:
-            r.ctl("MoveRel", [bref, F1, 200.0, 0.0, 0.0])     # next to F1 on her route, as v1's placeatme at F did
+            mv = ctl_line(r, "MoveRel", [bref, F1, 200.0, 0.0, 0.0], r"\[IEB-TEST\] MoveRel \S+ pos=(-?\d+),(-?\d+),(-?\d+)", 10)
+            # ^ next to F1 on her route, as v1's placeatme at F did. RV-123 (3) read-back: the bandit's logged pos vs F1's.
+            fp = (probe(r, F1) or {}).get("xyz")
+            dbf = dist2(tuple(float(v) for v in mv.groups()), fp) if mv and fp else None
+            if not need(r, dbf is not None and dbf < 800, "read-back MoveRel: bandit next to F1 (%s u)" % dbf):
+                return
         seen = None
         t_end = time.time() + 60
         while time.time() < t_end and not seen:
@@ -884,7 +913,9 @@ def b6b(r):
     try:
         def setup(nm):
             m = ctl_line(r, "NFFGuardOn", [F1], r"\[IEB-TEST\] NFFGuardOn [^\r\n]*", 15)
-            return need(r, m, "NFFGuardOn wrapper missing or silent (guard faction not set)")
+            # RV-123 (3) read-back: the wrapper logs guard=<IsInFaction(nwsFF_GuardFaction)> after the AddToFaction
+            return need(r, m and re.search(r"(?i)\bguard=True\b", m.group(0)),
+                        "NFFGuardOn wrapper missing or silent, or guard faction not read back (%s)" % (m.group(0) if m else "no line"))
 
         def dismiss():
             m = ctl_line(r, "NFFDismiss", [F1], r"\[IEB-TEST\] NFFDismiss .* seated=(\w+)", 15)
@@ -905,7 +936,9 @@ def b6c(r):
         nm = base(r, F1)[0]
         snap(r, F1)
         m = ctl_line(r, "NFFStaleFac", [F1, 1], r"\[IEB-TEST\] NFFStaleFac [^\r\n]*", 15)
-        if not need(r, m, "NFFStaleFac wrapper missing or silent"):
+        # RV-123 (3) read-back: the wrapper logs inFac=<IsInFaction(DismissedFac)> after the write
+        if not need(r, m and re.search(r"(?i)\binFac=True\b", m.group(0)),
+                    "NFFStaleFac wrapper missing or silent, or DismissedFac not read back (%s)" % (m.group(0) if m else "no line")):
             return
         checkpoint(r)
         t = fresh()
@@ -921,7 +954,9 @@ def b6c(r):
         p = probe(r, F1) or {}
         r.check(p.get("nffSeat") not in (None, "-1"), "seat kept (nffSeat=%s)" % p.get("nffSeat"))
     finally:
-        ctl_line(r, "NFFStaleFac", [F1, 0], r"\[IEB-TEST\] NFFStaleFac [^\r\n]*", 10)
+        m0 = ctl_line(r, "NFFStaleFac", [F1, 0], r"\[IEB-TEST\] NFFStaleFac [^\r\n]*", 10)
+        need(r, m0 and re.search(r"(?i)\binFac=False\b", m0.group(0)),      # RV-123 (3): B-6c does not reload
+             "teardown: F1 out of DismissedFac again (%s)" % (m0.group(0) if m0 else "no line"))
         tidy(r, F1)
 
 
@@ -934,7 +969,8 @@ def b6d(r):
     try:
         def setup(nm):
             m = ctl_line(r, "NFFDismiss", [F1], r"\[IEB-TEST\] NFFDismiss .* seated=(\w+)", 15)
-            if not need(r, m, "NFFDismiss wrapper missing or silent (freeing the seat for the import)"):
+            if not need(r, m and m.group(1).lower() == "false",       # RV-123 (3): seated= read back after RemoveFollower
+                        "NFFDismiss wrapper missing or silent, or seat not freed for the import (%s)" % (m.group(0) if m else "no line")):
                 return False
             time.sleep(4)
             m = ctl_line(r, "NFFImport", [F1], r"\[IEB-TEST\] NFFImport [^\r\n]* seated=(\w+)", 15)
@@ -1329,10 +1365,14 @@ def b16(r):
     until(lambda: any(s.get("loaded") == "0" for s in wsamples(ww.read(), F1)), 120)
     p0 = probe(r, F1) or {}
     sa = fresh("sa")
+    w0 = player_pos(r)
     m = ctl_line(r, "FastTravelTo", [STABLES], r"\[IEB-TEST\] FastTravelTo", 15)
     if not need(r, m, "FastTravelTo wrapper missing"):
         return
     time.sleep(30)
+    if not player_moved(r, w0, "FastTravelTo %s" % hexid(STABLES)):     # RV-123 (3): the player really left
+        r.ctl("Cancel", [F1])
+        return
     for i in range(2):
         p = probe(r, F1) or {}
         dp = num(p.get("dPlayer"))
@@ -1364,6 +1404,7 @@ def b18(r):
         "DismissFollower": [T, T, T, T, Fa, Fa, "S1"],
     }
     rows = {}
+    disabled = False
 
     def row(state, u):
         idx = int(state[1]) - 1
@@ -1397,7 +1438,9 @@ def b18(r):
         row("S1", uf)
         r.ctl("NFFWait", [F1])
         time.sleep(3)
-        row("S2", uf)
+        w2 = probe(r, F1) or {}             # RV-123 (3) read-back: S2 = F1 waiting (S1 and S2 expect the same cells)
+        if need(r, num(w2.get("wfp")) == 1.0, "S2: F1 not waiting after NFFWait (wfp=%s)" % w2.get("wfp")):
+            row("S2", uf)
         r.ctl("NFFFollow", [F1])
         time.sleep(3)
         t = fresh()
@@ -1440,7 +1483,8 @@ def b18(r):
         tidy(r, H)
         td = fresh()
         con(r, "set IEB_Enabled to 0")
-        if td.wait(r"(?i)\[IEB\] DISABLE", 20):
+        disabled = bool(td.wait(r"(?i)\[IEB\] DISABLE", 20))
+        if disabled:
             time.sleep(2)
             row("S7", uf)
         else:
@@ -1449,7 +1493,10 @@ def b18(r):
     finally:
         te = fresh()
         con(r, "set IEB_Enabled to 1")
-        te.wait(r"(?i)\[IEB\] ENABLE", 30)
+        en = te.wait(r"(?i)\[IEB\] ENABLE", 30)
+        # RV-123 (3) read-back (B-18 does not reload): ENABLE is logged only on a 0 -> 1 transition, so only after the
+        # DISABLE was seen
+        need(r, en or not disabled, "teardown: no ENABLE line after set IEB_Enabled to 1")
         tidy(r, F1, PROT, H)
 
 
@@ -1490,6 +1537,8 @@ def b19(r):
             time.sleep(2)
             b3_ = num((probe(r, PROT) or {}).get("ovr"))
             r.log("  after RemoveTestOverride ovr=%s" % b3_)
+            need(r, b3_ is not None and b3_ == b0, "teardown: override count back to %s after RemoveTestOverride "
+                 "(ovr=%s; RV-123 (3), B-19 does not reload)" % (b0, b3_))
         tidy(r, PROT)
 
 
@@ -1574,8 +1623,11 @@ def b21(r):
         base(r, F1)
         r.ctl("NFFWait", [F1])
         time.sleep(4)
-        pa = (probe(r, F1) or {}).get("xyz")
+        pw = probe(r, F1) or {}
+        pa = pw.get("xyz")
         if not need(r, pa, "no position for F1 at A"):
+            return
+        if not need(r, num(pw.get("wfp")) == 1.0, "read-back NFFWait: F1 waiting at A (wfp=%s; RV-123 (3))" % pw.get("wfp")):
             return
         m = ctl_line(r, "MoveRel", [F1, PLAYER, 3000.0, 0.0, 0.0], r"\[IEB-TEST\] MoveRel", 10)
         if not need(r, m, "MoveRel wrapper missing"):
@@ -1583,6 +1635,8 @@ def b21(r):
         time.sleep(4)
         p1 = (probe(r, F1) or {}).get("xyz")
         if not need(r, p1, "no position after the move"):
+            return
+        if not need(r, dist2(p1, pa) > 2000, "read-back MoveRel: F1 about 3000 u from A (%.0f u; RV-123 (3))" % dist2(p1, pa)):
             return
         checkpoint(r)
         d0 = dist2(p1, pa)
@@ -1603,6 +1657,8 @@ def b21(r):
     finally:
         r.ctl("NFFFollow", [F1])
         bring(r, F1)
+        wf = probe(r, F1) or {}             # RV-123 (3) read-back (B-21 does not reload): F1 following again
+        need(r, num(wf.get("wfp")) == 0.0, "teardown: F1 not following after NFFFollow (wfp=%s)" % wf.get("wfp"))
 
 
 @test("B-22", "B")
@@ -1632,6 +1688,8 @@ def b22(r):
         # release burst went unjudged. Bring the player within N first, as B-3 does, so the release is RELEASE_FOLLOW.
         r.ctl("MoveRel", [PLAYER, F1, 600.0, 0.0, 0.0])
         time.sleep(3)
+        if not near_player(r, F1, "MoveRel player 600 u from F1", maxd=1200):     # RV-123 (3); N is 1920
+            return
         wb2 = fresh("watch")
         since2 = {"pap": fresh(), "sn": fresh("skyrimnet")}
         r.ctl("Burst", [F1, 20.0])
@@ -1746,7 +1804,10 @@ def b25(r):
             return
         nm = name(r, F1)
         t = fresh()
+        wp0 = player_pos(r)
         player_to(r, STABLES, wait=2)
+        if not player_moved(r, wp0, "player.moveto %s" % hexid(STABLES)):     # RV-123 (3)
+            return
         ev = wait_ieb(t, REJOIN_EXIT, nm, 30)
         r.check(ev is not None and ev[0] == "REJOIN_DONE", "REJOIN_DONE after F1 unloaded (%s)" % (ev,))
         if ev:
@@ -1781,7 +1842,10 @@ def b26(r):
         nm = name(r, F1)
         before = probe(r, F1) or {}
         t = fresh()
+        wp0 = player_pos(r)
         player_to(r, STABLES, wait=2)
+        if not player_moved(r, wp0, "player.moveto %s" % hexid(STABLES)):     # RV-123 (3)
+            return
         ev = wait_ieb(t, REJOIN_EXIT, nm, 30)
         r.check(ev is not None and ev[0] == "REJOIN_TO_WAIT", "REJOIN_TO_WAIT on unload (%s)" % (ev,))
         time.sleep(5)
@@ -1895,8 +1959,12 @@ def b31(r):
     the row is not observed on this route."""
     try:
         watch_on(r)
+        w0 = player_pos(r)
         con(r, "coc WhiterunBanneredMare")          # cell EditorID VERIFIED (t0_setup_research.md :82)
         time.sleep(20)
+        if not player_moved(r, w0, "coc WhiterunBanneredMare"):        # RV-123 (3)
+            return
+        mare = (player_pos(r) or {}).get("cell")
         bring(r, F1)
         nm = name(r, F1)
         time.sleep(3)
@@ -1929,6 +1997,11 @@ def b31(r):
             return
         player_to(r, F1, wait=10)
         con(r, "coc WhiterunBanneredMare")
+        time.sleep(3)
+        wm = player_pos(r) or {}                    # RV-123 (3) read-back: the player is in the inn cell again
+        if not need(r, mare and wm.get("cell") == mare, "read-back coc WhiterunBanneredMare: cell %s, want %s"
+                    % (wm.get("cell"), mare)):
+            return
         end = wait_ieb(t, REL_KW, nm, 90)
         r.check(end is not None, "errand completed and released (%s)" % (end,))
         time.sleep(8)

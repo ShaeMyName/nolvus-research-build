@@ -66,7 +66,9 @@ def held_type(line):
 
 
 def start_errand(ctl):
-    block.ie_test_settings(ctl)
+    if not block.ie_test_settings(ctl):          # RV-123 (3): SkipProbe read-back
+        say("errand: IE test settings NOT VERIFIED")
+        return False
     t = game.Tail(game.LOGS["papyrus"])
     ctl.ctl("StartTask", [F1, "GoToLocation", "Dragonsreach", "1", "1"])
     take = t.wait(r"(?i)\[IEB\] TAKE actor=Jenassa", 30)
@@ -92,8 +94,8 @@ def main():
     t_start = time.strftime("%Y-%m-%d %H:%M:%S")
     errs = {}
     try:
-        if not game.harness_mode():
-            game.set_harness_mode(True, say)
+        if not game.harness_mode() and not game.set_harness_mode(True, say):
+            raise RuntimeError("harness mode could not be set on (Harness.yaml read-back)")
         if not game.launch(say, voices=False):
             raise RuntimeError("launch refused or failed")
         ctl = Run("RV72_CONTROL")
@@ -149,7 +151,8 @@ def main():
                     say("  " + l)
                 verdict("type_after_load", (held_type(h1) or "").lower() == "travel",
                         "at load: %s; +10 s: %s" % (held_type(h0), held_type(h1)))
-                block.ie_test_settings(ctl)
+                if not block.ie_test_settings(ctl):      # RV-123 (3): SkipProbe read-back
+                    verdict("ie_settings_after_load", None, "IE test settings not verified")
                 t = game.Tail(game.LOGS["papyrus"])
                 if "Jenassa arrived at" in text or t.wait(r"IntelEngine: Jenassa arrived at[^\r\n]*", 600):
                     time.sleep(5)
@@ -166,7 +169,8 @@ def main():
             # 5. dashboard cancel mid-errand after a load
             pap, ok = load(ctl, "IEB_RV72_mid")
             if ok:
-                block.ie_test_settings(ctl)
+                if not block.ie_test_settings(ctl):      # RV-123 (3): SkipProbe read-back
+                    verdict("ie_settings_after_load", None, "IE test settings not verified")
                 time.sleep(15)
                 h = probe(ctl, "HeldProbe", [F1], "HELDPROBE", "mid#2 before cancel")
                 if " slot=-1" in h:

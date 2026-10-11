@@ -19,7 +19,7 @@ import os, re, shutil, statistics, time
 import game
 import sn_harness as SH
 from block import test, checkpoint
-from tests_misc import PLAYER, F1, con, inc, render, tool_props, tail
+from tests_misc import PLAYER, F1, con, inc, render, tool_props, tail, near_player
 from tests_u2 import A_NPC, B_NPC, C_NPC, market, uuids, place, bring_back, harness_ready, fire_exposure, dress, body_item
 from tests_u3 import MODS, BACKUP_DIR, RestoreFailed, wait_closed, relaunch, back_to, sha, NAGuard
 
@@ -109,14 +109,21 @@ def x_arm(r, label):
         for fid, off in ((A_NPC, (300, 0, 0)), (B_NPC, (0, 350, 0)), (C_NPC, (-400, 0, 0))):
             place(r, fid, *off)
             placed.append(fid)
+            if not near_player(r, fid, "%s PlaceRel" % label, maxd=800):
+                return None
         con(r, "%08X.moveto player" % F1)
         time.sleep(3)
+        if not near_player(r, F1, "%s moveto player" % label):
+            return None
         if not body_item(r, pu):
             inc(r, "%s: the player wears no body item to remove" % label)
             return None
         item, m = fire_exposure(r)
         if not item:
             inc(r, "%s: exposure did not happen" % label)
+            return None
+        if body_item(r, pu):
+            inc(r, "%s: read-back: the player still wears a body item after unequipitem (RV-123 (3))" % label)
             return None
         time.sleep(3)
         mk = marker_count(r, au, fu)
@@ -218,8 +225,11 @@ def _x_run(r):
             if fu and au and pu:
                 market(r)
                 place(r, A_NPC, 300, 0, 0)
+                near_player(r, A_NPC, "restore PlaceRel", maxd=800)
                 item, _m = fire_exposure(r)
                 time.sleep(3)
+                if not item or body_item(r, pu):
+                    inc(r, "restore: read-back: the player is not exposed (unequipitem; RV-123 (3))")
                 mk = marker_count(r, au, fu)
                 dress(r, item)
                 bring_back(r, A_NPC)
@@ -347,6 +357,8 @@ def re2_arm(r, label):
     pu, = uuids(r, PLAYER)
     con(r, "player.moveto %08X" % fid)
     time.sleep(4)
+    if not near_player(r, fid, "%s player.moveto" % label, maxd=1000):
+        return None
     sn = tail("skyrimnet")
     u0 = utt_items() or []
     for line in RE2_LINES:

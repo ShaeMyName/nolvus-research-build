@@ -570,6 +570,8 @@ def q10(r):
         with open(QI_JSON, "wb") as f:
             f.write(misspelt)
         r.log("  SWAP Q10: misspelt list key written (%s)" % ("verified" if sha(QI_JSON) != want else "FAILED"))
+        if sha(QI_JSON) == want:
+            return inc(r, "read-back (c): the misspelt JSON is not on disk (sha256 still the original; RV-123 (3))")
         if not relaunch(r, "T0", "misspelt JSON"):
             return inc(r, "(c) launch with the misspelt JSON failed")
         _, _, zero, _ = _qi_lines(session_text())
@@ -702,6 +704,8 @@ def ma7(r):
     if off.get("error") or "ma7" not in off:
         return inc(r, "off arm: %s" % off.get("error", "not run"))
     o = off["ma7"]
+    if not o["filled"]:
+        return inc(r, "off: QPFill not confirmed (no 'QPFill ... pkg=' line; RV-123 (3))")
     r.check(o["counts"]["suppress"] >= 1, "off: MARAS suppresses the package and redirects (%d)" % o["counts"]["suppress"])
     r.check(o["sandbox_fill"], "off: the spouse's current package is TTM_SpouseHomeSandbox (%s)" % o["pkg_fill"])
     r.check(o["sandbox_clear"], "off: alias cleared -> still the home sandbox (%s)" % o["pkg_clear"])

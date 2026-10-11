@@ -36,8 +36,9 @@ def fresh(harness):
         if not game.procs():
             break
         time.sleep(2)
-    if game.harness_mode() != harness:
-        game.set_harness_mode(harness, say)
+    if game.harness_mode() != harness and not game.set_harness_mode(harness, say):
+        say("ABORT: harness mode could not be set (Harness.yaml read-back)")
+        sys.exit(1)
     if not game.launch(say, voices=False):
         say("ABORT: launch failed")
         sys.exit(1)
@@ -46,8 +47,9 @@ def fresh(harness):
         # no auto-clear: the Timeline Mismatch box may open after the load; Esc = Keep (2026-10-10)
         game.load(ctl, "T0", None, timeout=8 * 60)
         BOX_OPEN[0] = not clear_box(ctl)
-    else:
-        game.load(ctl, "T0", None)
+    elif not game.load(ctl, "T0", None):        # RV-123 (3): PostLoadGame + unpaused read-back
+        say("ABORT: T0 load not confirmed")
+        sys.exit(1)
     LOADED_AT[0] = time.time()
     return ctl
 

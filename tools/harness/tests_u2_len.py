@@ -32,7 +32,7 @@ import contextlib, os, re, statistics, time
 import game
 import sn_harness as SH
 from block import test, checkpoint, settle_probe
-from tests_misc import (PLAYER, F1, con, ctl_line, hx, inc, render, truthy, who, su_get, REQLOG)
+from tests_misc import (PLAYER, F1, con, ctl_line, hx, inc, render, truthy, who, su_get, REQLOG, near_player, rank, iv)
 from tests_u2 import A_NPC, B_NPC, market, uuids, place, bring_back, force_line, harness_ready, nonce, los
 
 WORDS_CASUAL_MAX = 60
@@ -287,6 +287,9 @@ def sess(r, scene=False, npc=F1, calib=True):
         place(r, npc, 150, 0, 0)
         placed = True
         time.sleep(2)
+        if not near_player(r, npc, "PlaceRel 150"):        # RV-123 (3): los() alone does not show the distance
+            yield None
+            return
         if los(r, fu, pu) is not True:
             inc(r, "partner is not near and in view of the player")
             yield None
@@ -415,7 +418,13 @@ def len3(r):
         t = game.Tail(game.LOGS["papyrus"])
         try:
             place(r, A_NPC, 400, 0, 0)
+            if not near_player(r, A_NPC, "PlaceRel 400", maxd=900):     # RV-123 (3)
+                return
             con(r, "%s.startcombat player" % hx(A_NPC))
+            time.sleep(2)
+            cb = ctl_line(r, "CombatProbe", [A_NPC], r"\[IEB-TEST\] CombatProbe .*? combat=(\d)", 10)
+            if not cb or cb.group(1) != "1":                            # RV-123 (3): startcombat read back
+                return inc(r, "startcombat read-back: attacker combat=%s" % (cb.group(1) if cb else "no CombatProbe line"))
             m = t.wait(r"\[IEB-SC\] SCENE_OFF \(combat\)", 30, poll=1.0)
             if not m:
                 return inc(r, "no SCENE_OFF (combat) within 30 s (player not in combat, or the tick did not run)")
@@ -655,6 +664,9 @@ def sec1(r):
                                      (3, SEC_THREAT, None)):
                 if pre:
                     con(r, pre)
+                    rk = iv(rank(r, SEC_NPC) or {}, "r")                # RV-123 (3): RankProbe r= after the console write
+                    if rk != 2:
+                        return inc(r, "stage %d: setrelationshiprank read-back r=%s, wanted 2" % (stage, rk))
                 res = run_lines(r, s, [line], keys=SEC_KEYS)
                 if not measured(r, res):
                     return
