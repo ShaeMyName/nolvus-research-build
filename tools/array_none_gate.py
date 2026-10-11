@@ -87,10 +87,14 @@ def pex_hits(pex):
 
 
 def hits_any(pex):
-    """(hits, via): Champollion first, the pex parser only when Champollion fails. via is "" or the reason text."""
+    """(hits, via): Champollion first, the pex parser only when Champollion CRASHED. via is "" or the reason text."""
     try:
         return hits(pex), ""
     except DecompileError as e:
+        # REVIEW_LOG RV-114 (4): the parser stands in ONLY for a Champollion crash (0xC0000005 etc.); a timeout, the
+        # memory cap or a low-RAM refusal stays FAIL (re-run when there is room), so the fallback never hides those.
+        if "crashed" not in str(e):
+            raise
         try:
             return pex_hits(pex), str(e)
         except DecompileError as e2:

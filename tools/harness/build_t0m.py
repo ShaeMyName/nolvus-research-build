@@ -300,10 +300,22 @@ def build():
                 except Exception as e:
                     res = type(e).__name__
                 say("  DIAG %s -> %s" % (cmd, str(res)[:160]))
-        need(iv(w, "f25") == 1, "0xA2C9E stage 25 not done after the Jarl faction + Riverwood -> Whiterun re-entry "
-                                "(loc=%s)" % w.get("loc"))
-        need(iv(w, "hcDis") == 0, "housecarl 0xA2C94 still disabled")
-        step(4, "housecarl", "f25=1 f200=%s hcDis=0" % w.get("f200"))
+        if iv(w, "f25") != 1:
+            # REVIEW_LOG RV-116 (7): the formal quest is dropped from T0-M; the housecarl ref is enabled directly.
+            # T0M_WORLD keeps f25=0 / f200=0 (recorded in the build log); tests needing the quest's PlayerHousecarl
+            # alias say so by ID (see t0m_builder.md).
+            say("  housecarl quest did not start (loc=%s); RV-116 (7): enabling the housecarl ref directly" % w.get("loc"))
+            con("%08X.enable" % HOUSECARL)
+            for _ in range(10):
+                time.sleep(2)
+                w = world()
+                if iv(w, "hcDis") == 0:
+                    break
+            need(iv(w, "hcDis") == 0, "housecarl 0x%08X still disabled after enable" % HOUSECARL)
+            step(4, "housecarl", "DIRECT (quest not started) f25=%s f200=%s hcDis=0" % (w.get("f25"), w.get("f200")))
+        else:
+            need(iv(w, "hcDis") == 0, "housecarl 0xA2C94 still disabled")
+            step(4, "housecarl", "f25=1 f200=%s hcDis=0" % w.get("f200"))
 
     # 5. MARAS registers the house when the player enters a LocTypePlayerHouse location (TTM_PlayerScript.psc:65-71,
     #    TTM_ServicePlayerHouse.psc:17-28). Enter through the front door (fallback coc), wait for the marker.

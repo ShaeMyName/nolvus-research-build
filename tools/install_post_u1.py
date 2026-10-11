@@ -28,6 +28,13 @@ MODLIST_AFTER = "+Lucienne - Private (TEST STUB)"
 DRY = "--dry" in sys.argv
 # REVIEW_LOG RV-78: --only=a.pex,b.pex installs just those files (one change at a time between live runs)
 ONLY = next((x.split("=", 1)[1].split(",") for x in sys.argv if x.startswith("--only=")), None)
+# 2026-10-11: --src=<mod folder>=<bin dir> installs a mod's pex from another build dir (S2: bin/rel_headstart/, the
+# head-start-only Relationships build at de868da, so RV-98 waits for its own step S2r; REVIEW_LOG RV-78)
+for _x in sys.argv:
+    if _x.startswith("--src="):
+        _mod, _dir = _x[6:].split("=", 1)
+        assert any(m == _mod for m, _ in SETS), "--src: unknown mod folder " + _mod
+        SETS = [(m, _dir if m == _mod else d) for m, d in SETS]
 
 
 def h(p):

@@ -40,17 +40,17 @@ def sh(args, timeout=4 * 3600):
     return p.returncode, p.stdout or ""
 
 
-def changed(folder):
+def changed(folder, extra=()):
     """Build files in bin/<folder> whose installed copy differs (the installer's own dry run)."""
-    rc, out = sh([B + "tools/install_post_u1.py", "--dry"], timeout=300)
+    rc, out = sh([B + "tools/install_post_u1.py", "--dry"] + list(extra), timeout=300)
     return [m.group(1).split("/")[-1] for m in re.finditer(r"WOULD COPY (\S[^>]*?) ->", out) if folder in m.group(1)]
 
 
-def install(only):
+def install(only, extra=()):
     if not only:
         say("INSTALL nothing to do")
         return True
-    rc, out = sh([B + "tools/install_post_u1.py", "--only=" + ",".join(only)], timeout=600)
+    rc, out = sh([B + "tools/install_post_u1.py", "--only=" + ",".join(only)] + list(extra), timeout=600)
     ok = rc == 0 and "INSTALLED" in out and "not matching the installed file: none" in out
     say("INSTALL %s: %s" % (",".join(only), "OK" if ok else "FAILED"))
     return ok
@@ -122,12 +122,44 @@ def s1t():
     return rc == 0 and "DM TIMEOUT" in out
 
 
+# S2 installs the head start ONLY: the Relationships pex as built at de868da (bin/rel_headstart/), because
+# bin/rel_patched now also carries RV-98 + rv98c + never-enrol, which get their own step S2r (REVIEW_LOG RV-78)
+REL_HS = ["--src=SkyrimNet Relationships - Private Patch=bin/rel_headstart/"]
+SNROM_LOG = ("C:/Nolvus/Instances/Nolvus Awakening/MODS/mods/SkyrimNet Test - Output/SKSE/Plugins/"
+             "SkyrimNet Relationships/logs/snrom.log")   # = tests_misc.SNROM
+
+
 def s2():
-    if not install(changed("SkyrimNet Relationships - Private Patch/Scripts")):
+    if not install(changed("SkyrimNet Relationships - Private Patch/Scripts", REL_HS), REL_HS):
         return False
     rc, out = sh([H + "hs_live.py"], timeout=3 * 3600)
     say("S2 hs_live exit %d" % rc)
     return rc == 0
+
+
+def s2r():
+    """RV-98 prevent + backstop + amulet gate, rv98c child safety, never-enrol list (bin/rel_patched), with the harness
+    TestCtl that has GateProbe. BLD-2 reviewed first. Smoke: GateProbe answers for F1 with numbers, the keyword
+    resolves (no 'TTM_IgnoreProposal did not resolve'), no Papyrus error naming an IEB_ Relationships function."""
+    rel = changed("SkyrimNet Relationships - Private Patch/Scripts")
+    har = [f for f in changed("Errand Bridge - Test Harness/Scripts") if f == "IEB_TestCtl.pex"]
+    if not install(rel + har):
+        return False
+
+    def chk(ctl, t):
+        m = probe_lines(ctl, "GateProbe", [0x000E1BA9], r"\[IEB-TEST\] GATE \S+ st=(-?\d+) pts=(-?\d+) kw=(-?\d+) pmf=(-?\d+)")
+        text = t.read()
+        sn = ""
+        try:
+            sn = open(SNROM_LOG, encoding="utf-8", errors="replace").read()[-200000:]
+        except OSError:
+            pass
+        return [(bool(m), "GateProbe line for F1 (%s)" % (m.group(0)[-60:] if m else "none")),
+                (bool(m) and m.group(3) in ("0", "1"), "TTM_IgnoreProposal resolves (kw=%s)" % (m.group(3) if m else "?")),
+                ("TTM_IgnoreProposal did not resolve" not in sn, "no keyword-resolve ERROR in snrom.log"),
+                (not re.search(r"(?i)error[^\n]*SNRom_Bridge[^\n]*IEB_(AmuletGate|BackToCandidate|ChildOutOfMaras|NeverEnroll)",
+                               text), "no Papyrus error in the new IEB_ functions")]
+    return smoke("S2r", chk)
 
 
 ESS_BEFORE = {}
@@ -246,7 +278,7 @@ def s4():
     return smoke("S4", chk)
 
 
-STEPS = [("S0", s0), ("S1", s1), ("S1t", s1t), ("S2", s2), ("S3", s3), ("S3bp", s3bp), ("S3c", s3c), ("S4", s4)]
+STEPS = [("S0", s0), ("S1", s1), ("S1t", s1t), ("S2", s2), ("S2r", s2r), ("S3", s3), ("S3bp", s3bp), ("S3c", s3c), ("S4", s4)]
 
 
 def main():
