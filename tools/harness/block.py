@@ -413,6 +413,34 @@ def stop_restore_main():
         open(c["path"], "w", encoding="utf-8").write(NL.join(summary) + NL)
 
 
+REL_STORE_DIR = ("C:/Nolvus/Instances/Nolvus Awakening/MODS/mods/SkyrimNet Test - Output/SKSE/Plugins/StorageUtilData/")
+
+
+def reset_rel_store(name):
+    """REVIEW_LOG RV-173 (3), Shae APPROVED 2026-10-11: Relationships' JsonUtil disposition store (SNRom_Dispositions*.json)
+    lives in the TEST output mod and does not roll back with a T0 reload, so authored text from earlier blocks leaked into
+    first-authoring tests (Sitting A: Braith, Ysolda already "authored"). Before each block, with the game closed: back the
+    files up, then reset each to an empty JsonUtil object, and read back. TEST only; her own profile is never touched."""
+    import glob, json, shutil
+    files = sorted(glob.glob(REL_STORE_DIR + "SNRom_Dispositions*.json"))
+    if not files:
+        return True, "no store file"
+    bak = "C:/nolvus-research/backups/rel_store/%s_%s/" % (name, time.strftime("%Y%m%d-%H%M%S"))
+    os.makedirs(bak, exist_ok=True)
+    for f in files:
+        shutil.copy2(f, bak)
+        if os.path.getsize(bak + os.path.basename(f)) != os.path.getsize(f):
+            return False, "backup size mismatch for %s" % os.path.basename(f)
+        with open(f, "w", encoding="utf-8") as h:
+            h.write("{}")
+        try:
+            if json.load(open(f, encoding="utf-8")) != {}:
+                return False, "read-back not empty: %s" % os.path.basename(f)
+        except ValueError:
+            return False, "read-back unparsable: %s" % os.path.basename(f)
+    return True, "%d file(s) reset, backup %s" % (len(files), bak)
+
+
 def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_only=False):
     b = BLOCKS[name]
     for m in b["modules"]:
@@ -460,6 +488,12 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
     print("GAMEMASTER %s for %s" % ("on" if GM_STATE[0] else "off", name), flush=True)
     summary.append("| GameMaster | %s for the block | | |" % ("on" if GM_STATE[0] else "off"))
     if "SkyrimSE.exe" not in game.procs():
+        rs_ok, rs_why = reset_rel_store(name)
+        print("REL_STORE %s: %s" % ("reset" if rs_ok else "RESET FAILED", rs_why), flush=True)
+        summary.append("| Relationships store reset (RV-173 (3)) | %s | | %s |" % ("ok" if rs_ok else "FAILED", rs_why))
+        if not rs_ok:
+            print("BLOCK ABORT %s: Relationships store reset failed" % name, flush=True)
+            return 1
         need = b.get("launch_min_avail_gb")
         if need and game.available_ram_gb() < need:       # REVIEW_LOG RV-90 (5): voice server only with headroom
             print("BLOCK ABORT %s: %.1f GB available < %.0f GB required to start (voices=%s)" %
