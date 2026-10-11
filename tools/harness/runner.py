@@ -77,6 +77,7 @@ class Run:
         "SlotsProbe": "SLOTSPROBE",
         "DashCancel": "DASHCANCEL ",
         "ReserveProbe": "RESERVEPROBE ",
+        "HeadStartOp": "HSOP ",
         "AutoSaveNow": "AUTOSAVE requested",
         "NFFGuardOn": "NFFGuardOn",
         "NFFStaleFac": "NFFStaleFac",

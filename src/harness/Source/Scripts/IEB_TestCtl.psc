@@ -167,6 +167,47 @@ Function ReserveProbe()
     Log("RESERVEPROBE reserved=" + r + " age=" + age + " find=" + f + " skipped=" + (f != r) + " afterRelease=" + after)
 EndFunction
 
+Function HeadStartOp(Int aiFormId, String asOp, Int aiN)
+    {REVIEW_LOG RV-69-dec / RV-77 tests (throwaway test save only): one Relationships action on an actor, then her
+     numbers. ops: reset (unenrol + clear the latch, points, bank), unenroll (latch kept), byhand, courtship (M4' entry), beginspark,
+     moment (MarkMoment aiN), setpts (aiN, test-only direct write), luc (player LUC_Active = aiN). Numbers only.}
+    Actor a = A(aiFormId)
+    SNRom_Bridge b = Game.GetFormFromFile(0x00000D62, "SNRom_Integration.esl") as SNRom_Bridge
+    If a == None || b == None
+        Log("HSOP none")
+        Return
+    EndIf
+    String r = ""
+    If asOp == "reset"
+        If SNRom_Bridge.IsEnrolled(a)
+            b.UnenrollActor(a)
+        EndIf
+        StorageUtil.UnsetIntValue(a, "IEB_HeadStartUsed")
+        StorageUtil.UnsetIntValue(a, "SNRom_BankedPoints")
+        b.StorePoints(a, 0)
+    ElseIf asOp == "unenroll"
+        If SNRom_Bridge.IsEnrolled(a)
+            b.UnenrollActor(a)
+        EndIf
+    ElseIf asOp == "byhand"
+        r = b.EnrollByHand(a)
+    ElseIf asOp == "courtship"
+        r = "" + b.IEB_EnrollOnCourtship(a)
+    ElseIf asOp == "beginspark"
+        b.BeginSpark(a, "harness head-start test")
+    ElseIf asOp == "moment"
+        b.MarkMoment(a, aiN, "harness head-start test", "test")
+    ElseIf asOp == "setpts"
+        b.StorePoints(a, aiN)
+    ElseIf asOp == "luc"
+        StorageUtil.SetIntValue(Game.GetPlayer(), "LUC_Active", aiN)
+    EndIf
+    Log("HSOP " + Watcher().Hex(a) + " op=" + asOp + " n=" + aiN + " r=" + r + " enrolled=" + (SNRom_Bridge.IsEnrolled(a) as Int) \
+        + " pts=" + SNRom_Bridge.PointsOf(a) + " bank=" + StorageUtil.GetIntValue(a, "SNRom_BankedPoints", 0) \
+        + " latch=" + StorageUtil.GetIntValue(a, "IEB_HeadStartUsed", 0) + " luc=" \
+        + StorageUtil.GetIntValue(Game.GetPlayer(), "LUC_Active", 0))
+EndFunction
+
 Function Recall(Int aiFormId, Int aiStay)
     {The CancelCurrentTask route: IEB_Main.CancelOrRecall (stayHere 1 = stay, 0 = come back).}
     Actor a = A(aiFormId)
