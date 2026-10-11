@@ -757,12 +757,22 @@ EndFunction
 
 Bool Function StoryAliasHeld(Actor a) Global
     {The Q guard's tier-1 test, mirrored from the patched IntelEngine_StoryEngine.IEB_QuestReserved (tier 1): in a
-     scene, or holding an alias in a running, non-exempt quest that is in quest_integrity.json's story_quests or has an
-     open objective. Same file, same lists, so the two agree. Keep in step with that function.}
-    If a.GetCurrentScene() != None
-        Return True
-    EndIf
+     story scene, or holding an alias in a running, non-exempt quest that is in quest_integrity.json's story_quests or has
+     an open objective. Same file, same lists, so the two agree. Keep in step with that function.
+     REVIEW_LOG RV-174 (1): the scene branch counts a scene only when its owning quest is a story quest (story_quests) or
+     has an open objective. Ambient always-playing scenes (diag v2: Goblands pins both NFF followers, a vanilla ambient
+     scene pins Fralia, story=0, no open objective) no longer hold anyone. A scene with no owning quest still counts.}
     String qi = "../ErrandBridge/quest_integrity"
+    Scene sc = a.GetCurrentScene()
+    If sc != None
+        Quest sq = sc.GetOwningQuest()
+        If sq == None
+            Return True
+        EndIf
+        If !ExemptQuest(sq, qi) && (JsonUtil.FormListHas(qi, "story_quests", sq) || HasOpenObjective(sq))
+            Return True
+        EndIf
+    EndIf
     Int n = a.GetNumReferenceAliases()
     Int i = 0
     While i < n
