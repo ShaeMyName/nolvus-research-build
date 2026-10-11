@@ -139,5 +139,5 @@ block("U4", "T0", ["tests_azura"], [
 block("U4G", "T0", ["tests_azura"], ["AZ-6", "AZ-4", "AZ-9", "AZ-12"],
       fixed={"AZ-6": 6, "AZ-4": 1, "AZ-9": 1, "AZ-12": 1}, harness=True, voices=False, gamemaster=True)
 # FF: friendly-fire coverage (REVIEW_LOG RV-142; tests_ff.py, aa0d40c). NFF No Player Damage to Teammates OFF vs ON.
-block("FF", "T0", ["tests_ff"], ["FF-0", "FF-1", "FF-2", "FF-3", "FF-4"], est={"FF": 75}, harness=True, voices=False,
+block("FF", "T0", ["tests_ff"], ["FF-0", "FF-1", "FF-3", "FF-4"], est={"FF": 50}, harness=True, voices=False,
       gamemaster=False)

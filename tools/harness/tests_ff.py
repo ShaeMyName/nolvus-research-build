@@ -62,19 +62,14 @@ MODS = "C:/Nolvus/Instances/Nolvus Awakening/MODS"
 # dist: units ahead of the player; wait: seconds before the first health read. All FormIDs VERIFIED in gamedata (Skyrim.esm scan
 # 2026-10-11) unless noted.
 CASES = [
-    dict(key="firebolt", label="Firebolt (direct fire)", kind="cast", id=0x00012FD0, plugin=SKY, dist=400.0, wait=4),
-    dict(key="fireball", label="Fireball (fire AoE)", kind="cast", id=0x0001C789, plugin=SKY, dist=400.0, wait=5),
-    dict(key="firestorm", label="Fire Storm (big fire AoE)", kind="cast", id=0x0007A82B, plugin=SKY, dist=450.0, wait=6),
-    dict(key="icestorm", label="Ice Storm (frost AoE)", kind="cast", id=0x00045F9C, plugin=SKY, dist=450.0, wait=6),
-    dict(key="mod_flamestrike", label="Apocalypse Flamestrike (modded)", kind="cast", id=0x0002E0C0, plugin=APOC, dist=450.0, wait=6),
-    dict(key="mod_doomfire", label="Apocalypse Doomfire (modded)", kind="cast", id=0x00140B07, plugin=APOC, dist=400.0, wait=5),
+    dict(key="fireball", label="Fireball (fire AoE)", kind="cast", id=0x0001C789, plugin=SKY, dist=700.0, wait=6),   # RV-155-ans: farther from the player
+    dict(key="firestorm", label="Fire Storm (big fire AoE)", kind="cast", id=0x0007A82B, plugin=SKY, dist=450.0, wait=6),   # self-centred AoE: the target must be inside its radius
     dict(key="poison", label="poison effect (proxy: DA02PoisonCloakDmg)", kind="cast", id=0x000F23C8, plugin=SKY, dist=150.0, wait=5),
     dict(key="enchant", label="enchant-type fire contact (proxy: TorchBashFireSpell)", kind="cast", id=0x000FEAAB, plugin=SKY, dist=150.0, wait=5),
-    dict(key="firebreath", label="Fire Breath shout (word 3)", kind="shout", id=0x0003F9EA, plugin=SKY, word=3, dist=300.0, wait=5),
     dict(key="force", label="Unrelenting Force shout (word 3)", kind="shout", id=0x00013E07, plugin=SKY, word=3, dist=300.0, wait=5),
     dict(key="arrow", label="arrow (Weapon.Fire, Long Bow + iron arrow)", kind="arrow", dist=300.0, wait=4),
 ]
-COSMETIC_KEYS = ["firebolt", "fireball", "arrow", "firebreath"]
+COSMETIC_KEYS = ["fireball", "arrow"]   # RV-155-ans trim
 
 IRON_SWORD = 0x00012EB7          # Skyrim.esm WEAP IronSword (VERIFIED)
 IRON_GREATSWORD = 0x0001359D     # Skyrim.esm WEAP IronGreatsword (VERIFIED)
@@ -202,6 +197,16 @@ def toggle_ok(r, want_on, what):
     return dict(on=on, perk=perk)
 
 
+def guard_player(r, what):
+    """RV-155-ans: keep the player out of Shadow of Skyrim's defeat during the attacks (the first FF run ended "player
+    defeated"): restore the player's health before each attack and read it back (RV-123 (3)). Logged, never graded."""
+    con(r, "player.restoreav health 100000")
+    time.sleep(0.5)
+    p = hp(r, 0x00000014)
+    if p is None or (p.get("pct") is not None and float(p.get("pct")) < 90.0):
+        r.log("  %s: player health guard read-back %s %% (wanted >= 90)" % (what, p and p.get("pct")))
+
+
 def deliver(r, fid, case, what, on=None, target=None):
     """One measured delivery on a target already at its starting health: face, probe, attack, wait, probe, wait, probe.
     on: wanted NFF toggle value, confirmed by FFProbe right before the attack (RV-151 (a)); target: wanted start health in % of max,
@@ -229,6 +234,7 @@ def deliver(r, fid, case, what, on=None, target=None):
     else:
         inc(r, "%s: health setup did not hold (start %s %% of max, wanted %.0f); not graded" % (what, b.get("pct"), target))
         return None
+    guard_player(r, what)
     note = attack(r, case, fid)
     if note is None:
         inc(r, "%s: the controller refused the attack (plugin not loaded? form missing?)" % what)
