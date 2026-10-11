@@ -19,7 +19,8 @@ FILES = [("Errand Bridge - Test Harness", "out/ErrandBridgeTest.esp", "ErrandBri
          ("IE NoWipe + Dispatch Guard", "out/ErrandBridge/quest_integrity.json", "SKSE/Plugins/ErrandBridge/quest_integrity.json"),
          ("MARAS Config", "out/PackageOverrides.ini", "SKSE/Plugins/PackageOverrides.ini"),
          # step 3b' (REVIEW_LOG RV-101-table-close): the PRIVATE essential window table, EXPLICIT --only install only
-         ("IE NoWipe + Dispatch Guard", "private_out/ErrandBridge/ess_windows.json", "SKSE/Plugins/ErrandBridge/ess_windows.json", True)]
+         # REVIEW_LOG RV-104: ships with the bridge (component A), the mod that reads it, so promotion carries it once
+         ("Errand Bridge", "private_out/ErrandBridge/ess_windows.json", "SKSE/Plugins/ErrandBridge/ess_windows.json", True)]
 # new test-only mod folders this tool may create, added to the TEST profile's modlist (never Nolvus Awakening)
 NEW_TEST_MODS = {"SkyrimNet Test - SEC Bio"}
 PROFILE_MODLIST = "C:/Nolvus/Instances/Nolvus Awakening/MODS/profiles/SkyrimNet Test/modlist.txt"
