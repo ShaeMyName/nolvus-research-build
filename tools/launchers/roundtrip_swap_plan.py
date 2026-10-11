@@ -5,7 +5,11 @@ sandbox by selftest_swap.py's S10; the game-driving `run` command is not exercis
 
 Idea: a profile's session leaves a MARK (one comment line appended to the live IntelEngine.ini while the game runs).
 Pass = after each step the mark is in that profile's store only, every file hash is as expected, the live files are the
-rest profile's (SkyrimNet Test) copies, and the marker says CLEAN.
+rest profile's (Lucienne's, RV-140 (1)) copies, and the marker says CLEAN.
+Two further proofs on every launch (RV-140 (9); measured, not assumed): (a) the set of SkyrimNet playthrough DB files
+(`SkyrimNet-<id>.db` and its -wal/-shm/-journal files, in the overwrite folder, every mod folder and STOCK GAME) is the same
+before and after the launch, i.e. no playthrough id is created at the main menu; (b) MCP answers one `tools/list` request
+with a non-empty tool list while the session runs.  Run this AFTER the overwrite split (checklist step 8 / "Lucienne - Output").
 
     python roundtrip_swap_plan.py plan              print the plan (no side effects)
     python roundtrip_swap_plan.py pre               preconditions + snapshot (writes test_runs\\swap_roundtrip\\state.json)
@@ -72,9 +76,47 @@ def marks(directory):
     return out
 
 
+def sn_roots(c):
+    r"""Folders that can hold SkyrimNet's per-playthrough DBs.  The game logs the path as
+    STOCK GAME\Data\SKSE\Plugins\SkyrimNet\data\SkyrimNet-<id>.db (USVFS); the real file lands in the overwrite folder or
+    the profile's output mod (today MODS\mods\SkyrimNet Test - Output\SKSE\Plugins\SkyrimNet\data, VERIFIED by listing
+    2026-10-11; SkyrimNet.log line 'Initializing save-specific database at')."""
+    mods_root = os.path.dirname(c.profiles)          # ...\MODS
+    instance = os.path.dirname(mods_root)
+    rel = os.path.join("SKSE", "Plugins", "SkyrimNet", "data")
+    roots = [os.path.join(mods_root, "overwrite", rel), os.path.join(instance, "STOCK GAME", "Data", rel)]
+    roots += sorted(glob.glob(os.path.join(mods_root, "mods", "*", rel)))
+    return [r for r in roots if os.path.isdir(r)]
+
+
+def sn_inventory(c):
+    """Sorted list of playthrough-DB files (full paths) in all SkyrimNet data folders."""
+    out = []
+    for r in sn_roots(c):
+        for n in os.listdir(r):
+            if n.startswith("SkyrimNet-") and ".db" in n:
+                out.append(os.path.join(r, n))
+    return sorted(out)
+
+
+def sn_ids(files):
+    return {os.path.basename(f)[len("SkyrimNet-"):].split(".db")[0] for f in files}
+
+
+def judge_tools(resp):
+    """(ok, text) for a tools/list response: ok only when a non-empty tools list came back."""
+    try:
+        tools = resp["result"]["tools"]
+    except (KeyError, TypeError):
+        return False, "no result.tools in the response (%s)" % (str(resp)[:200],)
+    if not isinstance(tools, list) or not tools:
+        return False, "tools list is empty"
+    return True, "%d tools" % len(tools)
+
+
 def snap(c):
     return {"test": S.hashes(S.store_dir(c, S.TEST_PROFILE)), "luc": S.hashes(S.store_dir(c, S.LUC_PROFILE)),
-            "live": S.hashes(c.skse), "taken": datetime.datetime.now().isoformat(timespec="seconds")}
+            "live": S.hashes(c.skse), "taken": datetime.datetime.now().isoformat(timespec="seconds"), "sn": sn_inventory(c)}
 
 
 def load_state():
@@ -103,8 +145,9 @@ def common_state_checks(c, o):
     for prof in (S.TEST_PROFILE, S.LUC_PROFILE):
         pr = S.store_problems(c, prof)
         o.ok(not pr, "store of '%s' matches its manifest%s" % (prof, "" if not pr else ": " + "; ".join(pr)))
-    live, ts = S.hashes(c.skse), S.hashes(S.store_dir(c, S.TEST_PROFILE))
-    o.ok(live == ts, "live files are byte-identical to the test store (rest state)%s" % ("" if live == ts else ": " + "; ".join(S.diff(live, ts))))
+    live, ls = S.hashes(c.skse), S.hashes(S.store_dir(c, S.LUC_PROFILE))
+    o.ok(live == ls, "live files are byte-identical to LUCIENNE's store (rest state: a launch outside the launchers gets her settings)%s"
+         % ("" if live == ls else ": " + "; ".join(S.diff(live, ls))))
     if m:
         o.ok(S.marker_hashes(m) == live, "marker hashes equal the live hashes")
 
@@ -207,7 +250,25 @@ def cmd_check(c, step, rc):
     gt, gl = marks(S.store_dir(c, S.TEST_PROFILE)), marks(S.store_dir(c, S.LUC_PROFILE))
     o.ok(gt == tm, "marks in the TEST store = %s (got %s)" % (sorted(tm), sorted(gt)))
     o.ok(gl == lm, "marks in LUCIENNE's store = %s (got %s)" % (sorted(lm), sorted(gl)))
-    o.ok(marks(c.skse) == gt, "live files carry only the test store's marks %s (no Lucienne mark leaked into the rest state)" % sorted(gt))
+    o.ok(marks(c.skse) == gl, "live files carry exactly her store's marks %s (no test mark leaked into the rest state)" % sorted(gl))
+    o.ok(not (marks(c.skse) & gt), "no TEST mark is live at rest (%s)" % sorted(marks(c.skse) & gt))
+    # (a) no playthrough id at the main menu: the DB file set is the same as before this launch (RV-140 (9a))
+    before_sn, after_sn = st.get("sn"), sn_inventory(c)
+    if before_sn is None:
+        o.ok(False, "a SkyrimNet DB inventory from before this launch exists in the snapshot (run `pre` again)")
+    else:
+        added, gone = sorted(set(after_sn) - set(before_sn)), sorted(set(before_sn) - set(after_sn))
+        o.ok(not added and not gone,
+             "SkyrimNet playthrough DB files before/after this launch: %d -> %d files, ids %d -> %d; no playthrough id created at the main menu%s"
+             % (len(before_sn), len(after_sn), len(sn_ids(before_sn)), len(sn_ids(after_sn)),
+                "" if not (added or gone) else " | NEW: %s | GONE: %s" % (added, gone)))
+        o.info("DB folders scanned: %s" % ("; ".join(sn_roots(c)) if sn_roots(c) else "none exist"))
+    # (b) MCP answered tools/list during the session (RV-140 (9b))
+    mp = (st.get("mcp") or {}).get(str(step))
+    if mp is None:
+        o.info("no MCP proof recorded for step %d (the check was run by hand, not through `run`)" % step)
+    else:
+        o.ok(mp["ok"], "MCP answered one tools/list request on profile '%s' during the session: %s" % (prof, mp["text"]))
     # logs
     tag = "recover" if kind == "kill_launcher" else "launch"
     lg = latest_swap_log(c, tag)
@@ -219,7 +280,7 @@ def cmd_check(c, step, rc):
         o.ok(False, "a swap log exists for this step (tag %s)" % tag)
     if o.fails == 0:
         n = snap(c)
-        st.update({"test": n["test"], "luc": n["luc"], "live": n["live"]})
+        st.update({"test": n["test"], "luc": n["luc"], "live": n["live"], "sn": n["sn"]})
         st["steps_done"].append(step)
         save_state(st)
         o.info("step %d PASS; snapshot advanced" % step)
@@ -268,8 +329,8 @@ def cmd_unmark(c):
             keep = [ln for ln in lines if not ln.startswith(MARK_PREFIX.encode())]
             io.open(p, "wb").write(b"\n".join(keep))
             S.write_manifest(c, prof, S.hashes(d), "roundtrip marks removed")
-        ts = S.store_dir(c, S.TEST_PROFILE)
-        S.put_all(c, ts, c.skse, S.hashes(ts), "unmark-live")
+        ls = S.store_dir(c, S.LUC_PROFILE)
+        S.put_all(c, ls, c.skse, S.hashes(ls), "unmark-live")      # her files are live at rest
         S.write_marker(c, "CLEAN", c.rest, S.hashes(c.skse))
     finally:
         S.release_lock(c)
@@ -326,8 +387,19 @@ def cmd_run(c, step, swap_args):
         w.wait(timeout=600)
         return 1
     t0 = time.time()
-    while time.time() - t0 < 420 and not game.mcp_up():      # let the main menu come up (normal exit needs MCP)
+    proof = (False, "MCP did not answer tools/list within 420 s")
+    while time.time() - t0 < 420:      # let the main menu come up (normal exit needs MCP); ONE tools/list answer is the proof
+        try:
+            proof = judge_tools(game.MCP().request("tools/list", {}, timeout=30))
+        except Exception as e:
+            proof = (False, "tools/list failed: %s" % e)
+        if proof[0]:
+            break
         time.sleep(5)
+    print("MCP proof for step %d: %s (%s)" % (step, "OK" if proof[0] else "FAILED", proof[1]))
+    st = load_state()
+    st.setdefault("mcp", {})[str(step)] = {"ok": proof[0], "text": proof[1], "profile": prof}
+    save_state(st)
     cmd_mark(c, step)
     if kind == "normal":
         graceful_exit(c)
@@ -358,6 +430,8 @@ def cmd_plan():
     print("Steps (each is one launch; ~4-5 min each: launch 254-285 s + a short exit; no save is loaded, main menu only):")
     for n, (prof, kind) in STEPS.items():
         print("  %d. %-15s %-14s expected marks after: test=%s lucienne=%s" % (n, prof, kind, sorted(EXPECT_MARKS[n][0]), sorted(EXPECT_MARKS[n][1])))
+    print("  Every launch also proves: (a) the SkyrimNet playthrough DB file set is unchanged (no id created at the main menu), (b) MCP answers tools/list.")
+    print("  Run after the overwrite split (checklist step 8 / output mod set).")
     print("  +  refuse (no launch): tamper a shared file, the launcher must refuse; --reset-live repairs it")
     print("  +  unmark: remove the marks; Lucienne's store back to its exact pre-test hashes")
     return 0

@@ -14,15 +14,19 @@ USAGE (through Play_Lucienne.bat / Play_SkyrimNet_Test.bat / swap_launch.ps1):
     python swap_launch.py --profile Lucienne --recover                       a run died mid-swap
     python swap_launch.py --status                                           read-only health report
     python swap_launch.py --init                                             one-time promotion setup (both stores + marker)
-    python swap_launch.py --reset-live                                       resolve a refused hash mismatch
+    (a launch finds a half-finished earlier run, e.g. the console was closed mid-session: it warns and runs --recover first)
+    python swap_launch.py --reset-live                                       resolve a refused hash mismatch (discard the live files)
+    python swap_launch.py --adopt-live                                       resolve it the other way (keep the live files as hers)
 
 Exit codes: 0 ok | 2 refused before touching anything | 3 launch problem (files restored) | 4 copy-back or restore failed
 (marker left in a non-CLEAN state: run --recover) | 5 internal error.
 
 MODEL
-  * Rest state: after every session the live files are the REST profile's ("SkyrimNet Test") copies, so a stray launch
-    from MO2's own window finds test files, never a stale copy of hers.  (Spec 3822 leaves them in place; this is the
-    task's step (f) "restore the TEST copies".  Change with --rest-profile; see play_lucienne_8c.md open question 1.)
+  * Rest state (REVIEW_LOG RV-140 (1)): HER (Lucienne's) files stay live in place after her session and after every test
+    session, so a launch that bypasses the launchers (SkyrimNet dashboard, a desktop shortcut) always gets her settings,
+    never the test ones.  A TEST launch swaps the test copies in and, after the game exits (normal exit, crash or kill),
+    copies them back into the test store and swaps HER files back in.  Test runs must therefore always go through
+    game.py -> swap_launch.ps1.  (--rest-profile exists only for the sandbox self-test.)
   * Marker SKSE\\_ieb_owner.txt: state CLEAN | SWAPPING | IN_USE | COPYBACK | RESTORING, the owner, and the SHA-256 the
     live files should have.  Written atomically before each phase, so a dead launcher is diagnosable and --recover
     can finish the phase it died in (every phase is idempotent).
@@ -49,6 +53,7 @@ FILES = ["SeverActions_Settings.json", "SeverActions_BioBlocks.json", "IntelEngi
 ABSENT = "ABSENT"
 TEST_PROFILE = "SkyrimNet Test"
 LUC_PROFILE = "Lucienne"
+REST_PROFILE = LUC_PROFILE      # RV-140 (1): her files are live at rest
 INSTANCE = r"C:\Nolvus\Instances\Nolvus Awakening"
 DEFAULT_SKSE = os.path.join(os.path.expanduser("~"), "Documents", "My Games", "Skyrim Special Edition", "SKSE")
 DEFAULT_PROFILES = os.path.join(INSTANCE, "MODS", "profiles")
@@ -224,7 +229,7 @@ def write_marker(c, state, owner, hs, **extra):
     d = {"schema": "1", "state": state, "owner": owner,
          "updated": datetime.datetime.now().isoformat(timespec="seconds"), "launcher_pid": str(os.getpid())}
     d.update({k: str(v) for k, v in extra.items()})
-    lines = ["# IEB shared-SKSE owner marker (swap_launch.py). state CLEAN = the live files are owner's and hashes match.",
+    lines = ["# IEB shared-SKSE owner marker (swap_launch.py). state CLEAN = the live files are the rest profile's (Lucienne) and hashes match.",
              "# Do not edit by hand; use swap_launch.py --recover / --reset-live."]
     lines += ["%s=%s" % (k, v) for k, v in d.items()]
     lines += ["sha256.%s=%s" % (n, hs[n]) for n in FILES]
@@ -368,15 +373,14 @@ def copy_back(c, profile):
 
 
 def restore_rest(c, profile):
-    """Put the REST profile's store copies into the live folder (skipped when profile is the rest profile)."""
-    if profile == c.rest:
-        log(c, "RESTORE: '%s' is the rest profile; live files already are its copy" % profile)
-        return hashes(c.skse)
+    """Put the REST profile's (Lucienne's) store copies into the live folder.  After her own session the copy-back has just
+    made her store equal to the live files, so this is a verified no-op then; after a test session it swaps her files back
+    in.  It is never skipped: --recover/--reset-live may arrive with a half-written live folder."""
     p = store_problems(c, c.rest)
     if p:
         raise Failed("rest profile store '%s' does not match its manifest: %s" % (c.rest, "; ".join(p)))
     m = read_manifest(c, c.rest)["files"]
-    log(c, "RESTORE: '%s' store -> live files" % c.rest)
+    log(c, "RESTORE: '%s' store -> live files%s" % (c.rest, " (her own session: already identical)" if profile == c.rest else ""))
     put_all(c, store_dir(c, c.rest), c.skse, m, "restore")
     return m
 
@@ -493,20 +497,35 @@ def cmd_launch(c):
         if m is None:
             raise Refused("no owner marker %s: run swap_launch.py --init once (promotion setup)" % c.marker)
         if m.get("state") != "CLEAN":
-            raise Refused("marker state is %s (owner '%s', %s): a previous run died mid-swap. Run: swap_launch.py --profile \"%s\" --recover"
-                          % (m.get("state"), m.get("owner"), m.get("updated"), c.profile))
+            # RV-140 (11): the earlier launcher died (console closed, process killed, power cut). We hold the lock and no game
+            # process runs (step 1), so nothing is using the files: warn, finish that run, then carry on with this launch.
+            log(c, "!" * 78)
+            log(c, "WARNING: the last swap run did not finish (marker state %s, owner '%s', last update %s)." % (m.get("state"), m.get("owner"), m.get("updated")))
+            log(c, "  Most likely its console window was closed while the game ran. Running --recover now, before anything else.")
+            log(c, "!" * 78)
+            try:
+                recover_locked(c, m)
+            except Refused:
+                raise
+            except Failed as e:
+                raise Refused("automatic --recover failed: %s. Nothing was launched; fix it with swap_launch.py --status / --recover" % e)
+            m = read_kv(c.marker)
+            if m is None or m.get("state") != "CLEAN":
+                raise Refused("automatic --recover did not reach CLEAN; nothing was launched")
+            log(c, "  recovery done; continuing with the launch of '%s'" % c.profile)
         live = hashes(c.skse)
         bad = diff(marker_hashes(m), live)
         if bad:
             raise Refused("the shared files do not match the marker (owner '%s'): %s. Someone started the game outside a launcher "
                           "or a tool edited them. Not guessing the owner. To discard the live version and put the owner's store "
-                          "copy back (live is backed up first): swap_launch.py --reset-live" % (m.get("owner"), "; ".join(bad)))
+                          "copy back (live is backed up first): swap_launch.py --reset-live. If the game was started from the "
+                          "dashboard/shortcut with HER profile and her changes should be kept: swap_launch.py --adopt-live" % (m.get("owner"), "; ".join(bad)))
         log(c, "  marker owner '%s', live hashes match" % m.get("owner"))
         p = store_problems(c, c.profile)
         if p:
             raise Refused("store of '%s' differs from the copy taken back after its last session: %s. Not launching "
                           "(catches test data before a save can read it; spec 3823)." % (c.profile, "; ".join(p)))
-        p2 = store_problems(c, c.rest)
+        p2 = store_problems(c, c.rest) if c.rest != c.profile else []
         if p2:
             raise Refused("rest profile store '%s' differs from its manifest: %s" % (c.rest, "; ".join(p2)))
         log(c, "  store of '%s' matches its manifest" % c.profile)
@@ -577,6 +596,32 @@ def cmd_launch(c):
             release_lock(c)
 
 
+def recover_locked(c, m):
+    """Finish whatever phase the marker says a dead run was in. The lock is held and no game process runs. Every phase is
+    idempotent. Used by --recover and by the automatic recovery at the start of a launch (RV-140 (11))."""
+    st, owner = m.get("state"), m.get("owner")
+    log(c, "marker: state=%s owner='%s' updated=%s prev_owner='%s'" % (st, owner, m.get("updated"), m.get("prev_owner")))
+    if st == "CLEAN":
+        bad = diff(marker_hashes(m), hashes(c.skse))
+        log(c, "state is CLEAN: nothing to finish. Live files %s the marker%s." % (("differ from" if bad else "match"), (": " + "; ".join(bad)) if bad else ""))
+        return 1 if bad else 0
+    make_backup(c, "recover-%s" % st, owner)
+    if st == "SWAPPING":
+        # died while copying the stored files in: the game never started. Put back the live files taken at STEP 4.
+        undo_swap(c, m.get("prev_owner"), m.get("backup"))
+    elif st in ("IN_USE", "COPYBACK"):
+        log(c, "%s: the game for '%s' ran (or may have) with its files in place; finishing its copy-back" % (st, owner))
+        finish(c, owner)
+    elif st == "RESTORING":
+        log(c, "RESTORING: copy-back for '%s' was complete; redoing the restore of '%s'" % (owner, c.rest))
+        final = restore_rest(c, owner)
+        write_marker(c, "CLEAN", c.rest, final, recovered_from="RESTORING")
+    else:
+        raise Refused("unknown marker state %r" % st)
+    log(c, "=== recovered: marker CLEAN (owner '%s')" % c.rest)
+    return 0
+
+
 def cmd_recover(c):
     open_log(c, "recover")
     log(c, "=== recover (previous run died mid-swap)")
@@ -586,27 +631,7 @@ def cmd_recover(c):
         m = read_kv(c.marker)
         if m is None:
             raise Refused("no marker; nothing to recover (use --init for first setup)")
-        st, owner = m.get("state"), m.get("owner")
-        log(c, "marker: state=%s owner='%s' updated=%s prev_owner='%s'" % (st, owner, m.get("updated"), m.get("prev_owner")))
-        if st == "CLEAN":
-            bad = diff(marker_hashes(m), hashes(c.skse))
-            log(c, "state is CLEAN: nothing to finish. Live files %s the marker%s." % (("differ from" if bad else "match"), (": " + "; ".join(bad)) if bad else ""))
-            return 1 if bad else 0
-        make_backup(c, "recover-%s" % st, owner)
-        if st == "SWAPPING":
-            # died while copying the stored files in: the game never started. Put back the live files taken at STEP 4.
-            undo_swap(c, m.get("prev_owner"), m.get("backup"))
-        elif st in ("IN_USE", "COPYBACK"):
-            log(c, "%s: the game for '%s' ran (or may have) with its files in place; finishing its copy-back" % (st, owner))
-            finish(c, owner)
-        elif st == "RESTORING":
-            log(c, "RESTORING: copy-back for '%s' was complete; redoing the restore of '%s'" % (owner, m.get("restore_to") or c.rest))
-            final = restore_rest(c, owner)
-            write_marker(c, "CLEAN", c.rest, final, recovered_from="RESTORING")
-        else:
-            raise Refused("unknown marker state %r" % st)
-        log(c, "=== recovered: marker CLEAN")
-        return 0
+        return recover_locked(c, m)
     finally:
         release_lock(c)
 
@@ -635,6 +660,36 @@ def cmd_reset_live(c):
         release_lock(c)
 
 
+def cmd_adopt_live(c):
+    """The opposite of --reset-live: keep the live files and make them the rest profile's (Lucienne's) store copy.  For the
+    case the rest state now makes ordinary: she (or a test) started the game from the dashboard / a shortcut, the game rewrote
+    a shared file, and the next launcher run refused on the hash mismatch.  Only right when that bypass launch was HER profile;
+    after a bypass launch of the test profile use --reset-live instead.  Backs up first; deliberate user action."""
+    open_log(c, "adopt-live")
+    log(c, "=== adopt-live: the live files become '%s' store copies" % c.rest)
+    precheck_processes(c)
+    acquire_lock(c)
+    try:
+        m = read_kv(c.marker)
+        if m is None or m.get("state") != "CLEAN" or m.get("owner") != c.rest:
+            raise Refused("marker missing, not CLEAN, or not owned by '%s'; use --recover / --status first" % c.rest)
+        p = store_problems(c, c.rest)
+        if p:
+            raise Refused("store of '%s' does not match its manifest (%s); fix by hand" % (c.rest, "; ".join(p)))
+        bad = diff(marker_hashes(m), hashes(c.skse))
+        if not bad:
+            log(c, "live files already match the marker; nothing to adopt")
+            return 0
+        log(c, "adopting live changes: %s" % "; ".join(bad))
+        make_backup(c, "adopt-live", c.rest)
+        live = copy_back(c, c.rest)
+        write_marker(c, "CLEAN", c.rest, live, adopted="1")
+        log(c, "=== done: her store, manifest and marker now equal the live files (previous store copy is in the backup above)")
+        return 0
+    finally:
+        release_lock(c)
+
+
 def cmd_status(c):
     c.logfile = None
     ok = True
@@ -648,6 +703,11 @@ def cmd_status(c):
         bad = diff(marker_hashes(m), hashes(c.skse))
         print("live vs marker: %s" % ("match" if not bad else "DIFFER (expected only while IN_USE): " + "; ".join(bad)))
         ok = ok and m.get("state") == "CLEAN" and not bad
+        if m.get("state") == "CLEAN":
+            rest_ok = m.get("owner") == c.rest and not store_problems(c, c.rest) and hashes(c.skse) == read_manifest(c, c.rest)["files"]
+            print("rest state  : %s" % ("live files are %s's (a launch outside the launchers gets her settings)" % c.rest if rest_ok
+                                        else "NOT %s's files: a bypass launch would use the wrong settings. Run --reset-live / --recover" % c.rest))
+            ok = ok and rest_ok
     for prof in (LUC_PROFILE, TEST_PROFILE):
         p = store_problems(c, prof)
         print("store %-15s: %s  [%s]" % (prof, "matches manifest" if not p else "PROBLEM: " + "; ".join(p), store_dir(c, prof)))
@@ -662,11 +722,18 @@ def cmd_status(c):
 
 
 def cmd_init(c, baseline, luc_ini, force):
-    """One-time promotion setup (spec 8b + 8c). The test store takes the CURRENT live files (the test settings, taken before
-    8b's restore); Lucienne's store takes the 8b baseline SA files plus her IntelEngine.ini."""
+    """One-time promotion setup (spec 8b + 8c; RV-140 (2)).  Order matters:
+      1. the 8b baseline files must match SHA256SUMS;
+      2. the TEST store is snapshotted from the CURRENT live files (today these are the test settings), hashes recorded,
+         BEFORE anything is overwritten;
+      3. HER store = the baseline SA files + her IntelEngine.ini (the live copy plus only what DECISIONS.md records for her
+         profile: nothing today, see play_lucienne_8c.md);
+      4. the live files are overwritten from her store (the live ones were backed up first) and the 8b assert holds as
+         written: live == baseline for the two SA files;
+      5. marker CLEAN, owner = her (the rest state)."""
     c.profile = c.profile or LUC_PROFILE
     open_log(c, "init")
-    log(c, "=== init: stores and marker")
+    log(c, "=== init: stores, live files and marker")
     precheck_processes(c)
     acquire_lock(c)
     try:
@@ -682,23 +749,31 @@ def cmd_init(c, baseline, luc_ini, force):
             if line.strip():
                 h, n = line.strip().split(" *", 1)
                 want[n] = h
-        for n in ("SeverActions_Settings.json", "SeverActions_BioBlocks.json"):
+        sa = ("SeverActions_Settings.json", "SeverActions_BioBlocks.json")
+        for n in sa:
             if sha(os.path.join(baseline, n)) != want.get(n):
                 raise Refused("baseline %s fails its SHA256SUMS entry (8b assert)" % n)
-        log(c, "8b assert: baseline SA files match SHA256SUMS in %s" % baseline)
+        log(c, "8b: baseline SA files match SHA256SUMS in %s" % baseline)
         luc_ini = luc_ini or os.path.join(c.skse, "IntelEngine.ini")
         if not os.path.isfile(luc_ini):
             raise Refused("her IntelEngine.ini source %s does not exist" % luc_ini)
         c.stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        make_backup(c, "init", TEST_PROFILE)
+        make_backup(c, "init", TEST_PROFILE)             # the live files (= test settings) + any existing test store
         if os.path.isdir(store_dir(c, LUC_PROFILE)):
             make_backup(c, "init-luc", LUC_PROFILE)
-        # test store = live files as they are now
+
+        # 2. TEST store = the current live files, taken before they are overwritten
         live = hashes(c.skse)
+        log(c, "TEST store <- current live files (the test settings), before they are overwritten:")
+        for n in FILES:
+            log(c, "  live %s sha256 %s" % (n, live[n]))
         os.makedirs(store_dir(c, TEST_PROFILE), exist_ok=True)
         put_all(c, c.skse, store_dir(c, TEST_PROFILE), live, "init-test")
-        write_manifest(c, TEST_PROFILE, live, "init from live files")
-        # Lucienne's store = baseline SA files + her ini
+        write_manifest(c, TEST_PROFILE, live, "init: snapshot of the live files before the overwrite (the test settings)")
+        assert hashes(store_dir(c, TEST_PROFILE)) == live == hashes(c.skse), "test snapshot differs from the live files"
+        log(c, "TEST store snapshot verified (hashes above recorded in its manifest.json)")
+
+        # 3. her store = baseline SA files + her IntelEngine.ini
         ld = store_dir(c, LUC_PROFILE)
         os.makedirs(ld, exist_ok=True)
         lh = {}
@@ -706,13 +781,23 @@ def cmd_init(c, baseline, luc_ini, force):
             src = luc_ini if n == "IntelEngine.ini" else os.path.join(baseline, n)
             shutil.copyfile(src, os.path.join(ld, n))
             lh[n] = sha(os.path.join(ld, n))
-            log(c, "  init-luc %s: %s (from %s)" % (n, short(lh[n]), src))
+            log(c, "  her store %s: %s (from %s)" % (n, short(lh[n]), src))
         write_manifest(c, LUC_PROFILE, lh, "init from 8b baseline + her IntelEngine.ini")
-        for n in ("SeverActions_Settings.json", "SeverActions_BioBlocks.json"):
+        for n in sa:
             assert lh[n] == want[n], n
-        log(c, "8b assert: Lucienne's store SA files are byte-identical to the baseline")
-        write_marker(c, "CLEAN", c.rest, live, session="init")
-        log(c, "=== init done. Live files = '%s' store copies; marker CLEAN owner '%s'." % (c.rest, c.rest))
+
+        # 4. live files <- her store; the 8b assert as written
+        # (no marker is written between the stores and this point; a launcher run before the final CLEAN marker refuses.
+        #  If init dies here, the pre-init live files are in the backup named above: restore them and re-run with --force.)
+        put_all(c, ld, c.skse, lh, "init-live")
+        for n in sa:
+            assert sha(os.path.join(c.skse, n)) == want[n], "8b assert: live %s != baseline" % n
+        assert hashes(c.skse) == lh, "live files differ from her store"
+        log(c, "8b assert: live == baseline for the SA files (zero diff); live == her store for all three files")
+
+        # 5. marker
+        write_marker(c, "CLEAN", c.rest, lh, session="init")
+        log(c, "=== init done. Live files = '%s' store copies (rest state); marker CLEAN owner '%s'." % (c.rest, c.rest))
         return 0
     finally:
         release_lock(c)
@@ -721,7 +806,7 @@ def cmd_init(c, baseline, luc_ini, force):
 def build_parser():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--profile", help="Lucienne | 'SkyrimNet Test' | test")
-    ap.add_argument("--rest-profile", default=TEST_PROFILE)
+    ap.add_argument("--rest-profile", default=REST_PROFILE, help="the profile whose files are live at rest (Lucienne; sandbox override only)")
     ap.add_argument("--unattended", action="store_true")
     ap.add_argument("--no-tts", action="store_true")
     g = ap.add_mutually_exclusive_group()
@@ -729,6 +814,7 @@ def build_parser():
     g.add_argument("--status", action="store_true")
     g.add_argument("--init", action="store_true")
     g.add_argument("--reset-live", action="store_true")
+    g.add_argument("--adopt-live", action="store_true")
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--baseline-dir", default=DEFAULT_BASELINE)
     ap.add_argument("--luc-ini", help="her IntelEngine.ini (default: the current live one)")
@@ -762,6 +848,8 @@ def main(argv=None):
             return cmd_init(c, a.baseline_dir, a.luc_ini, a.force)
         if a.reset_live:
             return cmd_reset_live(c)
+        if a.adopt_live:
+            return cmd_adopt_live(c)
         if not c.profile:
             ap.error("--profile is required")
         return cmd_recover(c) if a.recover else cmd_launch(c)
