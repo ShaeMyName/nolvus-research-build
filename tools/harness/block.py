@@ -37,10 +37,22 @@ DECISION_RX = re.compile(r"\[IEB\] (REFUSE|REJOIN_WAIT|DISPATCH_CONFLICT|REJOIN_
 NOTICE_RX = re.compile(r"\[IEB\] NOTICE (N\d) (shown|suppressed) text=(.*)$")
 
 
+NOTICE_PEX = "C:/Nolvus/Instances/Nolvus Awakening/MODS/mods/Errand Bridge/Scripts/IEB_Notice.pex"
+_NOTICES_INSTALLED = []
+
+
+def notices_installed():
+    """REVIEW_LOG RV-93 (1): decided ONCE per session from what is installed (IEB_Notice.pex in the Errand Bridge mod),
+    never from a test's log window (a notice that never fires looks exactly like 'not installed')."""
+    if not _NOTICES_INSTALLED:
+        _NOTICES_INSTALLED.append(os.path.exists(NOTICE_PEX))
+    return _NOTICES_INSTALLED[0]
+
+
 def notice_audit(r, text):
     """Every bridge decision with a notice (N3-N7) in this test's Papyrus window must be followed by exactly that notice,
-    for that actor, with the spec's exact text ('shown' or, with IEB_Spare01 = 1, 'suppressed'). Skipped (logged) when
-    the installed bridge has no notices yet (no NOTICE line at all in the window)."""
+    for that actor, with the spec's exact text ('shown' or, with IEB_Spare01 = 1, 'suppressed'). Skipped only when
+    IEB_Notice is not installed (notices_installed(), decided once per session); once installed, a missing notice FAILs."""
     lines = [l.strip() for l in text.splitlines()]
     decisions, notices = [], []
     for i, l in enumerate(lines):
@@ -55,8 +67,8 @@ def notice_audit(r, text):
             notices.append((i, n.group(1), n.group(3).strip()))
     if not decisions:
         return
-    if not notices:
-        r.log("NOTE %s: %d notice-bearing decision(s), no NOTICE line in the window (notices not installed?)" % (r.name, len(decisions)))
+    if not notices_installed():
+        r.log("NOTE %s: %d notice-bearing decision(s); IEB_Notice not installed, audit skipped" % (r.name, len(decisions)))
         return
     used = set()
     for i, kind, who, (nid, tmpl) in decisions:
