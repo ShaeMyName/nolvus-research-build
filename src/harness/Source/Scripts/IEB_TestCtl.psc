@@ -216,6 +216,20 @@ Function EquipFromList(Int aiListId, String asPlugin, Int aiIndex)
     Log("EQUIPLIST " + Watcher().Hex(f) + " size=" + fl.GetSize() + " worn=" + p.IsEquipped(f))
 EndFunction
 
+Function Whisper(Int aiOn)
+    {U2 W-3 / WH-6: set SkyrimNet's whisper mode like the player's hotkey (TriggerToggleWhisperMode only when it differs).
+     IEB_SceneMain reads an outside toggle as a manual override and does not fight it until the next location change.}
+    Float cur = SkyrimNetApi.GetConfigFloat("game", "interaction.maxDistance", -1.0)
+    Float w = SkyrimNetApi.GetConfigFloat("game", "interaction.whisperMaxDistance", -2.0)
+    Bool isOn = cur == w
+    If isOn != (aiOn == 1)
+        SkyrimNetApi.TriggerToggleWhisperMode()
+        Utility.Wait(1.0)
+        cur = SkyrimNetApi.GetConfigFloat("game", "interaction.maxDistance", -1.0)
+    EndIf
+    Log("WHISPERSET want=" + aiOn + " maxDistance=" + cur + " whisperMax=" + w)
+EndFunction
+
 Function BodySwap()
     {U2 WE-8: unequip the player's body item and re-equip it within ~0.3 s (outfit swap; the emitter debounces 1 s).}
     Actor p = Game.GetPlayer()

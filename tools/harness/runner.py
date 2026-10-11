@@ -84,6 +84,7 @@ class Run:
         "CrashCtx": "CRASHCTX ",
         "EquipFromList": "EQUIPLIST |EquipFromList:",
         "BodySwap": "BODYSWAP ",
+        "Whisper": "WHISPERSET ",
         "SetHour": "CRASHCTX ",
         "AutoSaveNow": "AUTOSAVE requested",
         "NFFGuardOn": "NFFGuardOn",
