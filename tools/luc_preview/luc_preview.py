@@ -1008,11 +1008,7 @@ def ensure_disposition(cfg, p, force=False):
     except ApiFailure as e:
         say("Could not roll the disposition (%s). Try /disposition." % e)
         return None
-    say("Disposition: " + disposition_summary(rec))
-    if rec.get("why"):
-        say("  why: " + rec["why"])
-    if rec.get("limit"):
-        say("  limit: " + rec["limit"])
+    say("Disposition: " + disposition_summary(rec))   # REVIEW_LOG RV-172-close: one-word fields only; why/limit stay in the file
     return rec
 
 
