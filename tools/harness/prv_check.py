@@ -86,8 +86,16 @@ def main():
         act = render(ctl, '{{ papyrus_util("GetIntValue", player.UUID, "LUC_Active", 0) }}').strip()
         if act != "1":
             ctl.tool("execute_console_command", {"command": "set LUC_ActivateRequest to 1"})
-            time.sleep(10)
-            act = render(ctl, '{{ papyrus_util("GetIntValue", player.UUID, "LUC_Active", 0) }}').strip()
+            # 23:21 run: LUC_Active was set at 23:20:52 (LUC log) but the render 9 s later still read 0: SkyrimNet
+            # caches decorator callbacks. Confirm Papyrus-side first, then re-render until the cache lets it through.
+            t = game.Tail(game.LOGS["papyrus"])
+            m = t.wait(r"\[LUC\] activate request: [^\r\n]*", 30)
+            say("LUC log: %s" % (m.group(0) if m else "no activate-request line in 30 s"))
+            for _ in range(12):
+                act = render(ctl, '{{ papyrus_util("GetIntValue", player.UUID, "LUC_Active", 0) }}').strip()
+                if act == "1":
+                    break
+                time.sleep(15)
         say("LUC_Active = %s" % act)
         if act == "1":
             res.append(("Uthgerd where she stands", check(ctl, F2, "TKN_CLONE_UTHGERD", "A", None)))
