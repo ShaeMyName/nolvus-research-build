@@ -1,0 +1,17 @@
+{
+  "int": {
+    "orcMinTier": 2
+  },
+  "intList": {
+    "keys": [
+      1,
+      116,
+      516,
+      727,
+      1125
+    ]
+  },
+  "formList": {
+    "abstain": []
+  }
+}

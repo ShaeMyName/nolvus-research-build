@@ -1,0 +1,24 @@
+{% if render_mode == "full" %}
+{# shae.festival 0340 (festival_nights.md 3.1; REVIEW_LOG RV-121-dec). The custom, for EVERY adult NPC, on a festival
+   DAY (06:00 to 06:00: before 06:00 the date steps back one day, no evening floor). Native reads only (get_global_value,
+   papyrus_util), no Papyrus decorator, so it also renders on a decorator cache miss. Adults only: decnpc isChild and
+   the native race test (a missing race reads as a child); not the player, not a virtual NPC. Switch
+   IEB_FestivalEnabled on the player (default 0 = OFF). GameMonth is 0-based; key = month*100 + day. Same keys as
+   festival_nights.json and SNRom_Decorators.IEB_FestivalName (gen_layer_festival.py --check). #}
+{% if not is_player(actorUUID) and papyrus_util("GetIntValue", player.UUID, "IEB_FestivalEnabled", 0) == 1 %}
+{% set _f_npc = decnpc(actorUUID) %}
+{% if not _f_npc.isVirtual and not _f_npc.isChild and not contains(lower(default(_f_npc.race, "child")), "child") %}
+{% set _f_h = get_global_value("GameHour") %}{% set _f_m = get_global_value("GameMonth") %}{% set _f_d = get_global_value("GameDay") %}
+{% if _f_h < 6 %}{% set _f_d = _f_d - 1 %}{% endif %}
+{% if _f_d < 1 %}{% if _f_m == 0 %}{% set _f_m = 11 %}{% else %}{% set _f_m = _f_m - 1 %}{% endif %}{% set _f_d = 31 %}{% if _f_m == 1 %}{% set _f_d = 28 %}{% elif _f_m == 3 or _f_m == 5 or _f_m == 8 or _f_m == 10 %}{% set _f_d = 30 %}{% endif %}{% endif %}
+{% set _f_key = _f_m * 100 + _f_d %}
+{% set _f_name = "" %}{% if _f_key == 1 %}{% set _f_name = "the New Life Festival" %}{% elif _f_key == 116 %}{% set _f_name = "Heart's Day" %}{% elif _f_key == 516 %}{% set _f_name = "the Mid Year Celebration" %}{% elif _f_key == 727 %}{% set _f_name = "Harvest's End" %}{% elif _f_key == 1125 %}{% set _f_name = "Saturalia" %}{% endif %}
+{% if _f_name != "" %}
+
+## The Festival
+
+Today is {{ _f_name }}. On a festival night it is an old, accepted custom that people may take a lover for that one night, even someone met that evening. Nobody is shamed for it and nobody is owed it. By custom it binds no one: it is not counted against anyone's partner or promise the next day. Not everyone holds with it. The devout, the reserved and some who are already spoken for disapprove or simply keep out of it. Whether you take part, and what you think of those who do, is yours to decide from who you are.
+{% endif %}
+{% endif %}
+{% endif %}
+{% endif %}
