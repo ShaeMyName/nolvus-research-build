@@ -297,6 +297,10 @@ Function PkgWatch(Int aiFormId)
         Log("PKGWATCH none")
         Return
     EndIf
+    If !q.IsRunning()                          ; RV-96: the quest is idle (not start-game) until a test starts it
+        q.Start()
+        Utility.Wait(1.0)
+    EndIf
     (q.GetAlias(0) as ReferenceAlias).ForceRefTo(a)
     Log("PKGWATCH on " + Watcher().Hex(a) + " pkg=" + Watcher().Hex(a.GetCurrentPackage()))
 EndFunction
@@ -305,6 +309,7 @@ Function PkgUnwatch()
     Quest q = Game.GetFormFromFile(0x840, "ErrandBridgeTest.esp") as Quest
     If q != None
         (q.GetAlias(0) as ReferenceAlias).Clear()
+        q.Stop()
     EndIf
     Log("PKGWATCH off")
 EndFunction

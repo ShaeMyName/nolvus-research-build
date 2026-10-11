@@ -14,7 +14,8 @@ never in Lucienne's profile, so the freeze rule does not apply (records may chan
                                    DefaultSandboxCurrentLocation256 (Skyrim.esm 0x0956B8), a harmless sandbox where the
                                    actor stands, recognisable by FormID, instead of a new PACK at a test marker: the
                                    plugin writer has no proven PACK record.
-  QUST 0x840 IEB_TestPkgQuest      [ADDED 2026-10-11, REVIEW_LOG R36-upd (c)] start game; one optional, EMPTY reference
+  QUST 0x840 IEB_TestPkgQuest      [ADDED 2026-10-11, REVIEW_LOG R36-upd (c)] NOT start game (RV-96: idle unless a test
+                                   starts it; PkgWatch starts it, PkgUnwatch stops it); one optional, EMPTY reference
                                    alias "PkgWatch" with NO package, carrying script IEB_PkgWatch (OnPackageStart/Change/End
                                    -> [IEB-TEST] PKGEVT lines); filled by IEB_TestCtl.PkgWatch, cleared by PkgUnwatch.
 Writes build/out/ErrandBridgeTest.esp and checks the round trip."""
@@ -77,7 +78,10 @@ def pkg_quest():
                       "aliases": [{"object": {"form": SELF | PKG_Q, "alias": 0, "unused": 0}, "version": 5, "objFormat": 2,
                                    "scripts": [{"name": "IEB_PkgWatch", "status": 0, "props": []}]}]}}
     return E.Record("QUST", formid=SELF | PKG_Q, subs=[
-        sub("EDID", "IEB_TestPkgQuest"), sub("VMAD", vmad), dnam(0), sub("NEXT", None), sub("ANAM", 1),
+        sub("EDID", "IEB_TestPkgQuest"), sub("VMAD", vmad),
+        # REVIEW_LOG RV-96: NOT start-game-enabled (flags 0x10, no 0x01): idle unless a test starts it (TestCtl.PkgWatch)
+        sub("DNAM", {"flags": 0x10, "priority": 0, "formVersion": 255, "unknown": 0, "type": 0, "pad": bytes(3)}),
+        sub("NEXT", None), sub("ANAM", 1),
         sub("ALST", 0), sub("ALID", "PkgWatch"), raw("FNAM", struct.pack("<I", ALIAS_FLAGS)),
         raw("VTCK", bytes(4)), sub("ALED", None)])
 
