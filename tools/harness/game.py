@@ -2,6 +2,7 @@
 launches and closes the test game, test profile only). Never touches Lucienne's profile; launching goes through
 play_test_profile.ps1 -Unattended (aborts instead of asking when free commit is low)."""
 import glob, os, re, shutil, subprocess, time
+NOWIN = subprocess.CREATE_NO_WINDOW   # no console flash from status checks (Shae 2026-10-11)
 from mcp_client import MCP
 
 DOCS = os.path.expanduser("~/Documents/My Games/Skyrim Special Edition/")
@@ -131,7 +132,7 @@ def mcp_stall_check(log=print, tries=3, gap=20):
 
 
 def procs():
-    out = subprocess.run(["tasklist"], capture_output=True, text=True).stdout
+    out = subprocess.run(["tasklist"], capture_output=True, creationflags=NOWIN, text=True).stdout
     # REVIEW_LOG RV-73: skse64_loader too (a launch in progress before SkyrimSE.exe appears)
     return {n for n in ("SkyrimSE.exe", "ModOrganizer.exe", "skse64_loader.exe") if n in out}
 
@@ -144,7 +145,7 @@ POOLGATE_FLAG = "C:/nolvus-research/test_runs/POOLGATE_TRIPPED"
 def nonpaged_mb():
     out = subprocess.run(["powershell", "-NoProfile", "-Command",
                           "[int]((Get-CimInstance Win32_PerfFormattedData_PerfOS_Memory).PoolNonpagedBytes/1MB)"],
-                         capture_output=True, text=True).stdout.strip()
+                         capture_output=True, creationflags=NOWIN, text=True).stdout.strip()
     return float(out) if out.isdigit() else 99999.0
 
 
@@ -153,7 +154,7 @@ def commit_pct():
     out = subprocess.run(["powershell", "-NoProfile", "-Command",
                           "$o=Get-CimInstance Win32_OperatingSystem; "
                           "[int](100*($o.TotalVirtualMemorySize-$o.FreeVirtualMemory)/$o.TotalVirtualMemorySize)"],
-                         capture_output=True, text=True).stdout.strip()
+                         capture_output=True, creationflags=NOWIN, text=True).stdout.strip()
     return float(out) if out.isdigit() else 100.0
 
 
@@ -229,7 +230,7 @@ def game_private_gb():
     23 GB after ~10 reloads of T0 (2026-10-10), which with the voice server exhausted the 31 GB machine."""
     out = subprocess.run(["powershell", "-NoProfile", "-Command",
                           "(Get-Process SkyrimSE -ErrorAction SilentlyContinue | Measure-Object PrivateMemorySize64 -Sum).Sum"],
-                         capture_output=True, text=True).stdout.strip()
+                         capture_output=True, creationflags=NOWIN, text=True).stdout.strip()
     return int(out) / 2 ** 30 if out.isdigit() else 0.0
 
 
@@ -238,7 +239,7 @@ def available_ram_gb():
     total physical memory in use gets dangerously close to the machine's 31 GB."""
     out = subprocess.run(["powershell", "-NoProfile", "-Command",
                           "(Get-CimInstance Win32_PerfFormattedData_PerfOS_Memory).AvailableMBytes"],
-                         capture_output=True, text=True).stdout.strip()
+                         capture_output=True, creationflags=NOWIN, text=True).stdout.strip()
     return int(out) / 1024.0 if out.isdigit() else 99.0
 
 
@@ -308,7 +309,7 @@ def start_sampler():
     pidf = "C:/nolvus-research/test_runs/mem_sampler.pid"
     try:
         pid = int(open(pidf).read().strip())
-        if str(pid) in subprocess.run(["tasklist", "/FI", "PID eq %d" % pid], capture_output=True, text=True).stdout:
+        if str(pid) in subprocess.run(["tasklist", "/FI", "PID eq %d" % pid], capture_output=True, creationflags=NOWIN, text=True).stdout:
             return
     except Exception:
         pass
@@ -507,7 +508,7 @@ def close(run=None, timeout=120, force=False):
         time.sleep(3)
     (run.log if run else print)("CLOSE: game still running after %d s" % timeout)
     if force:   # a hung game ignores qqq (U1 run 15: hung load after a failed console save); the test profile only
-        subprocess.run(["taskkill", "/F", "/IM", "SkyrimSE.exe"], capture_output=True)
+        subprocess.run(["taskkill", "/F", "/IM", "SkyrimSE.exe"], capture_output=True, creationflags=NOWIN)
         time.sleep(5)
         gone = "SkyrimSE.exe" not in procs()
         (run.log if run else print)("CLOSE: force-killed SkyrimSE.exe (%s)" % ("gone" if gone else "STILL RUNNING"))
@@ -515,12 +516,12 @@ def close(run=None, timeout=120, force=False):
         # U1 run 18: after a force-kill MO2 (started by our launcher) stays open, so the relaunch was refused. Ask it to
         # close (WM_CLOSE, no /F), wait, and force it only if it ignores that.
         if gone and "ModOrganizer.exe" in procs():
-            subprocess.run(["taskkill", "/IM", "ModOrganizer.exe"], capture_output=True)
+            subprocess.run(["taskkill", "/IM", "ModOrganizer.exe"], capture_output=True, creationflags=NOWIN)
             t1 = time.time()
             while "ModOrganizer.exe" in procs() and time.time() - t1 < 30:
                 time.sleep(2)
             if "ModOrganizer.exe" in procs():
-                subprocess.run(["taskkill", "/F", "/IM", "ModOrganizer.exe"], capture_output=True)
+                subprocess.run(["taskkill", "/F", "/IM", "ModOrganizer.exe"], capture_output=True, creationflags=NOWIN)
                 forced_mo2[0] = True
                 time.sleep(3)
             (run.log if run else print)("CLOSE: ModOrganizer.exe %s" % ("closed" if "ModOrganizer.exe" not in procs()

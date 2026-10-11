@@ -387,13 +387,25 @@ def ensure_child_enrolled(r):
         return None, None
     if iv({"v": rval(r, u, 'get_faction_rank(actorUUID, "SNRom_Bond")')}, "v") >= 0:
         return u, name
-    st = tail("snrom")
+    st, sn = tail("snrom"), tail("skyrimnet")
     rel(r, "EnrollByHand", [ah(CHILD)])
     m = st.wait(r"Enrolled by hand: %s\b" % re.escape(name), timeout=60)
     if not m:
         inc(r, "child enrollment line not seen in snrom.log within 60 s")
         return None, None
     r.log("  setup: child 0x%s enrolled by hand" % hx(CHILD))
+    # Consumer proof (b) (consumer_proof_list.md): a fresh child enrolment must author with OUR child prompt.
+    # Lines and counts only, never the authored text. snrom.log can lag (minutes), hence 300 s, not the list's 120 s.
+    d = st.wait(r"Disposition authored for %s\b|Truncated child response for %s\b" % (re.escape(name), re.escape(name)), 300)
+    t = sn.read()
+    r.check(re.search(r"PromptTemplate='ieb_snrom_author_child'", t) is not None,
+            "child enrolment sent PromptTemplate='ieb_snrom_author_child' (SkyrimNet.log)")
+    r.check(re.search(r"PromptTemplate='snrom_author_disposition'", t) is None,
+            "no adult snrom_author_disposition prompt for the child enrolment")
+    r.check(re.search(r"Failed to render template 'ieb_snrom_author_child'", t) is None,
+            "ieb_snrom_author_child rendered (no 'Failed to render template')")
+    r.check(bool(d) and d.group(0).startswith("Disposition authored"),
+            "snrom 'Disposition authored for %s' within 300 s (%s)" % (name, "seen" if d else "not seen"))
     return u, name
 
 
