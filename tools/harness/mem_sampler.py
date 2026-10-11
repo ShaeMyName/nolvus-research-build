@@ -4,6 +4,7 @@ processes by private bytes and by handles. POOLGATE (RV-73-upd, RV-73-upd2) clos
 pool growth or commit > 85 %. Started detached by game.launch (one per machine session); stop it with taskkill.
 Output: C:/nolvus-research/test_runs/mem_sampler.log"""
 import os, subprocess, time
+NOWIN = subprocess.CREATE_NO_WINDOW   # no console flash every sample (Shae 2026-10-11)
 
 OUT = "C:/nolvus-research/test_runs/mem_sampler.log"
 PS = r"""
@@ -34,10 +35,10 @@ def stop_game(f, why):
     except Exception as e:
         log(f, "POOLGATE: qqq failed: %s" % e)
     t0 = time.time()
-    while time.time() - t0 < 90 and "SkyrimSE.exe" in subprocess.run(["tasklist"], capture_output=True, text=True).stdout:
+    while time.time() - t0 < 90 and "SkyrimSE.exe" in subprocess.run(["tasklist"], capture_output=True, creationflags=NOWIN, text=True).stdout:
         time.sleep(3)
-    if "SkyrimSE.exe" in subprocess.run(["tasklist"], capture_output=True, text=True).stdout:
-        subprocess.run(["taskkill", "/F", "/IM", "SkyrimSE.exe"], capture_output=True)
+    if "SkyrimSE.exe" in subprocess.run(["tasklist"], capture_output=True, creationflags=NOWIN, text=True).stdout:
+        subprocess.run(["taskkill", "/F", "/IM", "SkyrimSE.exe"], capture_output=True, creationflags=NOWIN)
         log(f, "POOLGATE: SkyrimSE force-killed after 90 s")
     else:
         log(f, "POOLGATE: game closed cleanly")
@@ -55,7 +56,7 @@ def main():
         base, peak, ingame = None, 0.0, False
         while True:
             try:
-                line = subprocess.run(["powershell", "-NoProfile", "-Command", PS], capture_output=True, text=True,
+                line = subprocess.run(["powershell", "-NoProfile", "-Command", PS], capture_output=True, creationflags=NOWIN, text=True,
                                       timeout=25).stdout.strip().replace("\n", " ")
             except Exception as e:
                 line = "sample failed: %s" % e
