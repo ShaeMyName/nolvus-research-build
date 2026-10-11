@@ -1016,6 +1016,23 @@ Function EssProbe(Int aiFormId)
     Log("ESSPROBE " + Watcher().Hex(a) + " baseEss=" + b.IsEssential() + " baseProt=" + b.IsProtected() + k)
 EndFunction
 
+Function SARecruitEvent(Int aiFormId)
+    {RV-95/97 smoke: SeverActions' own "recruit" signal, pushed exactly as SA does (SeverActions_FollowerManager.psc:1377-1383:
+     event name, "recruit", 0.0, the actor). Only the signal: no SA state changes.}
+    Actor a = A(aiFormId)
+    Int h = ModEvent.Create("SeverActions_FollowerCalledByPlayer")
+    If a == None || h == 0
+        Log("SARECRUIT none")
+        Return
+    EndIf
+    ModEvent.PushString(h, "SeverActions_FollowerCalledByPlayer")
+    ModEvent.PushString(h, "recruit")
+    ModEvent.PushFloat(h, 0.0)
+    ModEvent.PushForm(h, a)
+    ModEvent.Send(h)
+    Log("SARECRUIT sent " + Watcher().Hex(a))
+EndFunction
+
 Function SetIEWaitHours(Float afHours)
     {B-13: IntelEngine's default wait hours = its MCM value, a StorageUtil float on the player
      (Gerk Core.psc:1667-1689). afHours < 0 unsets it (IE default 48). Logs the previous value for the restore.}

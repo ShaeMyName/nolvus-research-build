@@ -91,6 +91,7 @@ class Run:
         "ScheduleFetch": "ScheduleFetch",
         "ScheduleDelivery": "ScheduleDelivery",
         "EssProbe": "ESSPROBE ",
+        "SARecruitEvent": "SARECRUIT ",
         "OwnNearestFurniture": "OWNFURN ",
         "CountNearNPCs": "NEARNPC ",
         "SetHour": "CRASHCTX ",

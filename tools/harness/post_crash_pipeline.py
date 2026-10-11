@@ -20,7 +20,7 @@ H = B + "tools/harness/"
 OUT = "C:/nolvus-research/test_runs/"
 LOG = []
 STAMP = time.strftime("%Y%m%d-%H%M%S")
-CAST = [0x000E1BA9, 0x00091918, 0x0002C90F, 0x000A2C94]     # F1, F2, H, Lydia (Lydia INFERRED ref; a miss is logged)
+CAST = [0x000E1BA9, 0x00091918, 0x0002C90F, 0x000A2C94]     # F1, F2, H, Lydia (0x000A2C94; name self-checked, RV-97)
 
 
 def say(m):
@@ -126,8 +126,12 @@ ESS_BEFORE = {}
 
 
 def ess_probe_all(ctl):
+    from tests_misc import who
     out = {}
     for f in CAST:
+        if f == 0x000A2C94 and (who(ctl, f)[1] or "") != "Lydia":
+            say("  %08X is not Lydia by name (skipped)" % f)
+            continue
         m = probe_lines(ctl, "EssProbe", [f], r"\[IEB-TEST\] ESSPROBE [^\n]*")
         out[f] = m.group(0).split("ESSPROBE ", 1)[1] if m else None
     return out
@@ -160,6 +164,15 @@ def s3():
             out.append((flags_b == flags_a, "%08X base essential/protected unchanged" % f))
             out.append(("IEB_Ess=-1" in v and "IEB_EssAuth=-1" in v, "%08X has no IEB_Ess / IEB_EssAuth keys" % f))
         out.append((bool(re.search(r"\[IEB\] NOTICE probe registered rc=", text)), "notices: N1 probe registered on load"))
+        # RV-95 (4): one SA recruit signal while paused sets only IEB_EssReq (no IEB_Ess / IEB_EssAuth, no ESS_ line)
+        t2 = game.Tail(game.LOGS["papyrus"])
+        sent = probe_lines(ctl, "SARecruitEvent", [0x00091918], r"\[IEB-TEST\] SARECRUIT sent [^\n]*")
+        time.sleep(6)
+        v = probe_lines(ctl, "EssProbe", [0x00091918], r"\[IEB-TEST\] ESSPROBE [^\n]*")
+        vv = v.group(0) if v else ""
+        out.append((bool(sent) and bool(v) and "IEB_EssReq=-1" not in vv and "IEB_Ess=-1" in vv and "IEB_EssAuth=-1" in vv
+                    and not re.search(r"\[IEB\] ESS_", t2.read()),
+                    "paused SA recruit (F2): only IEB_EssReq set, no ESS_ line"))
         out.append((bool(re.search(r"\[IEB\] NOTICE N1 shown", t.read())) or True, "N1 seen or pending (no assert)"))
         return out
     return smoke("S3", chk)
