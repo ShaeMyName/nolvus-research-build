@@ -437,7 +437,8 @@ def wh5a(r):
             bring_back(r, f)
 
 
-WH5B_CELL = "WhiterunUnderforge"    # INFERRED: an interior with no house keyword and nobody in it at T0; self-checked
+WH5B_CELL = "QASmoke"    # REVIEW_LOG RV-90 (2): the vanilla developer test cell: no location (so no house keyword),
+#                           no quest ties or scenes, nobody in it (INFERRED; self-checked by CountNearNPCs and the OFF step)
 
 
 @test("WH-5b", "WH", reload=True)

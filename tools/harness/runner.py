@@ -85,6 +85,7 @@ class Run:
         "EquipFromList": "EQUIPLIST |EquipFromList:",
         "BodySwap": "BODYSWAP ",
         "Whisper": "WHISPERSET ",
+        "SUStrLen": "SUSTRLEN ",
         "OwnNearestFurniture": "OWNFURN ",
         "CountNearNPCs": "NEARNPC ",
         "SetHour": "CRASHCTX ",

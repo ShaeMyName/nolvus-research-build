@@ -103,7 +103,7 @@ BLOCKS = {}     # name -> dict(save, order: [ids], modules: [module names], est:
 
 
 def block(name, save, modules, order, est=None, fixed=None, harness=False, voices=True, relaunch_avail_gb=3.0,
-          gamemaster=True):
+          gamemaster=True, launch_min_avail_gb=None):
     """voices=False only for text/state blocks; the soak must run with voices (real-play config, SK-7 memory is the
     point: Shae 2026-10-10), enforced here. relaunch_avail_gb: relaunch between tests when Windows' available physical
     memory drops below this [CHANGED 2026-10-10, Shae: total system memory near 31 GB is the concern, not the game's own
@@ -114,7 +114,7 @@ def block(name, save, modules, order, est=None, fixed=None, harness=False, voice
     """est: unpadded estimate in minutes per family (time plan), spread evenly over that family's tests;
     fixed: {test id: minutes} for known long tests (B-20). Used only for the live ETA."""
     BLOCKS[name] = dict(save=save, modules=modules, order=order, est=est or {}, fixed=fixed or {}, harness=harness, gamemaster=gamemaster,
-                        voices=voices,
+                        voices=voices, launch_min_avail_gb=launch_min_avail_gb,
                         relaunch_avail_gb=None if name.upper().startswith("SOAK") else relaunch_avail_gb)
 
 
@@ -252,6 +252,11 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
     print("GAMEMASTER %s for %s" % ("on" if GM_STATE[0] else "off", name), flush=True)
     summary.append("| GameMaster | %s for the block | | |" % ("on" if GM_STATE[0] else "off"))
     if "SkyrimSE.exe" not in game.procs():
+        need = b.get("launch_min_avail_gb")
+        if need and game.available_ram_gb() < need:       # REVIEW_LOG RV-90 (5): voice server only with headroom
+            print("BLOCK ABORT %s: %.1f GB available < %.0f GB required to start (voices=%s)" %
+                  (name, game.available_ram_gb(), need, b["voices"]), flush=True)
+            return 1
         if not launch or not game.launch(print, voices=b["voices"]):
             print("BLOCK ABORT %s: game did not launch" % name, flush=True)
             return 1

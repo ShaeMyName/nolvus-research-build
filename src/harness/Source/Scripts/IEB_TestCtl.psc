@@ -1251,6 +1251,16 @@ Function SUSetInt(Int aiFormId, String asKey, Int aiValue)
     Log("SU " + Watcher().Hex(a) + " " + asKey + " set=" + aiValue)
 EndFunction
 
+Function SUStrLen(Int aiFormId, String asKey)
+    {U2 IP family: the LENGTH of a StorageUtil string on the actor (e.g. the IEB_IntimacyProfile mirror). Never its text.}
+    Actor a = A(aiFormId)
+    If a == None
+        Log("SUSTRLEN none " + asKey + " len=-1")
+        Return
+    EndIf
+    Log("SUSTRLEN " + Watcher().Hex(a) + " " + asKey + " len=" + StringUtil.GetLength(StorageUtil.GetStringValue(a, asKey, "")))
+EndFunction
+
 Function SUGetInt(Int aiFormId, String asKey, Int aiDefault)
     {R55 (child_lock_failure.md): read a StorageUtil int on the actor Papyrus-side, so the host never trusts a cached
      template render. Logs the value it read.}

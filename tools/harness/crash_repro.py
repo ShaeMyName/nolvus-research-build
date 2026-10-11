@@ -7,6 +7,9 @@ Every load's IEB_LOADKEYS lines (with the f7ddfff sibling fields) are copied int
 load and time since arrival are recorded, and the next arm starts after the memory gate.
 RV-82: every arm logs CRASHCTX (game hour, days passed, Saffir's package + 3D) at start and every ~60 s;
 R2/R3 set R1's game hour (+-0.25 h) as well as its spot, else INCONCLUSIVE.
+REVIEW_LOG RV-90: R2 is the "location+hour control, crash actor absent" (Saffir indoors in R2, in the player's cell in
+R1 and both crashes). R2P (R2'): load IEB_RV72_mid like R1 (same world/Saffir state, spot and hour), cancel Jenassa's
+errand at once, 15 min idle: the errand-free control in the crash actor's presence. Replaces the optional R1 repeats.
 Usage: crash_repro.py [arms, e.g. R1 or R1,R2,R3]   (game and MO2 closed; not run until Shae decides the reaper)"""
 import glob, os, re, sys, time
 sys.path.insert(0, os.path.dirname(__file__))
@@ -88,7 +91,7 @@ def arm(name):
         return None
     ctl = Run("CR_" + name)
     pap = game.Tail(game.LOGS["papyrus"])
-    save = "IEB_RV72_mid" if name == "R1" else "T0"
+    save = "IEB_RV72_mid" if name in ("R1", "R2P") else "T0"
     ok = game.load(ctl, save, None)
     t_load = time.time()
     say("%s LOAD %s: %s" % (name, save, "OK" if ok else "FAILED"))
@@ -127,6 +130,15 @@ def arm(name):
     for l in text.splitlines():
         if "IEB_LOADKEYS" in l or "TASKTYPE_RESTORED" in l:
             say("  " + l.strip()[:300])
+    if name == "R2P":
+        # REVIEW_LOG RV-90 (1): same world and Saffir state as R1 (same save, same spot, same hour), errand ended at once
+        t = game.Tail(game.LOGS["papyrus"])
+        ctl.ctl("Cancel", [F1], sync=False)
+        m = t.wait(r"(?i)\[IEB\] RELEASE_[A-Z]+ actor=Jenassa[^\n]*", 60)
+        say("R2P errand cancelled at once: %s" % (m.group(0)[:120] if m else "no RELEASE line in 60 s"))
+        if not m:
+            say("R2P INCONCLUSIVE: the errand did not end")
+            return None
     t_arr = None
     if name in ("R1", "R3"):
         block.ie_test_settings(ctl)
