@@ -92,6 +92,7 @@ class Run:
         "ScheduleDelivery": "ScheduleDelivery",
         "EssProbe": "ESSPROBE ",
         "SARecruitEvent": "SARECRUIT ",
+        "SNRomStatusEvent": "SNROMSTATUS ",
         "OwnNearestFurniture": "OWNFURN ",
         "CountNearNPCs": "NEARNPC ",
         "SetHour": "CRASHCTX ",

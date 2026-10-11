@@ -1130,6 +1130,18 @@ Function SARecruitEvent(Int aiFormId)
     Log("SARECRUIT sent " + Watcher().Hex(a))
 EndFunction
 
+Function SNRomStatusEvent(Int aiFormId, String asText)
+    {U2 W-4 (consumer proof IEB_SNRomStatus): the same mod event the patched Relationships sends from the NPC
+     (SNRom_Bridge.psc:446/7321/7335/8161: akActor.SendModEvent("IEB_SNRomStatus", text, 0.0)), sender = the actor.}
+    Actor a = A(aiFormId)
+    If a == None
+        Log("SNROMSTATUS none")
+        Return
+    EndIf
+    a.SendModEvent("IEB_SNRomStatus", asText, 0.0)
+    Log("SNROMSTATUS sent " + Watcher().Hex(a))
+EndFunction
+
 Function SetIEWaitHours(Float afHours)
     {B-13: IntelEngine's default wait hours = its MCM value, a StorageUtil float on the player
      (Gerk Core.psc:1667-1689). afHours < 0 unsets it (IE default 48). Logs the previous value for the restore.}

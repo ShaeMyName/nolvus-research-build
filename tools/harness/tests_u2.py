@@ -242,6 +242,42 @@ def w3(r):
     r.check(h.get("A") == 0, "A (300 u) does not have the whispered line (%s)" % h.get("A"))
 
 
+@test("W-4", "W", reload=True)
+def w4(r):
+    """Status events after the Relationships patch (consumer proof: IEB_SNRomStatus -> trigger ieb_snrom_status_private).
+    F1 sends the same mod event the patched Relationships sends from the NPC (TestCtl.SNRomStatusEvent, a nonce in the
+    text); a bystander 300 u in view. Pass: SkyrimNet logs the event reaching the trigger; F1 gains an npc_thought-type
+    event; the bystander gains NO event carrying the nonce (no persistent public event). 1 LLM call (the thought)."""
+    market(r)
+    if not harness_ready(r):
+        return
+    fu, au, pu = uuids(r, F1, A_NPC, PLAYER)
+    if not (fu and au):
+        return inc(r, "actors not loaded")
+    try:
+        place(r, A_NPC, 300, 0, 0)
+        time.sleep(2)
+        if not los(r, au, pu):
+            return inc(r, "bystander placed without line of sight")
+        t0 = hist_hits(r, fu, etype="npc_thought")
+        checkpoint(r, "1 LLM call")
+        tok = nonce("w4")
+        sn = game.Tail(game.LOGS["skyrimnet"])
+        ctl_line(r, "SNRomStatusEvent", [F1, "Jenassa and the player shared a quiet moment %s." % tok],
+                 r"\[IEB-TEST\] SNROMSTATUS sent")
+        SH.await_idle(90)
+        time.sleep(5)
+        txt = sn.read()
+        r.check(bool(re.search(r"IEB_SNRomStatus", txt)), "SkyrimNet saw the IEB_SNRomStatus mod event")
+        t1 = hist_hits(r, fu, etype="npc_thought")
+        r.check(t0 is not None and t1 is not None and t1 >= t0 + 1, "F1 gained an npc_thought (%s -> %s)" % (t0, t1))
+        r.check(hist_hits(r, au, tok) == 0, "the bystander has no event carrying the status text")
+    except SH.HarnessError as e:
+        inc(r, "harness call failed: %s" % e)
+    finally:
+        bring_back(r, A_NPC)
+
+
 # ---------------------------------------------------------------------------- WE: the ieb_witness emitter (§11.8)
 
 @test("WE-1", "WE", reload=True)

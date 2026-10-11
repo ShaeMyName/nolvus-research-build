@@ -34,7 +34,7 @@ block("U2", "T0", ["tests_u2", "tests_u2_e", "tests_u2_wh", "tests_u2_len", "tes
     # harness API smoke first: every R5 test needs it
     "H-2",
     # witness emitter + perception scope (market)
-    "WE-1", "WE-4", "WE-7", "WE-8", "W-1", "W-2", "W-3",
+    "WE-1", "WE-4", "WE-7", "WE-8", "W-1", "W-2", "W-3", "W-4",
     # in-line actions and reaction counts
     "E-4", "E-5", "E-7", "E-8", "RE-3",
     # dialogue actions (inn, Arcadia's)

@@ -1,3 +1,4 @@
 asm/*_psc/
 out/PackageOverrides.ini
 __pycache__/
+private_out/
