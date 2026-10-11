@@ -141,8 +141,8 @@ check("echo mismatch: no disposition.json, no profile, app still starts",
 # 2e. privacy: nothing printed holds profile or system-prompt text; private files carry the _PRIVATE_ prefix
 OLD_NAMES = ("profile_jenassa.md", "last_system_prompt.txt", "last_profile_prompt.txt", "last_disposition_prompt.txt")
 rp = run_app("/profile\n/exit\n", {"LUC_PREVIEW_STUB": "1"}, home)
-check("/profile says it rewrote the profile with a size, no text",
-      "Profile rewritten (" in rp.stdout and " characters)" in rp.stdout and "Lean, ash-grey" not in rp.stdout)
+check("/profile shows the rewritten test profile (REVIEW_LOG RV-173 (1))",
+      "Profile rewritten (" in rp.stdout and "Lean, ash-grey" in rp.stdout)
 priv_prof = open(os.path.join(home, "_PRIVATE_profile_jenassa.md"), encoding="utf-8").read()
 priv_sys = open(os.path.join(home, "_PRIVATE_last_system_prompt.txt"), encoding="utf-8").read()
 scene_txt = open(os.path.join(home, "scene_setup.txt"), encoding="utf-8").read() + "\n" + \
@@ -150,8 +150,8 @@ scene_txt = open(os.path.join(home, "scene_setup.txt"), encoding="utf-8").read()
 everything = "\n".join(ALL_OUT)
 prof_lines = [l.strip() for l in priv_prof.splitlines() if len(l.strip()) >= 12]
 sys_lines = [l.strip() for l in priv_sys.splitlines() if len(l.strip()) >= 30 and l.strip().lstrip("-* ") not in scene_txt]
-leaked = [l for l in prof_lines + sys_lines if l in everything]
-check("nothing printed contains a profile or system-prompt line (%d lines checked)" % (len(prof_lines) + len(sys_lines)),
+leaked = [l for l in sys_lines if l in everything and l not in priv_prof]   # RV-173 (1): the test profile may be shown; the system prompt is still not echoed
+check("nothing printed contains a system-prompt line (%d lines checked)" % len(sys_lines),
       not leaked and len(prof_lines) > 5 and len(sys_lines) > 50)
 check("console never shows private-file markers", "## Your intimacy profile" not in everything and "Scene mode is on." not in everything)
 check("no old-named profile/prompt file written", not [f for f in os.listdir(home) if f in OLD_NAMES])

@@ -1031,7 +1031,7 @@ def author_profile(cfg, p, rec):
     if len(text) < 200:
         raise ApiFailure("profile too short (%d chars); not stored" % len(text))
     write_private(p["profile"], text.strip() + "\n")
-    say("Profile rewritten (%d characters). Not shown." % len(text.strip()))
+    say("Profile rewritten (%d characters):\n\n%s\n" % (len(text.strip()), text.strip()))   # REVIEW_LOG RV-173 (1): a test profile may be shown
     return text.strip()
 
 
