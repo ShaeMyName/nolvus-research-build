@@ -450,6 +450,74 @@ def main():
         check("assert_rest_end(summary)" in open(os.path.join(HERE, "..", "harness", "block.py"), encoding="utf-8").read(),
               "S10b block.py calls assert_rest_end at the end of a block")
 
+        # S10c block.py HALT / ABORT exit (RV-150-impl): once the game is closed, --recover then --assert-rest, result in the summary
+        bsrc = open(os.path.join(HERE, "..", "harness", "block.py"), encoding="utf-8").read()
+        check('STOP_CTX["done"] = True\n    print("BLOCK DONE' in bsrc and "stop_restore_main()" in bsrc.split('if __name__ == "__main__":')[1]
+              and "STOP_CTX.update(summary=summary" in bsrc,
+              "S10c block.py arms the stop exit at block start, disarms it at the normal end, and runs it from the script's finally")
+        sw2 = sw + ["--backups-dir", b.backups, "--logs-dir", b.logs, "--game-exe", FAKE, "--mo2-exe", "IEBFakeMO2.exe",
+                    "--loader-exe", "IEBFakeLoader.exe", "--lock-wait", "3"]
+        sm = []
+        check(BK.stop_restore(sm, "HALT", marker=os.path.join(b.root, "no_such_marker.txt"), swap_args=sw2, wait=0) is None and sm == [],
+              "S10c no marker file: the HALT/ABORT exit does nothing, adds no summary row")
+        real_procs, real_close = BK.game.procs, BK.game.close
+        state = {"up": True, "closed": 0}
+        BK.game.procs = lambda: {"SkyrimSE.exe"} if state["up"] else set()
+        def fake_close(run=None, timeout=120, force=False):
+            state["closed"] += 1
+            state["up"] = False
+            return True
+        BK.game.close = fake_close
+        try:
+            p = b.run(["--profile", TEST], secs=40, env={"IEB_SWAP_DIE_AT": "game_up"})
+            check(p.returncode == 99 and b.marker().get("state") == "IN_USE" and b.marker().get("owner") == TEST,
+                  "S10c setup: a test session whose launcher console died, marker IN_USE owner test")
+            b.kill_game()
+            time.sleep(1)
+            b.mark("mark-S10c-test")
+            sm = []
+            r2 = BK.stop_restore(sm, "HALT", marker=mkp, swap_args=sw2, wait=0)
+            check(r2 is False and state["closed"] == 0 and len(sm) == 1 and "FINDING" in sm[0]
+                  and "her settings NOT restored, run --recover before playing" in sm[0] and b.marker().get("state") == "IN_USE",
+                  "S10c HALT with the game still running: not closed, FINDING row 'her settings NOT restored, run --recover before playing'")
+            sm = []
+            r3 = BK.stop_restore(sm, "ABORT", marker=mkp, swap_args=sw2, wait=0, may_close=True)
+            check(state["closed"] == 1 and r3 is True and len(sm) == 2 and "recovered" in sm[0] and "| ok |" in sm[1],
+                  "S10c ABORT of the block's own game: closed through game.close, then --recover, then --assert-rest, both in the summary")
+            check(b.marker().get("state") == "CLEAN" and b.marker().get("owner") == LUC and b.same(b.skse, b.store(LUC))
+                  and b.has(b.store(TEST), "mark-S10c-test") and not b.has(b.skse, "mark-S10c-test"),
+                  "S10c after it: CLEAN, her files live, the test session copied back to the TEST store only")
+            sm = []
+            check(BK.stop_restore(sm, "HALT", marker=mkp, swap_args=sw2, wait=0) is True and len(sm) == 2 and "| ok |" in sm[1],
+                  "S10c game already closed and rest state holding: recover is a no-op, assert ok")
+            b.mark("block-leak2")
+            sm = []
+            r4 = BK.stop_restore(sm, "ABORT", marker=mkp, swap_args=sw2, wait=0)
+            check(r4 is False and any("FINDING" in l and "her settings NOT restored" in l for l in sm),
+                  "S10c --recover cannot fix it: FINDING row 'her settings NOT restored'")
+            subprocess.run([sys.executable, SWAP, "--skse-dir", b.skse, "--profiles-root", b.profiles, "--backups-dir", b.backups,
+                            "--logs-dir", b.logs, "--game-exe", FAKE, "--mo2-exe", "IEBFakeMO2.exe", "--loader-exe", "IEBFakeLoader.exe",
+                            "--reset-live"], capture_output=True)
+            # the script-level exit writes the rows into the summary file (appended when the path already wrote it)
+            mdp = os.path.join(b.root, "FF_stop.md")
+            open(mdp, "w").write("| HALT | invariant failed |\n")
+            BK.STOP_CTX.update(summary=["| HALT | invariant failed |"], path=mdp, done=False, owned=False)
+            real_sr = BK.stop_restore
+            BK.stop_restore = lambda summary, why, **kw: real_sr(summary, why, marker=mkp, swap_args=sw2, wait=0, **kw)
+            try:
+                state["up"] = False
+                BK.stop_restore_main()
+            finally:
+                BK.stop_restore = real_sr
+            txt2 = open(mdp, encoding="utf-8").read()
+            check("swap restore after HALT" in txt2 and "| ok |" in txt2 and txt2.startswith("| HALT |") and BK.STOP_CTX["done"],
+                  "S10c stop_restore_main appends the restore rows to the block summary and disarms")
+            BK.stop_restore_main()
+            check(open(mdp, encoding="utf-8").read() == txt2, "S10c a block that ended normally (done) leaves the summary alone")
+        finally:
+            BK.game.procs, BK.game.close = real_procs, real_close
+            BK.STOP_CTX.update(summary=None, done=True)
+
         # S11 the .bat wrappers (RV-140 (12)): absolute python path, checked at start with a clear error
         bat = os.path.join(HERE, "Play_Lucienne.bat")
         txt = open(bat, encoding="utf-8").read()

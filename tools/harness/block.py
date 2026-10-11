@@ -285,6 +285,67 @@ def assert_rest_end(summary, marker=SWAP_MARKER, swap_args=(), wait=180, gap=10)
     return False
 
 
+NL = chr(10)
+STOP_CTX = {"summary": None, "path": None, "done": True, "owned": False}    # RV-150-impl: lets the HALT/ABORT exit see the summary
+
+
+def stop_restore(summary, why, marker=SWAP_MARKER, swap_args=(), may_close=False, wait=180, gap=10):
+    """RV-150-impl: HALT / ABORT exit, ONLY IF the swap marker exists. A stopped block is the run most likely to leave the TEST
+    copies live (a closed launcher console), so once the game is confirmed closed: `swap_launch.py --recover`, then --assert-rest,
+    both into the summary. --recover waits for a live launcher's lock itself (--lock-wait), so one call also covers the launcher's
+    own copy-back. A running game is closed first only when may_close (an ABORT after this block's own game answered; never a
+    HALT, which leaves the game up for inspection, and never a game the block did not start). Game not closed, or --recover
+    failed: a loud BLOCK FINDING and a FINDING row. Returns None (no marker) / True / False."""
+    if not os.path.exists(marker):
+        return None
+    running = "SkyrimSE.exe" in game.procs()
+    if running and may_close:
+        try:
+            game.close(None, timeout=60)
+        except Exception as e:
+            print("BLOCK stop-restore: game.close failed: %r" % (e,), flush=True)
+        running = "SkyrimSE.exe" in game.procs()
+    if running:
+        print("BLOCK FINDING her settings NOT restored, run --recover before playing (%s: SkyrimSE.exe still running)" % why, flush=True)
+        summary.append("| swap restore after %s | FINDING | | her settings NOT restored, run --recover before playing (game still running) |" % why)
+        return False
+    cmd = [sys.executable, SWAP_LAUNCH, "--profile", "test", "--recover"] + list(swap_args)
+    deadline, res = time.time() + wait, None
+    while True:
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        if res.returncode == 0 or time.time() >= deadline:
+            break
+        time.sleep(gap)         # refused while MO2 / the loader are still closing
+    if res.returncode == 0:
+        summary.append("| swap restore after %s | recovered | | swap_launch.py --recover rc 0 |" % why)
+    else:
+        out = " ".join((res.stdout + res.stderr).replace("!", "").split())[:300]
+        print("BLOCK FINDING her settings NOT restored, run --recover before playing (%s: --recover rc %d: %s)" % (why, res.returncode, out), flush=True)
+        summary.append("| swap restore after %s | FINDING | | her settings NOT restored, run --recover before playing (--recover rc %d: %s) |"
+                       % (why, res.returncode, out.replace("|", "/")))
+    ok = assert_rest_end(summary, marker, swap_args, wait=min(wait, 60), gap=gap)
+    return bool(ok) and res.returncode == 0
+
+
+def stop_restore_main():
+    """Called from the script's final `finally`: a block that did not reach its normal end (HALT, ABORT, exception) runs
+    stop_restore and puts the rows in its summary file (appended when the HALT/ABORT path already wrote it, else written)."""
+    c = STOP_CTX
+    if c["done"] or c["summary"] is None:
+        return
+    c["done"] = True
+    summary = c["summary"]
+    n0 = len(summary)
+    halted = any(l.startswith("| HALT |") for l in summary)
+    if stop_restore(summary, "HALT" if halted else "ABORT", may_close=c["owned"] and not halted) is None:
+        return
+    if os.path.exists(c["path"]):
+        with open(c["path"], "a", encoding="utf-8") as f:
+            f.write(NL.join(summary[n0:]) + NL)
+    else:
+        open(c["path"], "w", encoding="utf-8").write(NL.join(summary) + NL)
+
+
 def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_only=False):
     b = BLOCKS[name]
     for m in b["modules"]:
@@ -300,6 +361,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
     summary = ["# %s %s%s" % (name, stamp, " (SETUP-ONLY: setup + precondition per test, no main action)" if setup_only
                               else ""), "", "| Test | Verdict | Seconds | Note |", "|---|---|---|---|"]
     game.set_archive("%s_%s" % (name, stamp))
+    STOP_CTX.update(summary=summary, path=OUT + "%s_%s.md" % (name, stamp), done=False, owned=False)
     if missing:
         print("NOT IMPLEMENTED (skipped): %s" % ", ".join(missing))
         summary.append("| %s | NOT IMPLEMENTED | | skipped |" % ", ".join(missing))
@@ -340,6 +402,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
             print("BLOCK ABORT %s: game did not launch" % name, flush=True)
             return 1
     ctl = Run("%s_CONTROL" % name)              # MCP session only once the game answers
+    STOP_CTX["owned"] = True                    # the game answering is this block's own (stop_restore may close it on an ABORT)
     if not load_block_save(ctl, b):
         ctl.save()
         return 1
@@ -566,6 +629,7 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
     open(p, "w", encoding="utf-8").write("\n".join(summary) + "\n")
     ctl.log("summary %s" % p)
     ctl.log("raw logs archived: %d file(s) in %s" % (narch, game.ARCHIVE[0]))
+    STOP_CTX["done"] = True
     print("BLOCK DONE %s %d/%d not %s; %.0f min" % (name, sum(1 for _, v in results if v != ok_word),
                                                    len(results), ok_word, (time.time() - started) / 60), flush=True)
     ctl.save()
@@ -726,6 +790,10 @@ if __name__ == "__main__":
         print("BLOCK ABORT %s: %s %r" % (sys.argv[1] if len(sys.argv) > 1 else "?", type(e).__name__, e), flush=True)
         raise
     finally:
+        try:
+            stop_restore_main()
+        except Exception as e:
+            print("BLOCK FINDING stop-restore could not run: %r; her settings may NOT be restored, run --recover before playing" % (e,), flush=True)
         try:
             restore_gamemaster()
         except Exception as e:
