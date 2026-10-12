@@ -10,8 +10,14 @@ IDS = [0x00013B98, 0xCF001957] + [int(x, 16) for x in sys.argv[1:]]
 
 
 def main():
+    # 10-12 10:58: without harness mode SkyrimNet's Timeline Mismatch box stays open after the load (game "paused"):
+    # harness mode on for the gate (TEST Harness.yaml, approved), restored off after the close
+    if not game.set_harness_mode(True):
+        print("GATE FAIL: harness mode on")
+        return 1
     if not game.launch(print, voices=False):      # Run() connects to MCP on creation: launch first
         print("GATE FAIL: launch")
+        game.set_harness_mode(False)
         return 1
     ok, r = False, None
     try:
@@ -37,6 +43,8 @@ def main():
               else "no line", ("mod=" + aio.split("mod=")[-1]) if aio else "no line"))
     finally:
         game.close(r, timeout=120, force=True)
+        if "SkyrimSE.exe" not in game.procs():
+            game.set_harness_mode(False)
     return 0 if ok else 1
 
 
