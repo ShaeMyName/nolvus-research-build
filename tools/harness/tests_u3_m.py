@@ -570,6 +570,10 @@ DA9_FRALIA = 0x0001A684           # the static conditions below (voice type) wer
 DA9_RECRUIT_INFO = 0x516E17       # RDOFollowerRecruitTopic (top-level branch): her only RDO_DefaultRecruit INFO
 DA9_RECRUIT_Q = 0x59594C          # a_RDOGenericFollowerDialogue (start-game enabled; quest condition IsCommandedActor == 0)
 DA9_GIFT_Q = 0xC17A62             # a_RDOMiscSharedInfoDialogue (start-game enabled; no quest conditions)
+# REVIEW_LOG RV-176: Fralia's only story_quests alias (Skyrim.esm 0x01CF26; quest_integrity story_quests). Read-only check
+# (investigation/round10/rv176_fralia_story.md): no INFO of it tests her rank, PotentialFollowerFaction or teammate state.
+# DA-9 snapshots its state before touching her and compares after; only "unchanged"/"CHANGED" is logged, never values.
+DA9_FRALIA_STORY_Q = 0x0001CF26
 # every INFO whose fragment is RDO_DefaultRecruit (RDO-local ids; 0x03A47E is Dragonborn's Talvas INFO overridden by RDO)
 DA9_RECRUIT_LOCALS = (0x679836, 0x790149, 0x6BB627, 0x66F62E, 0x03A47E, 0x7534F9, 0x437F9D, 0x4421F3, 0x4B6A0F,
                       0x4CFF6E, 0x567F72, 0x58B732, 0x5BE1D7, 0x5F0C54, 0x614390, 0x6194B5, 0x6194B6, 0x6236BF,
@@ -591,6 +595,14 @@ def _da9_frank(r, u, fac):
     """get_faction_rank by numeric FormID: rank, -1 = not a member, None = unreadable."""
     v = iv({"v": rval(r, u, "get_faction_rank(actorUUID, %d)" % fac)}, "v")
     return None if v == -99 else v
+
+
+def _da9_story_state(r):
+    """(running, completed, stage, objShown, objDone) of Fralia's story quest via QAlias, or None. Spoiler rule: the
+    caller compares tuples and logs equality only."""
+    m = ctl_line(r, "QAlias", [s32(DA9_FRALIA_STORY_Q)],
+                 r"\[IEB-TEST\] QALIAS \S+ running=(\d) completed=(\d) stage=(-?\d+) aliases=\d+ objShown=(\d+) objDone=(\d+)", 15)
+    return None if not m else m.groups()
 
 
 def _da9_quest_running(r, local):
@@ -706,6 +718,7 @@ def da9(r):
         return inc(r, "rdo_friend not loaded")
     if child is not False:
         return inc(r, "rdo_friend child flag not shown false (%s): nothing is written to her" % child)
+    story0 = _da9_story_state(r)                      # RV-176: before any write to her
     # RV-129: make her an RDO friend (rank >= 1), read back before relying on it (RV-123 (3))
     k0 = rank(r, fr) or {}
     if iv(k0, "r", -9) < 1:
@@ -749,6 +762,11 @@ def da9(r):
     else:
         inc(r, "part 4: no gift menu, but the gift line is not shown fireable (path INFOs gated GetIsID(Player) == 1 on "
                "the speaker; GetAllowWorldInteractions unreadable; quest running %s)" % run4)
+    story1 = _da9_story_state(r)
+    if story0 is None or story1 is None:
+        inc(r, "RV-176: her story quest's state could not be read before/after (QAlias)")
+    else:
+        r.check(story0 == story1, "RV-176: her story quest's state %s by DA-9" % ("unchanged" if story0 == story1 else "CHANGED"))
 
 
 # ============================================================================ MA-2: the boxes ARE the pass
