@@ -472,18 +472,26 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
             print("BLOCK ABORT %s: could not set harness mode" % name, flush=True)
             return 1
     print("HARNESS mode %s for %s" % ("on" if game.harness_mode() else "off", name), flush=True)
+
+    def pre_launch_abort(why):
+        """REVIEW_LOG RV-210-build (3): an ABORT before the game is ours leaves the rest state as the close path would:
+        harness mode off, GameMaster on (only while no game runs; both setters read back)."""
+        print("BLOCK ABORT %s: %s" % (name, why), flush=True)
+        if "SkyrimSE.exe" not in game.procs():
+            if game.harness_mode():
+                game.set_harness_mode(False)
+            if game.gamemaster() is False:
+                game.set_gamemaster(True)
+        return 1
     # GameMaster per block (Shae 2026-10-10): off only when the block has no GameMaster-dependent test.
     gm_need = [t for t in order if t in GM_TESTS]
     if not b["gamemaster"] and gm_need:
-        print("BLOCK ABORT %s: GameMaster off but these tests need it: %s" % (name, ", ".join(gm_need)), flush=True)
-        return 1
+        return pre_launch_abort("GameMaster off but these tests need it: %s" % ", ".join(gm_need))
     if game.gamemaster() != b["gamemaster"]:
         if "SkyrimSE.exe" in game.procs():
-            print("BLOCK ABORT %s: GameMaster must be %s; close the game first" % (name, b["gamemaster"]), flush=True)
-            return 1
+            return pre_launch_abort("GameMaster must be %s; close the game first" % b["gamemaster"])
         if not game.set_gamemaster(b["gamemaster"]):
-            print("BLOCK ABORT %s: could not set GameMaster" % name, flush=True)
-            return 1
+            return pre_launch_abort("could not set GameMaster")
     GM_STATE[0] = game.gamemaster()
     print("GAMEMASTER %s for %s" % ("on" if GM_STATE[0] else "off", name), flush=True)
     summary.append("| GameMaster | %s for the block | | |" % ("on" if GM_STATE[0] else "off"))
@@ -492,16 +500,13 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
         print("REL_STORE %s: %s" % ("reset" if rs_ok else "RESET FAILED", rs_why), flush=True)
         summary.append("| Relationships store reset (RV-173 (3)) | %s | | %s |" % ("ok" if rs_ok else "FAILED", rs_why))
         if not rs_ok:
-            print("BLOCK ABORT %s: Relationships store reset failed" % name, flush=True)
-            return 1
+            return pre_launch_abort("Relationships store reset failed")
         need = b.get("launch_min_avail_gb")
         if need and game.available_ram_gb() < need:       # REVIEW_LOG RV-90 (5): voice server only with headroom
-            print("BLOCK ABORT %s: %.1f GB available < %.0f GB required to start (voices=%s)" %
-                  (name, game.available_ram_gb(), need, b["voices"]), flush=True)
-            return 1
+            return pre_launch_abort("%.1f GB available < %.0f GB required to start (voices=%s)"
+                                    % (game.available_ram_gb(), need, b["voices"]))
         if not launch or not game.launch(print, voices=b["voices"]):
-            print("BLOCK ABORT %s: game did not launch" % name, flush=True)
-            return 1
+            return pre_launch_abort("game did not launch")
     ctl = Run("%s_CONTROL" % name)              # MCP session only once the game answers
     STOP_CTX["owned"] = True                    # the game answering is this block's own (stop_restore may close it on an ABORT)
     if not load_block_save(ctl, b):
@@ -893,6 +898,28 @@ def family_logs(ctl, fam, since, summary):
     summary.append("| check_logs %s | %s | | I5/I7/I8 |" % (fam, "PASS" if res.returncode == 0 else "%d FAIL" % len(fails)))
 
 
+FLAGS_VALUE = ("--only", "--from")
+FLAGS_BARE = ("--no-launch", "--keep-open", "--list", "--setup-only")
+
+
+def bad_args(a):
+    """REVIEW_LOG RV-210-build (3): '' if the arguments are a block name followed by known flags (values after --only /
+    --from), else the reason. Checked before any side effect (harness/GameMaster writes, store reset, launch)."""
+    if not a or a[0] not in BLOCKS:
+        return "first argument must be a block name (%s)" % ", ".join(BLOCKS)
+    i = 1
+    while i < len(a):
+        if a[i] in FLAGS_VALUE:
+            if i + 1 >= len(a) or a[i + 1].startswith("--"):
+                return "%s needs a value" % a[i]
+            i += 2
+        elif a[i] in FLAGS_BARE:
+            i += 1
+        else:
+            return "unknown or misplaced argument: %r" % a[i]
+    return ""
+
+
 def main(a):
     import blocks_def  # noqa: F401  (registers BLOCKS)
     if not a or "--list" in a:     # 2026-10-12: "--list" anywhere lists only (a misplaced --list once started U2)
@@ -903,6 +930,10 @@ def main(a):
             print("%s (save %s): %d tests, %d implemented" % (n, b["save"], len(b["order"]), len(done)))
             print("  missing: %s" % ", ".join(t for t in b["order"] if t not in TESTS))
         return 0
+    why = bad_args(a)
+    if why:
+        print("USAGE ERROR: %s. Nothing was changed.\n%s" % (why, __doc__.splitlines()[1] if __doc__ else ""), flush=True)
+        return 2
     opt = lambda k: a[a.index(k) + 1] if k in a else None
     only = set(opt("--only").split(",")) if opt("--only") else None
     return run_block(a[0], only, opt("--from"), "--no-launch" not in a, "--keep-open" in a, "--setup-only" in a)
