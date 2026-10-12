@@ -64,11 +64,13 @@ def files():
 
 
 def main():
-    run = Run("TEMPLATE_SWEEP")
-    if "--no-launch" not in sys.argv:
+    if "--no-launch" in sys.argv:
+        run = Run("TEMPLATE_SWEEP")
+    else:                                     # Run() opens the MCP session, so only once the game answers
         if game.procs():
             sys.exit("ABORT: game or MO2 running (use --no-launch to sweep a running T0 session)")
-        game.launch(print, voices=False)
+        if not game.launch(print, voices=False):
+            sys.exit("ABORT: launch failed")
         run = Run("TEMPLATE_SWEEP")
         if not game.load(run, "T0", None):
             sys.exit("ABORT: T0 load failed")
