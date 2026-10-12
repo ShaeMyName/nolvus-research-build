@@ -638,44 +638,53 @@ def q1(r):
     Core case re-based (REVIEW_LOG R51): the synthetic IEB_TestStoryQuest (ErrandBridgeTest.esp 0x820, type 8; in the
     TEST build's story_quests only, quest_integrity_builder --test-story-quest) filled onto Fralia by QPFill -> reserved;
     cleared by QPClear -> not reserved. Never relies on where real story-aliased NPCs happen to be loaded."""
-    def fralia(scan):
-        return next((d for d in scan if d["fid"] == fid_norm(FRALIA)), None)
+    # U1 fixture fix: Fralia (0x1A684) holds a story-quest alias before QPFill (story=1 t1=1), so she is never a valid
+    # Q-1 subject. Subject = any loaded, non-teammate, non-child adult outside the cast with t1=0 story=0 slot<0, found
+    # by QScan. Mechanics only (player.moveto, no dialogue, no quest interaction).
+    def pick(scan):
+        c = [d for d in candidates(scan, t1=0, story=0) if d["fid"] != fid_norm(FRALIA)]
+        return c[0] if c else None
 
-    con(r, "player.moveto %08X" % CARLOTTA)     # market: Fralia's stall is within the 3000-unit scan by day
+    def subj_now(scan, sfid):
+        return next((d for d in scan if d["fid"] == sfid), None)
+
+    con(r, "player.moveto %08X" % CARLOTTA)     # market: many adults within the 3000-unit scan by day
     time.sleep(8)
     at_market = near_player(r, CARLOTTA, "player.moveto Carlotta (market)")
-    before = fralia(qscan(r)) if at_market else None
-    if at_market and not before:
-        # U1 setup-only: Fralia is often in an ambient scene away from the stall. Mechanics only: player.moveto HER (no
-        # dialogue, no quest interaction), read the distance back, rescan. Same test meaning (QPFill/QPClear on Fralia).
-        con(r, "player.moveto %08X" % FRALIA)
-        time.sleep(8)
-        if near_player(r, FRALIA, "player.moveto Fralia (not in scan at the market)", maxd=1500):
-            before = fralia(qscan(r))
+    chosen = pick(qscan(r)) if at_market else None
+    if at_market and not chosen:
+        for alt in (YSOLDA, LISBET):
+            con(r, "player.moveto %08X" % alt)
+            time.sleep(8)
+            if near_player(r, alt, "player.moveto 0x%s (no unreserved adult in the market scan)" % hx(alt), maxd=1500):
+                chosen = pick(qscan(r))
+                if chosen:
+                    break
+    sfid = chosen["fid"] if chosen else None
+    before = chosen
     if not at_market:
         pass            # INCONCLUSIVE already counted by the read-back; the generic scan below still runs
     elif not before:
-        inc(r, "Fralia 0x%s not in QScan range" % hx(FRALIA))
-    elif iv(before, "story") > 0 or iv(before, "t1") != 0:
-        inc(r, "Fralia already story-aliased or reserved before QPFill (story=%s t1=%s)" % (before.get("story"), before.get("t1")))
+        inc(r, "no loaded unreserved non-teammate adult (t1=0 story=0 slot=-1) in QScan range (Fralia excluded)")
     else:
+        r.log("  Q-1 subject: 0x%s (story=%s t1=%s slot=%s)" % (hx(sfid), before.get("story"), before.get("t1"), before.get("slot")))
         checkpoint(r)
         try:
-            r.ctl("QPFill", [FRALIA])
+            r.ctl("QPFill", [sfid])
             time.sleep(2)
-            filled = fralia(qscan(r))
+            filled = subj_now(qscan(r), sfid)
             if not filled or iv(filled, "story") < 1:     # RV-123 (3): read back the QPFill write first
-                inc(r, "read-back QPFill: Fralia not in the test story quest alias (story=%s)" % (filled and filled.get("story")))
+                inc(r, "read-back QPFill: 0x%s not in the test story quest alias (story=%s)" % (hx(sfid), filled and filled.get("story")))
             else:
                 r.check(iv(filled, "story") >= 1 and iv(filled, "t1") == 1,
-                        "test story quest alias -> IEB_QuestReserved(tier 1) true for Fralia (story=%s t1=%s)"
-                        % (filled.get("story"), filled.get("t1")))
+                        "test story quest alias -> IEB_QuestReserved(tier 1) true for 0x%s (story=%s t1=%s)"
+                        % (hx(sfid), filled.get("story"), filled.get("t1")))
         finally:
             r.ctl("QPClear", [])
             time.sleep(2)
-        cleared = fralia(qscan(r))
+        cleared = subj_now(qscan(r), sfid)
         if not cleared or iv(cleared, "story") != 0:      # RV-123 (3): read back the QPClear write (Q-1 is reload=False)
-            inc(r, "read-back QPClear: Fralia still in a story alias (story=%s)" % (cleared and cleared.get("story")))
+            inc(r, "read-back QPClear: 0x%s still in a story alias (story=%s)" % (hx(sfid), cleared and cleared.get("story")))
         else:
             r.check(iv(cleared, "story") == 0 and iv(cleared, "t1") == 0,
                     "after QPClear -> not reserved (story=%s t1=%s)" % (cleared.get("story"), cleared.get("t1")))
