@@ -45,6 +45,16 @@ def etw_kind(cmd):
     return ""
 
 
+def etw_session(cmd, kind):
+    """The ETW session name CMD starts (logman start|create NAME; xperf -start NAME, else the kernel logger)."""
+    low = [c.lower() for c in cmd]
+    if kind == "logman" and len(cmd) > 2:
+        return cmd[2]
+    if kind == "xperf":
+        return cmd[low.index("-start") + 1] if "-start" in low and low.index("-start") + 1 < len(cmd) else "NT Kernel Logger"
+    return None
+
+
 class Locked:
     def __enter__(self):
         t0 = time.time()
@@ -180,6 +190,7 @@ def start(a):
     p = subprocess.Popen(cmd, creationflags=DETACH, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     e = {"id": eid, "name": o["--name"], "cmd": cmd, "out": o.get("--out"), "cap_mb": cap, "start": time.time(),
          "end_by": time.time() + mins * 60, "stop_cmd": o.get("--stop-cmd"), "etw": etw or None,
+         "etw_session": etw_session(cmd, etw),
          "pid": None if etw else p.pid, "pid_ctime": "" if etw else ctime(p.pid),
          "owner_pid": int(o.get("--owner-pid", os.getppid())), "status": "open"}
     update(add=e)
@@ -209,8 +220,9 @@ def unledgered():
     bad = []
     if wpr_recording() and not any(e.get("etw") == "wpr" for e in ents):
         bad.append("WPR is recording with no ledger entry (wpr -status)")
-    if not any(e.get("etw") in ("xperf", "logman") for e in ents):
-        bad += ["ETW session %r running with no ledger entry (logman query -ets)" % s for s in etw_sessions()]
+    known = {(e.get("etw_session") or "").lower() for e in ents if e.get("etw") in ("xperf", "logman")}
+    bad += ["ETW session %r running with no ledger entry (logman query -ets)" % s for s in etw_sessions()
+            if s.lower() not in known]     # RV-213-rev-close nit: matched by session name
     return bad
 
 
