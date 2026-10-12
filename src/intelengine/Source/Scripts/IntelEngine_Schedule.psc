@@ -78,6 +78,7 @@ Function RestartMonitoring()
     If !ScheduledAgents
         InitializeScheduleArrays()
     EndIf
+    HealNPCTasks()   ; IEB patch group schedtasks (UPSTREAM_BUGS #18)
 
     ; Safety: if arrays still None after init attempt (shouldn't happen), bail
     If !ScheduledAgents
@@ -539,6 +540,18 @@ Event OnUpdate()
     RegisterForNextDispatch()
 EndEvent
 
+Function HealNPCTasks()
+    {IEB patch group schedtasks (UPSTREAM_BUGS #18): IntelEngine.esp fills only Core and Travel on this script, so the
+     NPCTasks property is None and every scheduled fetch / delivery aborted ("Cannot call FetchNPC() on a None object").
+     All IntelEngine scripts live on the same quest, so the cast recovers it (the same self-heal Core does for its own).}
+    If !NPCTasks
+        NPCTasks = (self as Quest) as IntelEngine_NPCTasks
+        If NPCTasks
+            Core.DebugMsg("IEB schedtasks: Schedule.NPCTasks was None, recovered via cast")
+        EndIf
+    EndIf
+EndFunction
+
 Function ExecuteScheduledTask(Int slot)
     ; Read ALL data from arrays BEFORE clearing the slot
     Actor npc = ScheduledAgents[slot]
@@ -619,6 +632,7 @@ Function ExecuteScheduledTask(Int slot)
         Core.DebugMsg("Schedule execute: " + npc.GetDisplayName() + " ? fetch " + targetName)
         ClearScheduleSlot(slot)  ; Non-meeting tasks don't need persistent schedule tracking
         StorageUtil.SetIntValue(npc, "IEB_SchedConfirmed", 1)   ; IEB NT-4: confirmed when scheduled
+        HealNPCTasks()   ; IEB schedtasks
         NPCTasks.FetchNPC(npc, targetName)
         StorageUtil.UnsetIntValue(npc, "IEB_SchedConfirmed")
 
@@ -626,6 +640,7 @@ Function ExecuteScheduledTask(Int slot)
         Core.DebugMsg("Schedule execute: " + npc.GetDisplayName() + " ? deliver message to " + targetName)
         ClearScheduleSlot(slot)  ; Non-meeting tasks don't need persistent schedule tracking
         StorageUtil.SetIntValue(npc, "IEB_SchedConfirmed", 1)   ; IEB NT-4: confirmed when scheduled
+        HealNPCTasks()   ; IEB schedtasks
         NPCTasks.DeliverMessage(npc, targetName, msgContent, meetLoc, meetTimeStr)
         StorageUtil.UnsetIntValue(npc, "IEB_SchedConfirmed")
     EndIf
