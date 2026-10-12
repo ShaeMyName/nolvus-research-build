@@ -350,6 +350,35 @@ SAMPLER = os.path.join(os.path.dirname(__file__), "mem_sampler.py")
 
 MIN_FREE_GB = 50                         # REVIEW_LOG RV-206 (4): LAUNCH refuses below this much free space on C:
 SAMPLER_HB = "C:/nolvus-research/test_runs/mem_sampler.hb"
+MO2_INI = "C:/Nolvus/Instances/Nolvus Awakening/MO2/ModOrganizer.ini"
+TEST_PROFILE = "C:/Nolvus/Instances/Nolvus Awakening/MODS/profiles/SkyrimNet Test/"
+
+
+def mo2_config_ok():
+    """2026-10-12: a disk-full MO2 exit left ModOrganizer.ini at 51 bytes (no gameName) and deleted the TEST profile's
+    modlist/plugins/loadorder. Refuse to launch on a damaged config instead of letting MO2 sit on its game-picker box."""
+    try:
+        ini = open(MO2_INI, "rb").read()
+    except OSError as e:
+        return False, "ModOrganizer.ini unreadable (%s)" % type(e).__name__
+    if len(ini) < 1024 or b"gameName=" not in ini:
+        return False, "ModOrganizer.ini looks damaged (%d bytes, gameName %s)" % (len(ini), "present" if b"gameName=" in ini else "missing")
+    for f in ("modlist.txt", "plugins.txt", "loadorder.txt"):
+        if not os.path.exists(TEST_PROFILE + f) or os.path.getsize(TEST_PROFILE + f) < 10000:
+            return False, "TEST profile %s missing or truncated" % f
+    return True, ""
+
+
+def backup_mo2_config(log=print):
+    """Read-only copy of the healthy MO2 config + TEST profile lists into backups/mo2_config/ (newest 10 kept)."""
+    d = "C:/nolvus-research/backups/mo2_config/%s/" % time.strftime("%Y%m%d-%H%M%S")
+    os.makedirs(d, exist_ok=True)
+    shutil.copy2(MO2_INI, d + "ModOrganizer.ini")
+    for f in ("modlist.txt", "plugins.txt", "loadorder.txt"):
+        shutil.copy2(TEST_PROFILE + f, d + "SkyrimNet_Test_" + f)
+    root = "C:/nolvus-research/backups/mo2_config/"
+    for old in sorted(os.listdir(root))[:-10]:
+        shutil.rmtree(root + old, ignore_errors=True)
 
 
 def sampler_alive(max_age=30.0):
@@ -396,6 +425,11 @@ def launch(log=print, timeout=20 * 60, voices=True):
     else:
         log("LAUNCH refused: the memory guard (mem_sampler) has no fresh heartbeat")
         return False
+    ok_ini, why_ini = mo2_config_ok()                    # 2026-10-12: the disk-full night wiped ModOrganizer.ini
+    if not ok_ini:
+        log("LAUNCH refused: %s" % why_ini)
+        return False
+    backup_mo2_config(log)
     free_gb = shutil.disk_usage("C:/").free / 2 ** 30     # REVIEW_LOG RV-206 (4): a full C: corrupts saves and logs
     if free_gb < MIN_FREE_GB:
         log("LAUNCH refused: only %.1f GB free on C: (need >= %d GB)" % (free_gb, MIN_FREE_GB))
