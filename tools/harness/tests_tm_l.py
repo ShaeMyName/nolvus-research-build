@@ -875,14 +875,21 @@ def l4(r):
     r.log("L-4: GameHour read-back after 'set gamehour to 10' = %s" % gh)
     if gh is None or abs(gh - 10.0) > 1.0:
         return inconclusive(r, "GameHour read-back %s after set gamehour to 10" % gh)
+    # U1 fixture fix: after the clock set, evaluate G's packages (console 'evp' on G via target_form_id) so the guard
+    # post package is re-picked, then poll guardIdx for up to 90 s (every 15 s, logged).
+    console(r, "%s.evp" % fid_hex8(G))
+    r.log("L-4: evp sent on G after the clock set")
     p0 = probe(r, G)
-    for _ in range(6):
+    for i in range(7):
+        r.log("L-4: guardIdx poll t=%ds: %s" % (i * 15, (p0 or {}).get("guardIdx")))
         if p0 and p0.get("guardIdx", -1) >= 0:
             break
-        time.sleep(5)
+        if i == 6:
+            break
+        time.sleep(15)
         p0 = probe(r, G)
     if not p0 or p0.get("guardIdx", -1) < 0:
-        return inconclusive(r, "G not on his guard post before the lend (guardIdx=%s; game time past 17:00?)"
+        return inconclusive(r, "G still off his guard post 90 s after set gamehour 10 + evp (last guardIdx=%s)"
                             % ((p0 or {}).get("guardIdx"),))
     d, kind = lend(r, G)
     w = tail("watch")
