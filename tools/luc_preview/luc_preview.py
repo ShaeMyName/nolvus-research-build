@@ -10,6 +10,7 @@ Test: LUC_PREVIEW_STUB=1 returns canned text and makes no HTTP call at all (key 
       LUC_PREVIEW_HOME=<dir> moves the private folder (used by the offline tests).
 Stdlib only.
 """
+import glob
 import json
 import os
 import re
@@ -1036,16 +1037,90 @@ def author_profile(cfg, p, rec):
 
 
 # ---------------------------------------------------------------- chat
+TURN_RE = re.compile(r"^\*\*(Lucienne|Jenassa):\*\* ?(.*)$")
+MARK_RE = re.compile(r"^--- resumed .* ---$")
+
+
+def parse_transcript(text):
+    """Inverse of Chat.save(). Returns header lines, turns [{"role","content"}], resume marks [(turn index, line)] and
+    `dropped` (a one-line note when a cut-off last turn or an unanswered last line was left out)."""
+    lines = text.replace("\r\n", "\n").split("\n")
+    header, turns, marks, cur = [], [], [], None
+    for ln in lines:
+        m = TURN_RE.match(ln)
+        if m:
+            cur = {"role": "user" if m.group(1) == "Lucienne" else "assistant", "content": m.group(2)}
+            turns.append(cur)
+        elif MARK_RE.match(ln):
+            marks.append((len(turns), ln))
+            cur = None
+        elif cur is not None:
+            cur["content"] += "\n" + ln
+        elif not turns:
+            header.append(ln)
+    for t in turns:
+        t["content"] = t["content"].strip()
+    while header and header[-1] == "" and len(header) > 1 and header[-2] == "":
+        header.pop()
+    if not header or header[-1] != "":
+        header.append("")
+    dropped = ""
+    # save() always ends the file with a newline after the last turn; a file that does not was cut off mid-write
+    if turns and not text.endswith("\n"):
+        turns.pop()
+        dropped = "The last turn in the transcript was cut off and was left out."
+    if turns and turns[-1]["role"] == "user":
+        turns.pop()
+        dropped = (dropped + " " if dropped else "") + "The last line of yours had no reply and was left out."
+    marks = [(min(j, len(turns)), mk) for (j, mk) in marks]
+    return {"header": header, "turns": turns, "marks": marks, "dropped": dropped}
+
+
+def find_resume(p, arg):
+    """--resume [file]: a path, a bare file name in the transcripts folder, or (no argument) the newest transcript_*.md."""
+    if arg:
+        for c in (arg, f"{p['transcripts']}/{arg}"):
+            if os.path.isfile(c):
+                return os.path.abspath(c)
+        return None
+    fs = sorted(glob.glob(f"{p['transcripts']}/transcript_*.md"))
+    return os.path.abspath(fs[-1]) if fs else None
+
+
 class Chat:
     def __init__(self, cfg, p, profile, rec, scn_text):
         self.cfg, self.p, self.profile, self.rec = cfg, p, profile, rec
         self.hist = []          # [{"role","content"}...]
+        self.header = None      # original transcript header lines, kept when resuming
+        self.marks = []         # [(turn index, "--- resumed ... ---")]
         self.new_transcript()
         self.rebuild(scn_text=scn_text)
 
     def new_transcript(self):
         self.started = time.strftime("%Y%m%d-%H%M%S")
         self.path = f"{self.p['transcripts']}/transcript_{self.started}.md"
+        self.header, self.marks = None, []
+
+    def resume(self, path):
+        """Load the turns of an earlier transcript and keep appending to that same file. Returns (turns, notes)."""
+        t = parse_transcript(read(path))
+        self.hist = t["turns"]
+        self.header, self.marks = t["header"], list(t["marks"])
+        self.path = path
+        m = re.search(r"transcript_(\d{8}-\d{6})", os.path.basename(path))
+        self.started = m.group(1) if m else self.started
+        notes = []
+        if t["dropped"]:
+            notes.append(t["dropped"])
+        sc = "Scene: %s, %s, %s." % (self.scn["location"], self.scn["time"], self.scn["weather"])
+        old = [h for h in t["header"] if h.startswith("Scene: ")]
+        if old and old[0] != sc:
+            notes.append("Scene on disk now differs from the transcript. Transcript: %s Now: %s" % (old[0][7:], sc[7:]))
+        mo = re.search(r"Model (\S+?),", " ".join(t["header"]))
+        if mo and mo.group(1) != self.cfg["model"]:
+            notes.append("Model differs: transcript %s, now %s." % (mo.group(1), self.cfg["model"]))
+        self.marks.append((len(self.hist), "--- resumed %s ---" % time.strftime("%Y-%m-%d %H:%M:%S")))
+        return len(self.hist), notes
 
     def rebuild(self, profile=None, rec=None, scn_text=None):
         if profile is not None:
@@ -1076,12 +1151,19 @@ class Chat:
         return text
 
     def save(self):
-        lines = ["# Jenassa preview transcript", "", "Started %s. Model %s, sort %s, quantizations %s." % (
-            self.started, self.cfg["model"], self.cfg["sort"], ",".join(self.cfg["quantizations"])),
+        lines = list(self.header) if self.header else [
+            "# Jenassa preview transcript", "", "Started %s. Model %s, sort %s, quantizations %s." % (
+                self.started, self.cfg["model"], self.cfg["sort"], ",".join(self.cfg["quantizations"])),
             "Scene: %s, %s, %s." % (self.scn["location"], self.scn["time"], self.scn["weather"]), ""]
-        for m in self.hist:
+        for i, m in enumerate(self.hist):
+            for (j, mk) in self.marks:
+                if j == i:
+                    lines += [mk, ""]
             who = "Lucienne" if m["role"] == "user" else "Jenassa"
             lines += ["**%s:** %s" % (who, m["content"]), ""]
+        for (j, mk) in self.marks:
+            if j >= len(self.hist):
+                lines += [mk, ""]
         write_private(self.path, "\n".join(lines))
         return self.path
 
@@ -1120,6 +1202,11 @@ def main(argv=None):
         say(KEY_MESSAGE)
         say("Then open a NEW terminal window (the old one will not see it) and start the preview again.")
         return 2
+    argv = sys.argv[1:] if argv is None else argv
+    resume_arg = None
+    if "--resume" in argv:
+        i = argv.index("--resume")
+        resume_arg = argv[i + 1] if i + 1 < len(argv) and not argv[i + 1].startswith("--") else ""
     p = paths()
     os.makedirs(p["transcripts"], exist_ok=True)
     migrate_private_names()
@@ -1145,6 +1232,21 @@ def main(argv=None):
     say("Scene: %s | %s | %s (edit scene_setup.txt or use /scene)" % (chat.scn["location"], chat.scn["time"],
                                                                       chat.scn["weather"]))
     say("Files go to " + HOME)
+    if resume_arg is not None:
+        rp = find_resume(p, resume_arg or None)
+        if not rp:
+            say("No transcript to resume%s. Starting a new chat." % (" (%s not found)" % resume_arg if resume_arg else ""))
+        else:
+            try:
+                n, notes = chat.resume(rp)
+                chat.save()
+                say("Resumed %d turns from %s" % (n, os.path.basename(rp)))
+                for nt in notes:
+                    say("note: " + nt)
+                for m in chat.hist[-4:]:
+                    say("%s> %s\n" % ("Lucienne" if m["role"] == "user" else "Jenassa", m["content"]))
+            except (OSError, RuntimeError) as e:
+                say("Could not resume (%s). Starting a new chat." % type(e).__name__)
     say("You are Lucienne. Type to talk to Jenassa. /help for commands.\n")
     while True:
         try:

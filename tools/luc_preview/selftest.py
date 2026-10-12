@@ -231,6 +231,56 @@ try:
 except lp.ApiFailure as e:
     check("other error shows type only", str(e) == "ValueError" and FAKE_KEY not in repr(e) and e.__cause__ is None)
 
+# 4a. --resume
+import shutil
+sys.path.insert(0, HERE)
+import luc_preview as _lp0
+rh = tempfile.mkdtemp(prefix="lp_resume_")
+os.makedirs(rh + "/transcripts")
+hdr = ("# Jenassa preview transcript\n\nStarted 20260101-000000. Model m/x, sort latency, quantizations fp8.\n"
+       "Scene: Nowhere Inn, 9:00 PM, Clear.\n\n")
+body = "**Lucienne:** one\n\n**Jenassa:** two\nsecond line\n\nthird para\n\n**Lucienne:** three\n\n**Jenassa:** four\n\n"
+tp = rh + "/transcripts/transcript_20260101-000000.md"
+t = _lp0.parse_transcript(hdr + body)
+check("parse: 4 turns in order, roles alternate", [m["role"] for m in t["turns"]] == ["user", "assistant", "user", "assistant"]
+      and t["turns"][1]["content"] == "two\nsecond line\n\nthird para")
+env2 = dict(os.environ, LUC_PREVIEW_STUB="1", LUC_PREVIEW_HOME=rh, PYTHONIOENCODING="utf-8")
+env2.pop("LUC_PREVIEW_OR_KEY", None)
+
+
+def resume_run(stdin, *args):
+    res = subprocess.run([PY, "-B", APP, "--resume"] + list(args), input=stdin, capture_output=True, text=True,
+                         encoding="utf-8", env=env2)
+    ALL_OUT.append(res.stdout + res.stderr)
+    return res
+
+
+with open(tp, "w", encoding="utf-8", newline="") as f:
+    f.write(hdr + body)
+names = sorted(os.listdir(rh + "/transcripts"))
+r = resume_run("five\n/exit\n")
+check("resume: notice has the turn count", "Resumed 4 turns from transcript_20260101-000000.md" in r.stdout)
+check("resume: shows the last 2 exchanges", "Lucienne> one" in r.stdout and "Lucienne> three" in r.stdout
+      and "Jenassa> four" in r.stdout and "Jenassa> two" in r.stdout)
+saved = open(tp, encoding="utf-8").read()
+check("resume: appends to the same file, no new transcript", sorted(os.listdir(rh + "/transcripts")) == names
+      and saved.startswith(hdr) and "--- resumed " in saved and "**Lucienne:** five" in saved)
+t2 = _lp0.parse_transcript(saved)
+check("resume: turn count is 4 + the new exchange, marker kept", len(t2["turns"]) == 6 and t2["turns"][4]["content"] == "five"
+      and len(t2["marks"]) == 1)
+check("resume: scene that differs from disk is reported", "Scene on disk now differs" in r.stdout)
+cut = hdr + body + "**Lucienne:** six\n\n**Jenassa:** cut off mid-sent"
+tt = _lp0.parse_transcript(cut)
+check("truncated last turn: dropped, 4 turns left", len(tt["turns"]) == 4 and "cut off" in tt["dropped"])
+with open(tp, "w", encoding="utf-8", newline="") as f:
+    f.write(cut)
+r = resume_run("/exit\n", "transcript_20260101-000000.md")
+check("truncated resume: 4 turns and the cut-off note", "Resumed 4 turns" in r.stdout and "cut off" in r.stdout)
+check("unanswered last line is dropped", len(_lp0.parse_transcript(hdr + body + "**Lucienne:** six\n")["turns"]) == 4)
+bat = open(os.path.join(HERE, "run_preview.bat"), encoding="utf-8").read()
+check("run_preview.bat passes arguments through", "%*" in bat)
+shutil.rmtree(rh, ignore_errors=True)
+
 # 4b. the game's field rules (ported from ApplyCharacter / SNRom_Decorators)
 ok = lp.parse_disposition('NAME: "Jenassa",\nSEXUAL_ORIENTATION: ATTRACTED_TO_WOMEN\nSEXUAL_ORIENTATION_BASIS: STATED\nINTIMACY: casual\n'
                           'ARDOR: 9\nEXCLUSIVITY: banana\nWHY: "x",\nLIMIT: y')
