@@ -1723,17 +1723,52 @@ def x2(r):
         r.log("  stripped %s: 'Body Slot: Empty' shown: %s" % (label, "Body Slot: Empty" in bio))
 
 
-def _find_item(r, term):
+def _find_items(r, term, limit=5):
+    """Up to `limit` armor items whose name contains `term` (get_items), as [(formid, name)]."""
     props = tool_props(r, "get_items")
     res = r.tool("get_items", {pick(props, "search", "name_contains", "query"): term, pick(props, "limit", "max_results"): 50})
+    out = []
     for it in first_list(res):
         typ = str(it.get("itemType") or it.get("type") or "")
         name = str(it.get("name") or "")
         if "armo" in typ.lower() and term.lower() in name.lower():
             f = to_formid(it.get("formID") or it.get("formId") or "")
-            if f:
-                return f, name
-    return None, None
+            if f and f not in [x[0] for x in out]:
+                out.append((f, name))
+                if len(out) >= limit:
+                    break
+    return out
+
+
+def _find_item(r, term):
+    c = _find_items(r, term, 1)
+    return c[0] if c else (None, None)
+
+
+def _worn_ids(r, pu):
+    return {to_formid(x[1]) for x in (worn_rows(r, pu) or [])}
+
+
+def _equip_verified(r, pu, f, name, keep):
+    """U1 fixture fix: additem + equipitem, then read back that worn_rows contains the item (retry once after 2 s).
+    `keep` = formids already confirmed worn: if one of them vanished, the new item shares a slot with it (equipping
+    the second unequips the first) -> logged with FormID/name/slots and treated as not equipped. Returns True/False."""
+    con(r, "player.additem %08X 1" % f)
+    for attempt in (1, 2):
+        con(r, "player.equipitem %08X" % f)
+        time.sleep(2 if attempt == 2 else 1)
+        rows = worn_rows(r, pu) or []
+        ids = {to_formid(x[1]) for x in rows}
+        lost = [k for k in keep if k not in ids]
+        if f in ids and not lost:
+            return True
+        if lost:
+            r.log("  X-3: slot conflict: equipping 0x%s (%s) unequipped 0x%s; worn now: %s"
+                  % (hx(f), name, ",".join(hx(k) for k in lost), ";".join("%s=%s" % (x[0], x[2]) for x in rows)))
+            break
+        r.log("  X-3: equipitem 0x%s (%s) not in worn_rows (attempt %d); worn: %s"
+              % (hx(f), name, attempt, ";".join("%s=%s" % (x[0], x[2]) for x in rows)))
+    return False
 
 
 @test("X-3", "X", reload=True)
@@ -1756,14 +1791,22 @@ def x3(r):
         r.log("  baseline after unequipall: slot=%s form=%s name=%s" % (x[0], x[1], x[2]))
     worn = []
     for term in ("boots", "cloak", "lantern", "bandolier"):
-        f, name = _find_item(r, term)
-        if not f:
+        cands = _find_items(r, term)
+        if not cands:
             inc(r, "no armor item named like '%s' in get_items" % term)
             continue
-        con(r, "player.additem %08X 1" % f)
-        con(r, "player.equipitem %08X" % f)
-        worn.append((f, name))
-        time.sleep(1)
+        for f, name in cands:       # first candidate that equips without displacing an earlier one (non-overlapping slots)
+            if _equip_verified(r, pu, f, name, [w[0] for w in worn]):
+                worn.append((f, name))
+                break
+            con(r, "player.unequipitem %08X" % f)
+            time.sleep(1)
+            for wf, _ in worn:      # a conflicting item may have displaced an earlier one: put it back
+                if wf not in _worn_ids(r, pu):
+                    con(r, "player.equipitem %08X" % wf)
+                    time.sleep(1)
+        else:
+            inc(r, "no '%s' candidate (%d tried) could be equipped alongside the others" % (term, len(cands)))
     if not worn:
         return
     got = {to_formid(x[1]) for x in (worn_rows(r, pu) or [])}     # RV-123 (3): unequipall + equipitem read back
