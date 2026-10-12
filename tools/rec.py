@@ -29,7 +29,7 @@ MAX_MINUTES = 24 * 60
 ETW_SYSTEM = {"msdtc_trace_session"}      # running before any of ours (2026-10-12 baseline, non-elevated logman view)
 RAW_STARTS = [r"\bwpr(\.exe)?\s+-start\b", r"\bxperf(\.exe)?\s+-on\b", r"\blogman(\.exe)?\s+(start|create)\b",
               r"\bprocmon(64)?(\.exe)?\b", r"\btail\b[^|;&]*\s-[A-Za-z]*[Ff]", r"\bGet-Content\b[^|;]*-Wait\b",
-              r"\bmem_sampler\.py\b"]
+              r"\bpython[^|;&]*\bmem_sampler\.py\b"]
 
 
 def etw_kind(cmd):
