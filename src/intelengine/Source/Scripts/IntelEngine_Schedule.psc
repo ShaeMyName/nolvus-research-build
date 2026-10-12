@@ -540,16 +540,21 @@ Event OnUpdate()
     RegisterForNextDispatch()
 EndEvent
 
-Function HealNPCTasks()
+Bool Function HealNPCTasks()
     {IEB patch group schedtasks (UPSTREAM_BUGS #18): IntelEngine.esp fills only Core and Travel on this script, so the
      NPCTasks property is None and every scheduled fetch / delivery aborted ("Cannot call FetchNPC() on a None object").
-     All IntelEngine scripts live on the same quest, so the cast recovers it (the same self-heal Core does for its own).}
+     IntelEngine_NPCTasks is attached to the same quest (IntelEngine 0x..000D61, VMAD VERIFIED), so the cast recovers it
+     (the same self-heal Core does for its own). Returns false, logged, if it cannot: the caller then skips the task.}
     If !NPCTasks
         NPCTasks = (self as Quest) as IntelEngine_NPCTasks
         If NPCTasks
             Core.DebugMsg("IEB schedtasks: Schedule.NPCTasks was None, recovered via cast")
+        Else
+            Core.DebugMsg("IEB schedtasks: recovery FAILED (IntelEngine_NPCTasks not on this quest)")
+            Return False
         EndIf
     EndIf
+    Return True
 EndFunction
 
 Function ExecuteScheduledTask(Int slot)
@@ -632,16 +637,22 @@ Function ExecuteScheduledTask(Int slot)
         Core.DebugMsg("Schedule execute: " + npc.GetDisplayName() + " ? fetch " + targetName)
         ClearScheduleSlot(slot)  ; Non-meeting tasks don't need persistent schedule tracking
         StorageUtil.SetIntValue(npc, "IEB_SchedConfirmed", 1)   ; IEB NT-4: confirmed when scheduled
-        HealNPCTasks()   ; IEB schedtasks
-        NPCTasks.FetchNPC(npc, targetName)
+        If HealNPCTasks()   ; IEB schedtasks: skip cleanly (slot already cleared) if NPCTasks cannot be recovered
+            NPCTasks.FetchNPC(npc, targetName)
+        Else
+            Core.DebugMsg("IEB schedtasks: scheduled fetch skipped for " + npc.GetDisplayName())
+        EndIf
         StorageUtil.UnsetIntValue(npc, "IEB_SchedConfirmed")
 
     ElseIf taskType == "deliver_message"
         Core.DebugMsg("Schedule execute: " + npc.GetDisplayName() + " ? deliver message to " + targetName)
         ClearScheduleSlot(slot)  ; Non-meeting tasks don't need persistent schedule tracking
         StorageUtil.SetIntValue(npc, "IEB_SchedConfirmed", 1)   ; IEB NT-4: confirmed when scheduled
-        HealNPCTasks()   ; IEB schedtasks
-        NPCTasks.DeliverMessage(npc, targetName, msgContent, meetLoc, meetTimeStr)
+        If HealNPCTasks()   ; IEB schedtasks: skip cleanly (slot already cleared) if NPCTasks cannot be recovered
+            NPCTasks.DeliverMessage(npc, targetName, msgContent, meetLoc, meetTimeStr)
+        Else
+            Core.DebugMsg("IEB schedtasks: scheduled deliver skipped for " + npc.GetDisplayName())
+        EndIf
         StorageUtil.UnsetIntValue(npc, "IEB_SchedConfirmed")
     EndIf
 EndFunction
