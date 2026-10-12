@@ -4,22 +4,69 @@ an auto-stop; each start writes a ledger entry (start, end-by, stop command, own
 the deadline or the cap, whichever comes first. The Stop hook and game.launch / block start read the ledger.
 
   python rec.py start --name N --cap-mb MB --minutes M [--out FILE] [--owner-pid P] [--stop-cmd "..."] -- CMD ...
-      CMD runs detached. Auto-stop = run --stop-cmd if given (wpr -stop / xperf -d / logman stop), else kill CMD's own PID
-      (tree). The cap is checked on --out (required unless the CMD is wpr in memory mode, i.e. without -filemode).
+      CMD runs detached. Auto-stop = run --stop-cmd if given, then kill CMD's own PID tree (PID + creation time checked,
+      never by image name). The cap is checked on --out (required unless the CMD is an ETW controller).
+      ETW controllers (wpr -start, xperf -on, logman start|create) return at once while the session keeps running:
+      they need --stop-cmd (wpr -stop F / xperf -d F / logman stop S -ets) and are tracked by session, not PID.
+      WPR -filemode is refused (no size bound: the disk-full night).
   python rec.py stop ID          end one recording now (its stop command, then its own PID)
   python rec.py list             open entries, overdue marked
-  python rec.py check            exit 1 if any entry is overdue or WPR records with no open entry (launch/block guard)
-  python rec.py hook-stop        Stop hook: prints open/overdue entries (never blocks the turn)
+  python rec.py check            exit 1 if an entry is overdue, or WPR / a non-system ETW session runs with no open
+                                 ETW entry (launch/block guard)
+  python rec.py hook-stop        Stop hook: blocks the turn end only on an overdue entry or an unledgered trace (once;
+                                 honours stop_hook_active); open in-time entries are a notice
   python rec.py hook-pretool     PreToolUse hook: reminds on raw recording starts (stdin = hook JSON; never blocks)
-Never kills by image name. Ledger: C:/nolvus-research/test_runs/recordings_ledger.json."""
+Exempt: the memory guard mem_sampler.py (PID file test_runs/mem_sampler.pid) is the one permanent watcher; its own log
+rotates above 5 MB. Monitor watchers: wrap the tail in `timeout 1800 ...` so it cannot outlive the Monitor.
+Ledger: C:/nolvus-research/test_runs/recordings_ledger.json (lock: .lock beside it)."""
 import json, os, re, subprocess, sys, time
 
 LEDGER = "C:/nolvus-research/test_runs/recordings_ledger.json"
+LOCK = LEDGER + ".lock"
 NOWIN = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 DETACH = 0x00000008 | 0x00000200          # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
 MAX_MINUTES = 24 * 60
+ETW_SYSTEM = {"msdtc_trace_session"}      # running before any of ours (2026-10-12 baseline, non-elevated logman view)
 RAW_STARTS = [r"\bwpr(\.exe)?\s+-start\b", r"\bxperf(\.exe)?\s+-on\b", r"\blogman(\.exe)?\s+(start|create)\b",
-              r"\bprocmon(64)?(\.exe)?\b", r"\btail\s+(-\S+\s+)*-F\b", r"\bmem_sampler\.py\b"]
+              r"\bprocmon(64)?(\.exe)?\b", r"\btail\b[^|;&]*\s-[A-Za-z]*[Ff]", r"\bGet-Content\b[^|;]*-Wait\b",
+              r"\bmem_sampler\.py\b"]
+
+
+def etw_kind(cmd):
+    """'wpr' / 'xperf' / 'logman' when CMD starts an ETW session, else ''."""
+    exe = os.path.basename(cmd[0]).lower().replace(".exe", "")
+    low = [c.lower() for c in cmd[1:]]
+    if exe == "wpr" and "-start" in low:
+        return "wpr"
+    if exe == "xperf" and "-on" in low:
+        return "xperf"
+    if exe == "logman" and low and low[0] in ("start", "create"):
+        return "logman"
+    return ""
+
+
+class Locked:
+    def __enter__(self):
+        t0 = time.time()
+        while True:
+            try:
+                self.fd = os.open(LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                return self
+            except FileExistsError:
+                if time.time() - t0 > 30:          # a crashed holder: take it over
+                    try:
+                        os.remove(LOCK)
+                    except OSError:
+                        pass
+                    t0 = time.time()
+                time.sleep(0.2)
+
+    def __exit__(self, *a):
+        os.close(self.fd)
+        try:
+            os.remove(LOCK)
+        except OSError:
+            pass
 
 
 def load():
@@ -35,12 +82,34 @@ def store(entries):
     os.replace(tmp, LEDGER)
 
 
-def alive(pid):
+def update(eid=None, add=None, **fields):
+    """Locked read-modify-write: append `add`, or set fields on entry eid."""
+    with Locked():
+        entries = load()
+        if add:
+            entries.append(add)
+        for x in entries:
+            if x["id"] == eid:
+                x.update(fields)
+        store(entries)
+
+
+def ctime(pid):
+    """Process creation time (CIM string) or '' when the PID is not running."""
     if not pid:
-        return False
-    out = subprocess.run(["tasklist", "/FI", "PID eq %d" % pid, "/NH"], capture_output=True, text=True,
-                         creationflags=NOWIN).stdout
-    return str(pid) in out
+        return ""
+    try:
+        return subprocess.run(["powershell", "-NoProfile", "-Command",
+                               "(Get-CimInstance Win32_Process -Filter 'ProcessId=%d').CreationDate.ToString('o')" % pid],
+                              capture_output=True, text=True, creationflags=NOWIN, timeout=30).stdout.strip()
+    except Exception:
+        return ""
+
+
+def same_proc(e):
+    """REVIEW_LOG RV-213-rev (4): the PID is still the process we started (not a reused PID)."""
+    c = ctime(e.get("pid"))
+    return bool(c) and c == e.get("pid_ctime")
 
 
 def is_open(e):
@@ -59,10 +128,25 @@ def wpr_recording():
     return bool(out.strip()) and "not recording" not in out.lower()
 
 
+def etw_sessions():
+    """Running ETW session names outside the system baseline (WPR's own sessions are covered by wpr_recording)."""
+    try:
+        out = subprocess.run(["logman", "query", "-ets"], capture_output=True, text=True, creationflags=NOWIN,
+                             timeout=30).stdout
+    except Exception:
+        return []
+    names = []
+    for ln in out.splitlines():
+        m = re.match(r"(\S.*?)\s{2,}Trace\s+Running", ln)
+        if m and m.group(1).lower() not in ETW_SYSTEM and not m.group(1).upper().startswith("WPR_"):
+            names.append(m.group(1))
+    return names
+
+
 def fmt(e):
     left = (e["end_by"] - time.time()) / 60
     return "%s %-18s owner=%s pid=%s cap=%sMB end_by=%s (%s) stop=%s" % (
-        e["id"], e["name"], e.get("owner_pid"), e.get("pid"), e["cap_mb"],
+        e["id"], e["name"], e.get("owner_pid"), e.get("pid") or e.get("etw") or "-", e["cap_mb"],
         time.strftime("%m-%d %H:%M", time.localtime(e["end_by"])),
         "OVERDUE" if overdue(e) else "%.0f min left" % left, e.get("stop_cmd") or "kill own PID")
 
@@ -70,13 +154,9 @@ def fmt(e):
 def end(e, why):
     if e.get("stop_cmd"):
         subprocess.run(e["stop_cmd"], shell=True, capture_output=True, creationflags=NOWIN, timeout=600)
-    if alive(e.get("pid")):
+    if e.get("pid") and same_proc(e):
         subprocess.run(["taskkill", "/PID", str(e["pid"]), "/T", "/F"], capture_output=True, creationflags=NOWIN)
-    entries = load()
-    for x in entries:
-        if x["id"] == e["id"]:
-            x.update(status="ended", ended=time.time(), ended_why=why)
-    store(entries)
+    update(e["id"], status="ended", ended=time.time(), ended_why=why)
 
 
 def start(a):
@@ -89,26 +169,23 @@ def start(a):
     cap, mins = float(o["--cap-mb"]), float(o["--minutes"])
     if cap <= 0 or not 0 < mins <= MAX_MINUTES:
         sys.exit("rec start REFUSED: cap must be > 0 and minutes in (0, %d]" % MAX_MINUTES)
-    is_wpr = os.path.basename(cmd[0]).lower().startswith("wpr")
-    if is_wpr and any(x.lower() == "-filemode" for x in cmd):
+    etw = etw_kind(cmd)
+    if etw == "wpr" and any(x.lower() == "-filemode" for x in cmd):
         sys.exit("rec start REFUSED: WPR -filemode has no size bound (the disk-full night); use memory mode")
-    if not is_wpr and "--out" not in o:
+    if etw and "--stop-cmd" not in o:
+        sys.exit("rec start REFUSED: %s starts an ETW session that outlives its PID; give --stop-cmd" % etw)
+    if not etw and "--out" not in o:
         sys.exit("rec start REFUSED: --out FILE is required so the size cap can be enforced")
-    if is_wpr and "--stop-cmd" not in o:
-        sys.exit("rec start REFUSED: WPR needs --stop-cmd \"wpr -stop <file.etl>\"")
     eid = time.strftime("R%m%d-%H%M%S")
     p = subprocess.Popen(cmd, creationflags=DETACH, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     e = {"id": eid, "name": o["--name"], "cmd": cmd, "out": o.get("--out"), "cap_mb": cap, "start": time.time(),
-         "end_by": time.time() + mins * 60, "stop_cmd": o.get("--stop-cmd"), "pid": None if is_wpr else p.pid,
+         "end_by": time.time() + mins * 60, "stop_cmd": o.get("--stop-cmd"), "etw": etw or None,
+         "pid": None if etw else p.pid, "pid_ctime": "" if etw else ctime(p.pid),
          "owner_pid": int(o.get("--owner-pid", os.getppid())), "status": "open"}
-    store(load() + [e])
+    update(add=e)
     w = subprocess.Popen([sys.executable, os.path.abspath(__file__), "watchdog", eid], creationflags=DETACH,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    entries = load()
-    for x in entries:
-        if x["id"] == eid:
-            x["watchdog_pid"] = w.pid
-    store(entries)
+    update(eid, watchdog_pid=w.pid)
     print("rec started", fmt(e))
 
 
@@ -121,21 +198,24 @@ def watchdog(eid):
             return end(e, "deadline")
         if e.get("out") and os.path.exists(e["out"]) and os.path.getsize(e["out"]) >= e["cap_mb"] * 2 ** 20:
             return end(e, "size cap")
-        if e.get("pid") and not alive(e["pid"]):
-            entries = load()
-            for x in entries:
-                if x["id"] == eid:
-                    x.update(status="ended", ended=time.time(), ended_why="process exited")
-            store(entries)
+        if e.get("pid") and not same_proc(e):
+            update(eid, status="ended", ended=time.time(), ended_why="process exited")
             return
         time.sleep(10)
 
 
-def check():
-    bad = [fmt(e) for e in load() if overdue(e)]
-    if wpr_recording() and not any(is_open(e) and os.path.basename(e["cmd"][0]).lower().startswith("wpr") for e in load()):
+def unledgered():
+    ents = [e for e in load() if is_open(e)]
+    bad = []
+    if wpr_recording() and not any(e.get("etw") == "wpr" for e in ents):
         bad.append("WPR is recording with no ledger entry (wpr -status)")
+    if not any(e.get("etw") in ("xperf", "logman") for e in ents):
+        bad += ["ETW session %r running with no ledger entry (logman query -ets)" % s for s in etw_sessions()]
     return bad
+
+
+def check():
+    return [fmt(e) for e in load() if overdue(e)] + unledgered()
 
 
 def hook_pretool():
@@ -147,20 +227,23 @@ def hook_pretool():
     text = " ".join(str(ti.get(k, "")) for k in ("command", "description"))
     if tool == "Monitor" or (any(re.search(p, text, re.I) for p in RAW_STARTS) and "rec.py" not in text):
         msg = ("RV-213 reminder (Shae): this starts a recording/watcher. Start it through build/tools/rec.py (size cap + "
-               "auto-stop + ledger), or register it there and plan its end now.")
+               "auto-stop + ledger) or plan its end now; a Monitor tail goes inside `timeout 1800 ...`.")
         print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": msg},
                           "systemMessage": msg}))
 
 
 def hook_stop():
-    ents = [e for e in load() if is_open(e)]
     try:
-        unreg = wpr_recording() and not any(os.path.basename(e["cmd"][0]).lower().startswith("wpr") for e in ents)
-    except Exception:
-        unreg = False
-    if ents or unreg:
-        lines = [fmt(e) for e in ents] + (["WPR is recording with NO ledger entry"] if unreg else [])
-        print(json.dumps({"systemMessage": "RV-213 open recordings (end or confirm each):\n" + "\n".join(lines)}))
+        h = json.load(sys.stdin)
+    except ValueError:
+        h = {}
+    ents = [e for e in load() if is_open(e)]
+    bad = [fmt(e) for e in ents if overdue(e)] + unledgered()
+    if bad and not h.get("stop_hook_active"):
+        print(json.dumps({"decision": "block", "reason": "RV-213: recordings need ending before this turn ends:\n"
+                          + "\n".join(bad) + "\nEnd them (rec.py stop ID / the stop command) or ledger them."}))
+    elif ents or bad:
+        print(json.dumps({"systemMessage": "RV-213 open recordings:\n" + "\n".join([fmt(e) for e in ents] + bad)}))
 
 
 if __name__ == "__main__":
