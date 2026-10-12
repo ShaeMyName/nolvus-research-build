@@ -1249,7 +1249,8 @@ Function MoveRel(Int aiFormId, Int aiTargetFormId, Float afDX, Float afDY, Float
     ObjectReference r = GF(aiFormId) as ObjectReference
     ObjectReference t = GF(aiTargetFormId) as ObjectReference
     If r == None || t == None
-        Log("MoveRel: missing ref")
+        Log("MoveRel: missing ref id=" + PO3_SKSEFunctions.IntToString(aiFormId, True) + " target=" \
+            + PO3_SKSEFunctions.IntToString(aiTargetFormId, True) + " r=" + (r != None) + " t=" + (t != None))
         Return
     EndIf
     r.MoveTo(t, afDX, afDY, afDZ, False)

@@ -554,6 +554,11 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
             print("BLOCK HALT %s before %s: memory guard heartbeat stale (> 30 s)" % (name, tid), flush=True)
             summary.append("| HALT | memory guard heartbeat stale before %s | | |" % tid)
             break
+        if i > 1 and os.path.exists(PAUSE_BLOCK):        # RV-215 (2): the normal close path follows (game closed,
+            print("BLOCK PAUSED %s before %s (%d/%d done): resume with --from %s"   # GameMaster/harness rest state)
+                  % (name, tid, i - 1, len(order), tid), flush=True)
+            summary.append("| PAUSED | PAUSE_BLOCK flag before %s | | resume with --from %s |" % (tid, tid))
+            break
         try:
             r = Run(tid)
         except Exception as e:          # MCP gone: the game died between tests
@@ -899,6 +904,7 @@ def family_logs(ctl, fam, since, summary):
 
 
 PAUSE_FLAG = "C:/nolvus-research/test_runs/PAUSE_QUEUE"
+PAUSE_BLOCK = "C:/nolvus-research/test_runs/PAUSE_BLOCK"     # REVIEW_LOG RV-215 (2): stop a running block between tests
 FLAGS_VALUE = ("--only", "--from")
 FLAGS_BARE = ("--no-launch", "--keep-open", "--list", "--setup-only")
 
