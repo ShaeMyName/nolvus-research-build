@@ -989,6 +989,9 @@ def q8(r):
     triggered = len(re.findall(r"Battle: Assassination attack triggered on ", txt))
     r.log("  assassination attempts this session: staged=%d cancelled=%d triggered=%d" % (staged, cancelled, triggered))
     if staged + cancelled == 0:
+        if getattr(r, "setup_only", False):
+            r.log("NOTE Q-8: no assassination attempt in this session (informational; counted over the soak)")
+            return checkpoint(r)
         return inc(r, "no assassination attempt in this session (counted again over the soak)")
     r.check(triggered <= staged, "every triggered attack was staged first (%d <= %d)" % (triggered, staged))
     partial(r, "survival and each target's reserved/essential state (log lines carry names, not FormIDs)")
