@@ -895,7 +895,7 @@ def family_logs(ctl, fam, since, summary):
 
 def main(a):
     import blocks_def  # noqa: F401  (registers BLOCKS)
-    if not a or a[0] == "--list":
+    if not a or "--list" in a:     # 2026-10-12: "--list" anywhere lists only (a misplaced --list once started U2)
         for n, b in BLOCKS.items():
             for m in b["modules"]:
                 importlib.import_module(m)
