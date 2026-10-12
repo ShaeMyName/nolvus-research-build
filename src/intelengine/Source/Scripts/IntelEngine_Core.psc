@@ -3026,6 +3026,7 @@ EndFunction
 ; (script variables added mid-save start at None; the generic word list is a function, not an initialised variable)
 ObjectReference IEB_ResHitMarker
 Location IEB_ResHitLoc
+Bool IEB_ResHitKeepsIE
 
 String Function IEB_ResGeneric()
     {Generic place nouns, articles and semantic words (spec §17b list plus gen_place_names.GENERIC's common ones): never a distinctive word.}
@@ -3056,8 +3057,8 @@ ObjectReference Function IEB_GuardedResolve(Actor akNPC, String destination, Str
         Return r
     EndIf
     ; R42: a phrase that names a place goes to that place (IntelEngine's own pick is kept when it lies inside it)
-    If IEB_ResSwitch("named", 1) == 1 && IEB_NamedPlace(akNPC, destination)
-        If r && IEB_RefInLocation(r, IEB_ResHitLoc)
+    If IEB_ResSwitch("named", 1) == 1 && IEB_NamedPlace(akNPC, destination, r)
+        If IEB_ResHitKeepsIE
             IEB_ResLog(site, destination, r, "named-ie")
             Return r
         EndIf
@@ -3092,7 +3093,11 @@ ObjectReference Function IEB_GuardedResolve(Actor akNPC, String destination, Str
     ; rule 2: one retry with the NPC's city/hold name in front of the phrase, accepted only if local
     String place = IEB_NpcPlaceName(akNPC)
     If place != ""
-        ObjectReference r2 = IntelEngine.ResolveAnyDestination(akNPC, place + " " + destination)
+        String bare = destination
+        If StringUtil.GetLength(destination) > 4 && StringUtil.Substring(destination, 0, 4) == "the "
+            bare = StringUtil.Substring(destination, 4)
+        EndIf
+        ObjectReference r2 = IntelEngine.ResolveAnyDestination(akNPC, place + " " + bare)
         If r2 && IntelEngine.GetLastResolvedHomeCellId() == 0
             String rule2 = IEB_InNpcArea(akNPC, r2)
             If rule2 != ""
@@ -3312,12 +3317,15 @@ Bool Function IEB_PhraseNamesRef(String destination, ObjectReference r)
     Return false
 EndFunction
 
-Bool Function IEB_NamedPlace(Actor akNPC, String destination)
+Bool Function IEB_NamedPlace(Actor akNPC, String destination, ObjectReference ieRef)
     {R42: longest whole-word n-gram of the phrase that is a place name in the offline table. Sets IEB_ResHitMarker /
-     IEB_ResHitLoc. Among several places of that name the one in the NPC's area wins, else the first that loads.}
+     IEB_ResHitLoc, and IEB_ResHitKeepsIE when IntelEngine's own pick (ieRef) lies inside ANY place of that name (so a
+     building's door, which IE resolves precisely, is never swapped for the location's outdoor marker). Otherwise
+     among several places of that name the one in the NPC's area wins, else the first that loads.}
     String f = "../ErrandBridge/place_names"
     IEB_ResHitMarker = None
     IEB_ResHitLoc = None
+    IEB_ResHitKeepsIE = false
     If !JsonUtil.JsonExists(f)
         Return false
     EndIf
@@ -3346,6 +3354,9 @@ Bool Function IEB_NamedPlace(Actor akNPC, String destination)
                             Location lk = JsonUtil.FormListGet(f, "l:" + key, k) as Location
                             If !lk
                                 lk = IEB_RefLocation(mk)
+                            EndIf
+                            If ieRef && (IEB_RefInLocation(ieRef, lk) || ieRef == mk)
+                                IEB_ResHitKeepsIE = true
                             EndIf
                             If !IEB_ResHitMarker || (IEB_InNpcArea(akNPC, mk) != "" && IEB_InNpcArea(akNPC, IEB_ResHitMarker) == "")
                                 IEB_ResHitMarker = mk
