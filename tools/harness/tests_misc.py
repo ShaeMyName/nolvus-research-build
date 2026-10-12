@@ -645,6 +645,13 @@ def q1(r):
     time.sleep(8)
     at_market = near_player(r, CARLOTTA, "player.moveto Carlotta (market)")
     before = fralia(qscan(r)) if at_market else None
+    if at_market and not before:
+        # U1 setup-only: Fralia is often in an ambient scene away from the stall. Mechanics only: player.moveto HER (no
+        # dialogue, no quest interaction), read the distance back, rescan. Same test meaning (QPFill/QPClear on Fralia).
+        con(r, "player.moveto %08X" % FRALIA)
+        time.sleep(8)
+        if near_player(r, FRALIA, "player.moveto Fralia (not in scan at the market)", maxd=1500):
+            before = fralia(qscan(r))
     if not at_market:
         pass            # INCONCLUSIVE already counted by the read-back; the generic scan below still runs
     elif not before:
