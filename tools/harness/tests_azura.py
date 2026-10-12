@@ -848,9 +848,13 @@ def az11(r):
     r.log("  %d quest(s), %d INFO forms resolved; %d speaker target(s)" % (len(tg.get("quests", [])), len(infos),
                                                                           len(tg.get("speakers", []))))
     chatted = unavailable = fired = not_fired = 0
+    gone = 0        # RV-216-close: dead targets are logged, never counted against coverage
     for sp in tg.get("speakers", []):
         ref = form_of(r, sp["ref"]["plugin"], sp["ref"]["local"])
-        if not ref or not ref["actor"] or ref["dead"]:
+        if ref and ref["actor"] and ref["dead"]:
+            gone += 1
+            continue
+        if not ref or not ref["actor"]:
             unavailable += 1
             continue
         con(r, "player.moveto %08X" % ref["id"])
@@ -892,13 +896,15 @@ def az11(r):
             else:
                 not_fired += 1
     checkpoint(r)
-    r.log("  targets chatted %d, unavailable %d; blacklisted-quest dialogue fires: fired %d; other dialogue fires %d"
-          % (chatted, unavailable, fired, not_fired))
+    r.log("  targets chatted %d, unavailable (lookup/load/move failed) %d, dead %d; blacklisted-quest dialogue fires: "
+          "fired %d; other dialogue fires %d" % (chatted, unavailable, gone, fired, not_fired))
     if not chatted:
         return inc(r, "no target answered an AI chat")
     r.check(fired == 0, "no blacklisted-quest dialogue script fired (%d target(s))" % chatted)
-    if unavailable:     # REVIEW_LOG RV-216: a PASS on part of the target list is partial coverage, never a full PASS
-        inc(r, "coverage: %d of %d target(s) unavailable (not reached or not loaded)" % (unavailable, chatted + unavailable))
+    # REVIEW_LOG RV-216-close: a PASS on part of the target list is partial coverage, never a full PASS
+    if unavailable:
+        inc(r, "coverage: %d of %d live target(s) not reached (lookup, load or moveto failed)"
+            % (unavailable, chatted + unavailable))
 
 
 # ============================================================================ AZ-13 silent thoughts
