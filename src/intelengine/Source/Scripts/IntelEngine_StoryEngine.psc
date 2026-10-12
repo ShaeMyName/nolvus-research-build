@@ -406,7 +406,7 @@ Function RestartMonitoring()
             ; Motivation memory persists in SkyrimNet so DM can pick them again
             If ActiveStoryType == "ambush_combat"
                 ; Was mid-combat with essential flag -- clean up
-                ActiveStoryNPC.GetActorBase().SetEssential(false)
+                IEB_SetEssentialKeep(ActiveStoryNPC, false, "recover_ambush")
                 ActiveStoryNPC.StopCombat()
                 ActiveStoryNPC.SetActorValue("Aggression", 0)
                 ActiveStoryNPC.SetActorValue("Confidence", 2)
@@ -3020,7 +3020,7 @@ Function CheckAmbushCombat()
     Float combatStart = StorageUtil.GetFloatValue(ActiveStoryNPC, "Intel_CombatStartTime", 0.0)
     If combatStart > 0.0 && (Utility.GetCurrentRealTime() - combatStart) > SNEAK_TIMEOUT_SECONDS && Core.ShouldReleaseLinger(ActiveStoryNPC)
         Core.DebugMsg("Story [ambush_combat]: " + ActiveStoryNPC.GetDisplayName() + " combat timed out - forcing end")
-        ActiveStoryNPC.GetActorBase().SetEssential(false)
+        IEB_SetEssentialKeep(ActiveStoryNPC, false, "ambush_timeout")
         ActiveStoryNPC.StopCombat()
         ActiveStoryNPC.StopCombatAlarm()
         ActiveStoryNPC.SetActorValue("Aggression", 0)
@@ -3032,7 +3032,7 @@ Function CheckAmbushCombat()
     EndIf
 
     If ActiveStoryNPC.IsDead()
-        ActiveStoryNPC.GetActorBase().SetEssential(false)
+        IEB_SetEssentialKeep(ActiveStoryNPC, false, "ambush_dead")
         Int slot = Core.FindSlotByAgent(ActiveStoryNPC)
         If slot >= 0
             Core.ClearSlot(slot)
@@ -3049,7 +3049,7 @@ Function CheckAmbushCombat()
 
     If !ActiveStoryNPC.IsInCombat()
         ; Combat ended naturally (player ran away, guards intervened, etc.)
-        ActiveStoryNPC.GetActorBase().SetEssential(false)
+        IEB_SetEssentialKeep(ActiveStoryNPC, false, "ambush_combat_end")
         ActiveStoryNPC.SetActorValue("Aggression", 0)
         ActiveStoryNPC.SetActorValue("Confidence", 2)
         Actor endedNPC = ActiveStoryNPC
@@ -3063,7 +3063,7 @@ Function OnAmbushYield()
     String playerName = Game.GetPlayer().GetDisplayName()
 
     ; Remove essential -- player can now kill them if they choose
-    ActiveStoryNPC.GetActorBase().SetEssential(false)
+    IEB_SetEssentialKeep(ActiveStoryNPC, false, "ambush_yield")
 
     ; Stop fighting
     ActiveStoryNPC.StopCombat()
@@ -4558,7 +4558,7 @@ Function OnQuestComplete()
             ; Restore essential state now (before sandbox)
             Int wasEssential = StorageUtil.GetIntValue(QuestVictimNPC, "Intel_WasEssential", -1)
             If wasEssential >= 0
-                QuestVictimNPC.GetActorBase().SetEssential(wasEssential as Bool)
+                IEB_SetEssentialKeep(QuestVictimNPC, wasEssential as Bool, "victim_rescued")
                 StorageUtil.UnsetIntValue(QuestVictimNPC, "Intel_WasEssential")
             EndIf
             ; Store rescue metadata for post-rescue death detection.
@@ -4790,7 +4790,7 @@ Function CleanupQuest()
         ; Restore original essential state
         Int wasEssential = StorageUtil.GetIntValue(QuestVictimNPC, "Intel_WasEssential", -1)
         If wasEssential >= 0
-            QuestVictimNPC.GetActorBase().SetEssential(wasEssential as Bool)
+            IEB_SetEssentialKeep(QuestVictimNPC, wasEssential as Bool, "victim_cleanup")
             StorageUtil.UnsetIntValue(QuestVictimNPC, "Intel_WasEssential")
         EndIf
         ; If victim was NOT freed by the player, they "escaped"
@@ -5416,4 +5416,18 @@ Bool Function IEB_AssassinationBlocked(Actor a)
         return false
     EndIf
     return JsonUtil.FormListHas(IEB_QIFile(), "reserved_npcs", b)
+EndFunction
+
+Function IEB_SetEssentialKeep(Actor akNPC, Bool abValue, String asSite)
+    {REVIEW_LOG RV-225 / promotion_known_gaps row 1 (essential_followers_design.md §3.1 handshake): the bridge sets the
+     StorageUtil int IEB_EssKeep = 1 on a follower it keeps essential. IntelEngine's ambush/victim restore paths then
+     must not clear the base flag; any other value passes through to SetEssential unchanged. One line per kept call.}
+    If akNPC == None
+        Return
+    EndIf
+    If !abValue && StorageUtil.GetIntValue(akNPC, "IEB_EssKeep", 0) == 1
+        Debug.Trace("IntelEngine: IEB ESSKEEP kept site=" + asSite + " actor=" + PO3_SKSEFunctions.IntToString(akNPC.GetFormID(), true))
+        Return
+    EndIf
+    akNPC.GetActorBase().SetEssential(abValue)
 EndFunction
