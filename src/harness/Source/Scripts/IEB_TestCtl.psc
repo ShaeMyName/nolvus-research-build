@@ -2646,6 +2646,32 @@ Function QIStoryQuest(Int aiQuestFormId, Bool abAdd)
     Log("QISTORY " + Watcher().Hex(q) + " has=" + (JsonUtil.FormListHas(qi, "story_quests", q) as Int))
 EndFunction
 
+; --- RV-180/181: Whiterun trap-point blocker search. Refs addressed by plugin + local ID (no load-order arithmetic).
+
+Function RefFileProbe(Int aiLocalId, String asPlugin)
+    {Logs REFF <plugin> <local> fid=<runtime id> disabled=<0|1> x= y= z=, or REFF <plugin> <local> none.}
+    ObjectReference r = Game.GetFormFromFile(aiLocalId, asPlugin) as ObjectReference
+    If r == None
+        Log("REFF " + asPlugin + " " + PO3_SKSEFunctions.IntToString(aiLocalId, True) + " none")
+        Return
+    EndIf
+    Log("REFF " + asPlugin + " " + PO3_SKSEFunctions.IntToString(aiLocalId, True) + " fid=" + Watcher().Hex(r) \
+        + " disabled=" + (r.IsDisabled() as Int) + " x=" + r.GetPositionX() + " y=" + r.GetPositionY() + " z=" + r.GetPositionZ())
+EndFunction
+
+Function RefFileEnable(Int aiLocalId, String asPlugin, Bool abEnable)
+    {Test only, never saved: Enable()/Disable() a placed ref by plugin + local ID, then RefFileProbe.}
+    ObjectReference r = Game.GetFormFromFile(aiLocalId, asPlugin) as ObjectReference
+    If r != None
+        If abEnable
+            r.Enable()
+        Else
+            r.Disable()
+        EndIf
+    EndIf
+    RefFileProbe(aiLocalId, asPlugin)
+EndFunction
+
 Function Log(String asMsg)
     Debug.Trace("[IEB-TEST] " + asMsg)
 EndFunction

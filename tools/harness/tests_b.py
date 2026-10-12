@@ -1437,6 +1437,11 @@ def b18(r):
         def any_ok():
             res = r.tool("get_eligible_actions", {"actor_uuid": up})
             return isinstance(res, dict) and (res.get("eligibleCount") or 0) > 0
+        # U1 setup-only: GameMaster is off, so nothing builds a prompt and eligibility is never warmed (game.load nudges the
+        # same way). One F1 narration builds a prompt (INFERRED from game.load; not re-verified here). The wait is unchanged.
+        if not any_ok():
+            narrate(r, F1)
+            r.log("B-18: no eligible action yet; nudged once with an F1 narration (as game.load does)")
         ready = until(any_ok, 300, 10)
         if not need(r, ready, "SeverActions never settled (Carlotta has no eligible action in 5 min)"):
             return
