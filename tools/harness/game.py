@@ -348,6 +348,7 @@ def log_findings():
 SAMPLER = os.path.join(os.path.dirname(__file__), "mem_sampler.py")
 
 
+MIN_FREE_GB = 50                         # REVIEW_LOG RV-206 (4): LAUNCH refuses below this much free space on C:
 SAMPLER_HB = "C:/nolvus-research/test_runs/mem_sampler.hb"
 
 
@@ -394,6 +395,10 @@ def launch(log=print, timeout=20 * 60, voices=True):
         time.sleep(2.5)
     else:
         log("LAUNCH refused: the memory guard (mem_sampler) has no fresh heartbeat")
+        return False
+    free_gb = shutil.disk_usage("C:/").free / 2 ** 30     # REVIEW_LOG RV-206 (4): a full C: corrupts saves and logs
+    if free_gb < MIN_FREE_GB:
+        log("LAUNCH refused: only %.1f GB free on C: (need >= %d GB)" % (free_gb, MIN_FREE_GB))
         return False
     running = procs()
     if running:
