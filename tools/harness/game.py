@@ -401,7 +401,12 @@ def start_sampler():
     pidf = "C:/nolvus-research/test_runs/mem_sampler.pid"
     try:
         pid = int(open(pidf).read().strip())
-        if str(pid) in subprocess.run(["tasklist", "/FI", "PID eq %d" % pid], capture_output=True, creationflags=NOWIN, text=True).stdout:
+        # 2026-10-12 after the RAM reboot: a stale pid file must not count as "running" just because some process now
+        # holds that PID; the PID must be a python running mem_sampler
+        cl = subprocess.run(["powershell", "-NoProfile", "-Command",
+                             "(Get-CimInstance Win32_Process -Filter 'ProcessId=%d').CommandLine" % pid],
+                            capture_output=True, creationflags=NOWIN, text=True, timeout=30).stdout
+        if "mem_sampler" in cl:
             return
     except Exception:
         pass
@@ -416,8 +421,14 @@ def start_sampler():
             return
     except Exception:
         pass
-    p = subprocess.Popen(["python", "-u", SAMPLER], creationflags=0x00000008 | 0x00000200,     # DETACHED, NEW_GROUP
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # 2026-10-12: a DETACHED child still died with the short-lived tool command's job object; BREAKAWAY_FROM_JOB
+    # (0x01000000) lets it outlive the caller (falls back without it where the job forbids breakaway)
+    try:
+        p = subprocess.Popen(["python", "-u", SAMPLER], creationflags=0x00000008 | 0x00000200 | 0x01000000,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError:
+        p = subprocess.Popen(["python", "-u", SAMPLER], creationflags=0x00000008 | 0x00000200,  # DETACHED, NEW_GROUP
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     open(pidf, "w").write(str(p.pid))
 
 
