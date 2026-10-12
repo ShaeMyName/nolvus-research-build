@@ -3,7 +3,7 @@ it to U2/U4/CF); REL-1 -> U2 (a modal question box would pause the game and stal
 from block import block
 
 # 2026-10-12 (Shae, relayed RV-220): voices ON for every block from now on (real config, 64 GB). U4/U4G stay
-# voices=False until she confirms (they speak the spoiler-guarded answers aloud; AZ-10's away-from-sound rule).
+# voices=False (Shae chose (b) 2026-10-12: they speak the spoiler-guarded answers aloud; AZ-10's away-from-sound rule).
 block("U1", "T0", ["tests_b", "tests_tm_l", "tests_misc", "tests_ie"], [
     # harness smoke first (consumer proof (c)): the test mod events must arrive
     "H-1",
