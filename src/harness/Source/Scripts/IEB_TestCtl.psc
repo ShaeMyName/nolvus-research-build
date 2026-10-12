@@ -4,9 +4,13 @@ Scriptname IEB_TestCtl extends Quest
  passed as FormIDs (Int). Results go to the Papyrus log with the prefix [IEB-TEST].}
 
 Form Function GF(Int aiFormId)
-    {Game.GetForm, plus the ref SpawnHostile placed: U1 10-12 B-4, Game.GetForm(0xFF0021AB) returned None for the
-     spawned bandit ("MoveRel: missing ref"; CombatProbe on 10-10 likewise), so a spawned ref is matched by its FormID.}
-    Form f = Game.GetForm(aiFormId)
+    {SKSE Game.GetFormEx (then Game.GetForm), plus the ref SpawnHostile placed. 10-12: Game.GetForm returned None for
+     EVERY id >= 0x80000000 that reached it intact (FormModProbe 0xCF001957 / 0xFE... and the spawned 0xFF0021AB bandit:
+     "MoveRel: missing ref"; CombatProbe on 10-10 likewise) while 0x13B98 resolved; GetFormEx takes the full id range.}
+    Form f = Game.GetFormEx(aiFormId)
+    If f == None
+        f = Game.GetForm(aiFormId)
+    EndIf
     If f == None
         Form s = StorageUtil.GetFormValue(None, "EBT_Spawned")
         If s && s.GetFormID() == aiFormId
@@ -2690,7 +2694,7 @@ EndFunction
 
 Function FormModProbe(Int aiFormId)
     {Logs FORMMOD <id> type=<form type> mod=<plugin that defines it> last=<last plugin that overrides it>, or FORMMOD <id> none.}
-    Form f = Game.GetForm(aiFormId)
+    Form f = GF(aiFormId)
     If f == None
         Log("FORMMOD " + PO3_SKSEFunctions.IntToString(aiFormId, True) + " none")
         Return

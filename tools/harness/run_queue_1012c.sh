@@ -6,6 +6,8 @@
 cd /c/nolvus-research/build/tools/harness || exit 1
 T=/c/nolvus-research/test_runs
 echo "QUEUE4 start $(date +%T)"
+PYTHONPATH=.. python -u saffir_gate.py FED9F800 FEDA0800 FEDA1800 > $T/saffir_gate2_console.log 2>&1   # GetFormEx re-probe (RV-207/RV-214)
+echo "QUEUE4 saffir-gate rc=$? $(date +%T)"
 python -u block.py U1 --only $(cat $T/U1A_rest2_ids.txt) > $T/block_U1A3_console.log 2>&1
 echo "QUEUE4 U1A-rest rc=$? $(date +%T)"
 python -u block.py U2SMOKE --only NT-4 > $T/block_U2_NT4_console.log 2>&1   # UPSTREAM_BUGS #18 fix (schedtasks)
