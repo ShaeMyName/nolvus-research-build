@@ -866,7 +866,21 @@ def l4(r):
     # U1 run 18: L-4 ran at game time 17:20 on day 3 (gt=3.72): TM-10/TM-13's x1000 windows had pushed the clock past
     # Anoriath's 08:00-17:00 guard post, so he was lent as work+retainer (kind=34) and every guard check FAILED. They now
     # reload T0 after themselves; L-4 also checks the precondition (guard alias seated) before lending.
+    # U1 setup-only: the clock was outside work hours. Set 10:00 and read it back (GlobalProbe 0x38 Skyrim.esm); the
+    # guard alias is re-seated by the watch tick, so poll guardIdx for up to 30 s (INFERRED tick timing).
+    from tests_misc import global_val
+    console(r, "set gamehour to 10")
+    time.sleep(2)
+    gh = global_val(r, 0x38, "Skyrim.esm")
+    r.log("L-4: GameHour read-back after 'set gamehour to 10' = %s" % gh)
+    if gh is None or abs(gh - 10.0) > 1.0:
+        return inconclusive(r, "GameHour read-back %s after set gamehour to 10" % gh)
     p0 = probe(r, G)
+    for _ in range(6):
+        if p0 and p0.get("guardIdx", -1) >= 0:
+            break
+        time.sleep(5)
+        p0 = probe(r, G)
     if not p0 or p0.get("guardIdx", -1) < 0:
         return inconclusive(r, "G not on his guard post before the lend (guardIdx=%s; game time past 17:00?)"
                             % ((p0 or {}).get("guardIdx"),))
