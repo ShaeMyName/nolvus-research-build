@@ -1961,8 +1961,8 @@ def b28(r):
 
 
 def mark(r, label):
-    """REVIEW_LOG RV-205 (3): a timestamped step marker (harness log + Papyrus via TestCtl's GlobalProbe-free Log path is
-    not exposed, so the harness log carries the wall-clock time; compare with the crash log's CRASH TIME)."""
+    """REVIEW_LOG RV-205 (3): a wall-clock step marker in the harness log, to line up with a crash log's time and show
+    which step B-31 was on when the game went down."""
     r.log("  MARK %s %s %s" % (r.name, label, time.strftime("%H:%M:%S")))
 
 
