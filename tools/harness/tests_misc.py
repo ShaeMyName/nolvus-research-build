@@ -768,6 +768,18 @@ def q2(r):
 
 def _reserved_target(r, scan):
     c = [d for d in candidates(scan, t1=1, busy=0)]
+    if c or r is None:
+        return c[0] if c else None
+    # U1 setup-only: no reserved adult loaded near the player. Known story-aliased adult: Fralia (Q-1 treats her as
+    # holding a story-quest alias; INFERRED reserved here, the t1 filter below re-checks it live). Bring her into range
+    # by player.moveto ONLY (REVIEW_LOG RV-189 (2): no dialogue, no quest interaction), read the distance back, rescan.
+    con(r, "player.moveto %08X" % FRALIA)
+    time.sleep(8)
+    if not near_player(r, FRALIA, "player.moveto Fralia (reserved-adult fixture)", maxd=1500):
+        return None
+    c = [d for d in candidates(qscan(r), t1=1, busy=0)]
+    if not c:
+        r.log("  Fralia in range but not a reserved, non-teammate, idle adult (t1/busy filter)")
     return c[0] if c else None
 
 
