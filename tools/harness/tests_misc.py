@@ -1738,6 +1738,13 @@ def x3(r):
         return inc(r, "player or F1 UUID missing")
     con(r, "player.unequipall")
     time.sleep(2)
+    # U1 setup-only: after unequipall the player still wore 1 form (extra 1) beyond the 4 equipped. unequipall leaves
+    # items it cannot take off (a mod-added token or a no-unequip item; INFERRED). Baseline = what is worn right after
+    # unequipall; it is logged by name and slot and excluded from the comparison and from the expected list length.
+    base_rows = worn_rows(r, pu) or []
+    base = {to_formid(x[1]) for x in base_rows}
+    for x in base_rows:
+        r.log("  baseline after unequipall: slot=%s form=%s name=%s" % (x[0], x[1], x[2]))
     worn = []
     for term in ("boots", "cloak", "lantern", "bandolier"):
         f, name = _find_item(r, term)
@@ -1752,9 +1759,11 @@ def x3(r):
         return
     got = {to_formid(x[1]) for x in (worn_rows(r, pu) or [])}     # RV-123 (3): unequipall + equipitem read back
     want = {fid_norm(f) for f, _ in worn}
+    base_extra = base - want
+    got -= base_extra
     if got != want:
-        return inc(r, "read-back unequipall/equipitem: player wears %d forms, %d of the %d equipped (extra %d)"
-                   % (len(got), len(got & want), len(want), len(got - want)))
+        return inc(r, "read-back unequipall/equipitem: player wears %d forms (baseline %d excluded), %d of the %d equipped (extra %d)"
+                   % (len(got), len(base_extra), len(got & want), len(want), len(got - want)))
     checkpoint(r)
     out = render(r, fu, '{{ render_character_profile("dialogue_target", responseTarget.UUID) }}', target=pu)
     sec = equip_section(out)
@@ -1762,8 +1771,8 @@ def x3(r):
         return inc(r, "no '### Worn Equipment' in the dialogue_target render")
     labels = [m.group(1) for m in (re.match(r"- \*\*(.+?)\*\*:", s) for s in sec) if m]
     r.log("  %d items equipped; list rows %d; labels %s" % (len(worn), len(sec), labels))
-    r.check(len(sec) == len(worn) and all(any(n in s for s in sec) for _, n in worn),
-            "Worn Equipment lists exactly the equipped items")
+    r.check(len(sec) == len(worn) + len(base_extra) and all(any(n in s for s in sec) for _, n in worn),
+            "Worn Equipment lists exactly the equipped items (+%d always-worn baseline)" % len(base_extra))
     r.log("  0412 attire line present: %s" % (ATTIRE_MARK in (out or "")))
 
 
