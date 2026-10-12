@@ -182,3 +182,9 @@ block("U4G", "T0", ["tests_azura"], ["AZ-6", "AZ-4", "AZ-9", "AZ-12"],
 # FF: friendly-fire coverage (REVIEW_LOG RV-142; tests_ff.py, aa0d40c). NFF No Player Damage to Teammates OFF vs ON.
 block("FF", "T0", ["tests_ff"], ["FF-0", "FF-1", "FF-3", "FF-4"], est={"FF": 50}, harness=True, voices=True,
       gamemaster=False)
+
+# B31R: B-31 crash repro arms (REVIEW_LOG RV-205 / RV-226, after crash #10 2026-10-12): one inn entry per test + 60 s idle;
+# 2 runs per arm; 45 min timebox after U1. (w) = the real-play question (natural door walk-in).
+block("B31R", "T0", ["tests_b31r"], ["B-31a1", "B-31a2", "B-31w1", "B-31w2", "B-31d1", "B-31d2"],
+      fixed={"B-31a1": 3, "B-31a2": 3, "B-31w1": 3, "B-31w2": 3, "B-31d1": 3, "B-31d2": 3},
+      harness=True, voices=True, gamemaster=False)
