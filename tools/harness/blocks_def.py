@@ -96,7 +96,7 @@ block("U2SMOKE", "T0", ["tests_u2", "tests_u2_da", "tests_u2_wh", "tests_u2_len"
     "NT-4",
 ], fixed={"H-2": 2, "DA-1": 3.75, "DA-3": 3.75, "SEC-3": 5.45, "SEC-2": 5.45, "WE-1": 3.46, "X-6": 2, "CS-2": 4,
           "SC-9": 5.38, "W-3": 3.46, "PV-3": 5.36, "PV-4": 5.36, "NT-4": 8},
-      harness=True, voices=False, gamemaster=False, no_reload=True, reload_keep=("SC-9", "PV-4"), rescan=True)
+      harness=True, voices=False, gamemaster=False, no_reload=True, reload_keep=("SEC-3", "SEC-2", "WE-1", "SC-9", "PV-4"), rescan=True)   # RV-199 (5): reload before the LOS tests SEC-2, WE-1, X-6, W-3
 
 # U3 "restarts + watches" (time plan §5 :380), written 2026-10-11 (tests_u3*.py). One time-plan block, five sub-blocks,
 # run in U3_SEQUENCE order:
