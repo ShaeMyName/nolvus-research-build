@@ -2025,7 +2025,8 @@ def b22s(r):
             suf(r, F1, k, STALE_RT)
         r.log("  (b) stale stamps planted again; running the B-22 release burst")
     except Exception as e:
-        return inc(r, "(a) harness error %r" % (e,))
+        need(r, False, "(a) harness error %r" % (e,))
+        return
     b22(r)
 
 
