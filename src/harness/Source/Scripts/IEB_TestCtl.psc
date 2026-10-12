@@ -3,8 +3,21 @@ Scriptname IEB_TestCtl extends Quest
  IEB_TestQuest, callable over HTTP POST /debug?api=execute-quest-function or MCP execute_quest_function. Actors are
  passed as FormIDs (Int). Results go to the Papyrus log with the prefix [IEB-TEST].}
 
+Form Function GF(Int aiFormId)
+    {Game.GetForm, plus the ref SpawnHostile placed: U1 10-12 B-4, Game.GetForm(0xFF0021AB) returned None for the
+     spawned bandit ("MoveRel: missing ref"; CombatProbe on 10-10 likewise), so a spawned ref is matched by its FormID.}
+    Form f = Game.GetForm(aiFormId)
+    If f == None
+        Form s = StorageUtil.GetFormValue(None, "EBT_Spawned")
+        If s && s.GetFormID() == aiFormId
+            f = s
+        EndIf
+    EndIf
+    Return f
+EndFunction
+
 Actor Function A(Int aiFormId)
-    Actor a = Game.GetForm(aiFormId) as Actor
+    Actor a = GF(aiFormId) as Actor
     If a == None
         Log("no actor for " + PO3_SKSEFunctions.IntToString(aiFormId, True))
     EndIf
@@ -1233,8 +1246,8 @@ EndFunction
 
 Function MoveRel(Int aiFormId, Int aiTargetFormId, Float afDX, Float afDY, Float afDZ)
     {B-21: aiFormId.MoveTo(aiTargetFormId, dx, dy, dz) - the spec's "F1.moveto player 3000 0 0". 0x14 = the player.}
-    ObjectReference r = Game.GetForm(aiFormId) as ObjectReference
-    ObjectReference t = Game.GetForm(aiTargetFormId) as ObjectReference
+    ObjectReference r = GF(aiFormId) as ObjectReference
+    ObjectReference t = GF(aiTargetFormId) as ObjectReference
     If r == None || t == None
         Log("MoveRel: missing ref")
         Return
@@ -2169,8 +2182,8 @@ EndFunction
 
 Function CombatProbe(Int aiFormId)
     {B-4 (reviewer 2026-10-10): combat state of one actor: in combat, its combat target, Aggression and Confidence,
-     dead, current package. Works for spawned refs (signed Int FormIDs).}
-    Actor a = Game.GetForm(aiFormId) as Actor
+     dead, current package. Works for spawned refs (signed Int FormIDs, via GF).}
+    Actor a = GF(aiFormId) as Actor
     If a == None
         Log("CombatProbe none " + PO3_SKSEFunctions.IntToString(aiFormId, True))
         Return
