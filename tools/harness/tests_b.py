@@ -765,6 +765,9 @@ def b4(r):
             dbf = dist2(tuple(float(v) for v in mv.groups()), fp) if mv and fp else None
             if not need(r, dbf is not None and dbf < 800, "read-back MoveRel: bandit next to F1 (%s u)" % dbf):
                 return
+            # 10-12: an Aggression-0 spawn fights whoever is nearest, not F1; make it engage F1 (v1: a hostile on F's route)
+            sc = ctl_line(r, "StartCombatOn", [bref, F1], r"(?i)\[IEB-TEST\] STARTCOMBAT \S+ -> \S+ combat=(\d)", 10)
+            r.log("  bandit StartCombat on F1: %s" % (sc.group(0) if sc else "no STARTCOMBAT line (pex not yet installed?)"))
         seen = None
         t_end = time.time() + 60
         while time.time() < t_end and not seen:

@@ -2185,6 +2185,21 @@ Function DespawnRef(Int aiRefFormId)
     EndIf
 EndFunction
 
+Function StartCombatOn(Int aiFormId, Int aiTargetFormId)
+    {B-4 (10-12 11:15): the spawned bandit (Aggression 0) fought a townsperson while F1 walked on; v1's hostile must
+     engage F. Sets Aggression 1 (aggressive) and StartCombat on the target. Logs STARTCOMBAT <a> -> <t> combat=<0/1>.}
+    Actor a = GF(aiFormId) as Actor
+    Actor t = GF(aiTargetFormId) as Actor
+    If a == None || t == None
+        Log("StartCombatOn: missing ref id=" + PO3_SKSEFunctions.IntToString(aiFormId, True))
+        Return
+    EndIf
+    a.SetActorValue("Aggression", 1.0)
+    a.StartCombat(t)
+    Utility.Wait(0.5)
+    Log("STARTCOMBAT " + Watcher().Hex(a) + " -> " + Watcher().Hex(t) + " combat=" + (a.IsInCombat() as Int))
+EndFunction
+
 Function CombatProbe(Int aiFormId)
     {B-4 (reviewer 2026-10-10): combat state of one actor: in combat, its combat target, Aggression and Confidence,
      dead, current package. Works for spawned refs (signed Int FormIDs, via GF).}
