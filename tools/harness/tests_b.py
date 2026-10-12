@@ -1991,6 +1991,44 @@ def mark(r, label):
     r.log("  MARK %s %s %s" % (r.name, label, time.strftime("%H:%M:%S")))
 
 
+STALE_RT = 999999.0      # a real-time stamp "later than now": what a stamp from an earlier, longer game launch looks like
+
+
+def suf(r, fid, key, val=None):
+    """Set (val given) or read a StorageUtil float on an actor via the controller; returns the float or None."""
+    if val is None:
+        m = ctl_line(r, "SUGetFloat", [fid, key], r"\[IEB-TEST\] SUF \S+ %s=(-?[\d.]+)" % re.escape(key), 8)
+    else:
+        m = ctl_line(r, "SUSetFloat", [fid, key, float(val)], r"\[IEB-TEST\] SUF \S+ %s set=(-?[\d.]+)" % re.escape(key), 8)
+    return float(m.group(1)) if m else None
+
+
+@test("B-22s", "B", reload=True)
+def b22s(r):
+    """REVIEW_LOG RV-227b (1): real-time stamps survive in the cosave while GetCurrentRealTime() restarts per launch.
+    (a) stale stamps planted, saved, loaded: IEB_Main.ClearRTStamps drops them on the load (read back -1);
+    (b) stale stamps planted again (no load): the B-22 release burst still ends fast (RTStamp treats stamp > now as
+    absent), i.e. the B-22 checks hold with stale IEB_StartedRT / IEB_IEOverrideAt on F1."""
+    keys = ("IEB_StartedRT", "IEB_IEOverrideAt")
+    try:
+        for k in keys:
+            if not need(r, suf(r, F1, k, STALE_RT) == STALE_RT, "(a) could not plant %s" % k):
+                return
+        if not need(r, game.save(r, "IEB_B22S"), "(a) save IEB_B22S failed"):
+            return
+        if not need(r, game.load(r, "IEB_B22S", quick=True), "(a) load IEB_B22S failed"):
+            return
+        time.sleep(8)                                   # OnGameLoad runs ClearRTStamps before its 5 s settle tick
+        got = {k: suf(r, F1, k) for k in keys}
+        r.check(all(v == -1.0 for v in got.values()), "(a) stale real-time stamps dropped on load (%s)" % got)
+        for k in keys:
+            suf(r, F1, k, STALE_RT)
+        r.log("  (b) stale stamps planted again; running the B-22 release burst")
+    except Exception as e:
+        return inc(r, "(a) harness error %r" % (e,))
+    b22(r)
+
+
 @test("B-22c", "B", reload=True)
 def b22c(r):
     """REVIEW_LOG RV-227 (1)/(4), chained task: IntelEngine's OverrideExistingTask clears F1's slot (TaskEnded) and starts

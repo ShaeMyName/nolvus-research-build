@@ -1933,6 +1933,20 @@ Function SUGetInt(Int aiFormId, String asKey, Int aiDefault)
     Log("SU " + Watcher().Hex(a) + " " + asKey + " get=" + StorageUtil.GetIntValue(a, asKey, aiDefault))
 EndFunction
 
+Function SUSetFloat(Int aiFormId, String asKey, Float afValue)
+    {RV-227b: plant a StorageUtil float on an actor (B-22s: stale real-time stamps). Never on a child. Logs SUF <ref> <key> set=<v>.}
+    Actor a = A(aiFormId)
+    If a == None
+        Return
+    EndIf
+    If a.IsChild()
+        Log("SUF REFUSED child " + Watcher().Hex(a) + " " + asKey)
+        Return
+    EndIf
+    StorageUtil.SetFloatValue(a, asKey, afValue)
+    Log("SUF " + Watcher().Hex(a) + " " + asKey + " set=" + StorageUtil.GetFloatValue(a, asKey, -1.0))
+EndFunction
+
 Function SUGetFloat(Int aiFormId, String asKey)
     {RV-227b (2): read a StorageUtil float on the actor (B-22c's IEB_IEOverrideAt precondition). Logs SUF <ref> <key>=<v>.}
     Actor a = A(aiFormId)
