@@ -2685,6 +2685,38 @@ Function FormModProbe(Int aiFormId)
         + PO3_SKSEFunctions.GetFormModName(f, False) + " last=" + PO3_SKSEFunctions.GetFormModName(f, True))
 EndFunction
 
+Function ResolveProbe(Int aiActor, String asPhrase)
+    {RES-1 (spec §17b, REVIEW_LOG RV-210): one phrase from one NPC, by numbers. IntelEngine's raw pick, the guarded pick
+     (Core.IEB_GuardedResolve, site=probe; its own "IEB RESOLVE" line carries the deciding rule), the holds of both and
+     of the NPC, and inexact = 1/0 when the phrase exactly names a Location (guarded pick inside it), -1 otherwise.}
+    Actor a = Game.GetForm(aiActor) as Actor
+    IntelEngine_Core core = IEB_IELib.IEQuest() as IntelEngine_Core
+    If a == None || core == None
+        Log("RESPROBE none")
+        Return
+    EndIf
+    ObjectReference raw = IntelEngine.ResolveAnyDestination(a, asPhrase)
+    ObjectReference g = core.IEB_GuardedResolve(a, asPhrase, "probe")
+    Location nl = core.IEB_RefLocation(a)
+    Int inexact = -1
+    Location exact = IntelEngine.ResolveLocationToBGSLocation(asPhrase)
+    If exact && core.IEB_SamePhrase(asPhrase, exact.GetName())
+        inexact = core.IEB_RefInLocation(g, exact) as Int
+    EndIf
+    Float d = -1.0
+    If g && g.GetWorldSpace() && g.GetWorldSpace() == a.GetWorldSpace()
+        d = a.GetDistance(g)
+    EndIf
+    Log("RESPROBE guarded=" + RPH(g) + " raw=" + RPH(raw) + " ghold=" + RPH(core.IEB_HoldOf(core.IEB_RefLocation(g)))         + " rhold=" + RPH(core.IEB_HoldOf(core.IEB_RefLocation(raw))) + " nloc=" + RPH(nl) + " nhold=" + RPH(core.IEB_HoldOf(nl))         + " inexact=" + inexact + " gdist=" + (d as Int))
+EndFunction
+
+String Function RPH(Form f)
+    If f == None
+        Return "none"
+    EndIf
+    Return PO3_SKSEFunctions.IntToString(f.GetFormID(), True)
+EndFunction
+
 Function Log(String asMsg)
     Debug.Trace("[IEB-TEST] " + asMsg)
 EndFunction
