@@ -2672,6 +2672,19 @@ Function RefFileEnable(Int aiLocalId, String asPlugin, Bool abEnable)
     RefFileProbe(aiLocalId, asPlugin)
 EndFunction
 
+; --- RV-193: which plugin owns a runtime form (read-only).
+
+Function FormModProbe(Int aiFormId)
+    {Logs FORMMOD <id> type=<form type> mod=<plugin that defines it> last=<last plugin that overrides it>, or FORMMOD <id> none.}
+    Form f = Game.GetForm(aiFormId)
+    If f == None
+        Log("FORMMOD " + PO3_SKSEFunctions.IntToString(aiFormId, True) + " none")
+        Return
+    EndIf
+    Log("FORMMOD " + PO3_SKSEFunctions.IntToString(aiFormId, True) + " type=" + f.GetType() + " mod=" \
+        + PO3_SKSEFunctions.GetFormModName(f, False) + " last=" + PO3_SKSEFunctions.GetFormModName(f, True))
+EndFunction
+
 Function Log(String asMsg)
     Debug.Trace("[IEB-TEST] " + asMsg)
 EndFunction
