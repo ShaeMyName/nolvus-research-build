@@ -1,4 +1,24 @@
 Scriptname IEB_IELib Hidden
+
+Bool Function IEPackage(Actor a) Global
+    {REVIEW_LOG RV-227 (2): True when the actor's current package is defined in IntelEngine.esp, decided by the plugin's
+     RUNTIME index (full 0x00-0xFD, or light FE + 12-bit index), never a hardcoded prefix: her load order differs.}
+    If a == None
+        Return False
+    EndIf
+    Package p = a.GetCurrentPackage()
+    If p == None
+        Return False
+    EndIf
+    Int fid = p.GetFormID()
+    Int hi = Math.LogicalAnd(Math.RightShift(fid, 24), 0xFF)
+    If hi == 0xFE
+        Int li = Game.GetLightModByName("IntelEngine.esp")
+        Return li >= 0 && li < 0xFFFF && Math.LogicalAnd(Math.RightShift(fid, 12), 0xFFF) == li
+    EndIf
+    Int mi = Game.GetModByName("IntelEngine.esp")
+    Return mi >= 0 && mi < 0xFF && hi == mi
+EndFunction
 {Errand Bridge: every IntelEngine access lives here. Global library, never attached. Facts: investigation/round10/
  step3_api_facts.md §C (quest 0xD61; slot n = alias ID n+1; DashboardCancelTask numArg = slot, no linger block).}
 

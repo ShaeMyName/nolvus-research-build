@@ -1206,6 +1206,9 @@ Function OverrideExistingTask(Actor npc)
         Int existingSlot = FindSlotByAgent(npc)
         If existingSlot >= 0
             DebugMsg(npc.GetDisplayName() + " overriding active task in slot " + existingSlot)
+            ; Errand Bridge (REVIEW_LOG RV-227 (1)): this ClearSlot is followed by a new task for the same actor; the
+            ; bridge must not read its TaskEnded as the errand's end (no release-then-retake flicker)
+            StorageUtil.SetFloatValue(npc, "IEB_IEOverrideAt", Utility.GetCurrentRealTime())
             ClearSlot(existingSlot, true)
         EndIf
     EndIf

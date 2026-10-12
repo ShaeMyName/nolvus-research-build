@@ -22,6 +22,7 @@ Actor Property PlayerRef Auto
 ; ---- caches (rebuilt after every load; never relied on across saves) ----
 ReferenceAlias[] _agents
 Int _tick
+Bool _endPending          ; RV-227 (3): an IntelEngine_TaskEnded awaits resolution: tick at 0.2 s
 Int _reconcileAt          ; tick number at which a load reconcile is due (0 = none)
 Bool _reconcileSecond
 
@@ -69,6 +70,10 @@ Event OnIETaskStarted(String asEventName, String asTaskType, Float afSlot, Form 
     Actor a = akSender as Actor
     If a != None
         StorageUtil.UnsetIntValue(a, "IEB_RefusePending")     ; a new allocation (REVIEW_LOG R54); the 30 s marker stays
+        ; RV-227 (1): a TaskStarted supersedes a pending end (IntelEngine's OverrideExistingTask re-tasks the same actor)
+        StorageUtil.SetFloatValue(a, "IEB_StartedRT", Utility.GetCurrentRealTime())
+        StorageUtil.UnsetIntValue(a, "IEB_EndedEvt")
+        StorageUtil.UnsetIntValue(a, "IEB_PkgGoneN")
     EndIf
     RegisterForSingleUpdate(0.1)
 EndEvent
@@ -77,6 +82,9 @@ Event OnIETaskEnded(String asEventName, String asResult, Float afSlot, Form akSe
     Actor a = akSender as Actor
     If a != None
         StorageUtil.SetIntValue(a, "IEB_EndedEvt", 1)
+        StorageUtil.SetFloatValue(a, "IEB_EndedRT", Utility.GetCurrentRealTime())
+        StorageUtil.SetIntValue(a, "IEB_PkgGoneN", 0)
+        _endPending = True
     EndIf
     RegisterForSingleUpdate(0.1)
 EndEvent
@@ -122,7 +130,9 @@ State Working
 EndState
 
 Function ScheduleNext()
-    If IEB_Enabled.GetValueInt() == 1
+    If IEB_Enabled.GetValueInt() == 1 && _endPending
+        RegisterForSingleUpdate(0.2)                        ; RV-227 (3): fast only while an end is pending
+    ElseIf IEB_Enabled.GetValueInt() == 1
         RegisterForSingleUpdate(IEB_PollSeconds.GetValue())
     Else
         RegisterForSingleUpdate(5.0)
@@ -218,7 +228,11 @@ Function Discover()
                 StorageUtil.SetIntValue(a, "IEB_SeenTask", 1)
                 StorageUtil.SetIntValue(a, "IEB_Absent", 0)
                 StorageUtil.SetIntValue(a, "IEB_InSlot", _tick)
-                StorageUtil.UnsetIntValue(a, "IEB_EndedEvt")           ; seen again: a re-task, not an end
+                ; RV-227: still in the alias is NOT a re-task while IntelEngine's ClearSlot runs (it sends TaskEnded first and
+                ; clears the alias last, seconds later); only a TaskStarted after the TaskEnded is (OnIETaskStarted unsets)
+                If StorageUtil.GetFloatValue(a, "IEB_StartedRT", -1.0) > StorageUtil.GetFloatValue(a, "IEB_EndedRT", -1.0)
+                    StorageUtil.UnsetIntValue(a, "IEB_EndedEvt")
+                EndIf
                 Int gate = StorageUtil.GetIntValue(a, "IEB_Gate", 0)
                 Int held = StorageUtil.GetIntValue(a, "IEB_Held", 0)
                 ; REVIEW_LOG R54: every decision reads the task type from IntelEngine's slot state now ("" = no decision)
@@ -451,6 +465,7 @@ EndFunction
 
 Function ReleaseScan()
     Int i = StorageUtil.FormListCount(None, "IEB_HeldList") - 1
+    Bool anyPending = False
     While i >= 0
         Actor a = StorageUtil.FormListGet(None, "IEB_HeldList", i) as Actor
         If a != None
@@ -460,9 +475,40 @@ Function ReleaseScan()
                 If StorageUtil.GetIntValue(a, "IEB_InSlot", -1) != _tick
                     StorageUtil.AdjustIntValue(a, "IEB_Absent", 1)
                 EndIf
-                Bool ended = StorageUtil.GetIntValue(a, "IEB_EndedEvt", 0) == 1 && StorageUtil.GetIntValue(a, "IEB_InSlot", -1) != _tick
-                If StorageUtil.GetIntValue(a, "IEB_Absent", 0) >= 2 || ended || a.IsDead()
+                ; RV-227: a pending end resolves when the alias is gone (alias_cleared), or when IntelEngine's package has been
+                ; gone for 2 consecutive ticks (0.2 s apart) with no TaskStarted since and no OverrideExistingTask stamp in the
+                ; last 15 s (pkg_gone); the 2-absent-ticks path and death stay
+                Bool pend = StorageUtil.GetIntValue(a, "IEB_EndedEvt", 0) == 1
+                String why = ""
+                If pend
+                    If IEB_IELib.IEPackage(a)
+                        StorageUtil.SetIntValue(a, "IEB_PkgGoneN", 0)
+                    Else
+                        StorageUtil.AdjustIntValue(a, "IEB_PkgGoneN", 1)
+                    EndIf
+                    Float ov = StorageUtil.GetFloatValue(a, "IEB_IEOverrideAt", -1000.0)
+                    Bool overriding = Utility.GetCurrentRealTime() - ov < 15.0
+                    If StorageUtil.GetIntValue(a, "IEB_InSlot", -1) != _tick
+                        why = "alias_cleared"
+                    ElseIf StorageUtil.GetIntValue(a, "IEB_PkgGoneN", 0) >= 2 && !overriding
+                        why = "pkg_gone"
+                    EndIf
+                EndIf
+                If why == "" && StorageUtil.GetIntValue(a, "IEB_Absent", 0) >= 2
+                    why = "absent"
+                ElseIf why == "" && a.IsDead()
+                    why = "dead"
+                EndIf
+                If why == "" && pend
+                    anyPending = True
+                EndIf
+                If why != ""
+                    If pend
+                        Log(1, "END_RESOLVED actor=" + a.GetDisplayName() + " why=" + why + " lagS=" \
+                            + (Utility.GetCurrentRealTime() - StorageUtil.GetFloatValue(a, "IEB_EndedRT", 0.0)))
+                    EndIf
                     StorageUtil.UnsetIntValue(a, "IEB_EndedEvt")
+                    StorageUtil.UnsetIntValue(a, "IEB_PkgGoneN")
                     If lent == 1
                         LendRestore(a, "task_end")
                     ElseIf StorageUtil.GetIntValue(a, "IEB_Mode", 0) == 4
@@ -477,6 +523,7 @@ Function ReleaseScan()
         EndIf
         i -= 1
     EndWhile
+    _endPending = anyPending
 EndFunction
 
 ; ============================================================================ §7.1 release (Modes 1 and 2)

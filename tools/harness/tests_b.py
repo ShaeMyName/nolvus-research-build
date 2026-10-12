@@ -1991,6 +1991,35 @@ def mark(r, label):
     r.log("  MARK %s %s %s" % (r.name, label, time.strftime("%H:%M:%S")))
 
 
+@test("B-22c", "B", reload=True)
+def b22c(r):
+    """REVIEW_LOG RV-227 (1)/(4), chained task: IntelEngine's OverrideExistingTask clears F1's slot (TaskEnded) and starts
+    a new task for her (TaskStarted). With the fast end rule the bridge must NOT read that TaskEnded as the errand's end:
+    no RELEASE/REJOIN line and no END_RESOLVED between the override and the new task; F1 stays held and in an IE slot."""
+    try:
+        nm = base(r, F1)[0]
+        checkpoint(r)
+        t = fresh()
+        if not took(r, go(r, F1, DEST_UP, t), nm):
+            return
+        time.sleep(8)
+        t2 = fresh()
+        r.ctl("StartTask", [F1, "GoToLocation", DEST_NEAR, "1", "1"])       # the second errand: an override, not a new TAKE
+        ov = t2.wait(r"IntelEngine: %s overriding active task" % re.escape(nm), 20)
+        if not need(r, ov, "IntelEngine did not override F1's task (no 'overriding active task' line)"):
+            return
+        time.sleep(20)
+        txt = t2.read()
+        rel = re.findall(r"\[IEB\] (%s) actor=%s" % ("|".join(REL_KW + REJOIN_EXIT), re.escape(nm)), txt)
+        endr = re.findall(r"\[IEB\] END_RESOLVED actor=%s why=(\w+)" % re.escape(nm), txt)
+        r.check(not rel, "no release/rejoin across the override (%s)" % (rel or "none"))
+        r.check(not endr, "no END_RESOLVED across the override (%s)" % (endr or "none"))
+        p = probe(r, F1) or {}
+        r.check(p.get("ieSlot", "-1") not in ("-1", ""), "F1 is in an IntelEngine slot again (ieSlot=%s)" % p.get("ieSlot"))
+    finally:
+        tidy(r, F1)
+
+
 @test("B-31", "B")
 def b31(r):
     """F1 seated by SA's AI action SitOrLayDown (proposed SitNearest wrapper: SkyrimNetApi.ExecuteAction, b25
