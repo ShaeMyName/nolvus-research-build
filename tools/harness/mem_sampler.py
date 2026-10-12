@@ -121,7 +121,12 @@ def beat():
         pass
 
 
+LOG_CAP = 5 * 2 ** 20      # REVIEW_LOG RV-213: the sampler's own log is capped (one rotated copy, ~10 MB at most)
+
+
 def main():
+    if os.path.exists(OUT) and os.path.getsize(OUT) > LOG_CAP:
+        os.replace(OUT, OUT + ".1")
     with open(OUT, "a", encoding="utf-8") as f:
         log(f, "SAMPLER START pid=%d" % os.getpid())
         base, peak, ingame = None, 0.0, False

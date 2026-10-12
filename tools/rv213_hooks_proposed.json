@@ -1,0 +1,19 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell|Monitor",
+        "hooks": [
+          { "type": "command", "command": "python C:/nolvus-research/build/tools/rec.py hook-pretool", "timeout": 30 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "python C:/nolvus-research/build/tools/rec.py hook-stop", "timeout": 60 }
+        ]
+      }
+    ]
+  }
+}

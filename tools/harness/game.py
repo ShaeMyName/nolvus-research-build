@@ -368,6 +368,14 @@ def mo2_config_ok():
     return True, ""
 
 
+def recordings_ok():
+    """REVIEW_LOG RV-213 (Shae 2026-10-12): refuse while a ledgered recording is overdue or WPR records with no ledger
+    entry (build/tools/rec.py check). Returns (ok, why)."""
+    r = subprocess.run(["python", "C:/nolvus-research/build/tools/rec.py", "check"], capture_output=True, text=True,
+                       creationflags=NOWIN, timeout=60)
+    return r.returncode == 0, " | ".join(l for l in r.stdout.splitlines() if l.strip())
+
+
 def backup_mo2_config(log=print):
     """Read-only copy of the healthy MO2 config + TEST profile lists into backups/mo2_config/ (newest 10 kept)."""
     d = "C:/nolvus-research/backups/mo2_config/%s/" % time.strftime("%Y%m%d-%H%M%S")
@@ -427,6 +435,10 @@ def launch(log=print, timeout=20 * 60, voices=True):
     ok_ini, why_ini = mo2_config_ok()                    # 2026-10-12: the disk-full night wiped ModOrganizer.ini
     if not ok_ini:
         log("LAUNCH refused: %s" % why_ini)
+        return False
+    ok_rec, why_rec = recordings_ok()
+    if not ok_rec:
+        log("LAUNCH refused: %s" % why_rec)
         return False
     backup_mo2_config(log)
     free_gb = shutil.disk_usage("C:/").free / 2 ** 30     # REVIEW_LOG RV-206 (4): a full C: corrupts saves and logs

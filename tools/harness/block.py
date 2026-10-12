@@ -934,6 +934,10 @@ def main(a):
     if why:
         print("USAGE ERROR: %s. Nothing was changed.\n%s" % (why, __doc__.splitlines()[1] if __doc__ else ""), flush=True)
         return 2
+    ok_rec, why_rec = game.recordings_ok()     # REVIEW_LOG RV-213: before any side effect
+    if not ok_rec:
+        print("BLOCK REFUSED: %s. Nothing was changed." % why_rec, flush=True)
+        return 1
     opt = lambda k: a[a.index(k) + 1] if k in a else None
     only = set(opt("--only").split(",")) if opt("--only") else None
     return run_block(a[0], only, opt("--from"), "--no-launch" not in a, "--keep-open" in a, "--setup-only" in a)
