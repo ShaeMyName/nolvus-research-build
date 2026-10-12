@@ -197,7 +197,7 @@ Function CrashCtx(Int aiFormId)
      hour = GameHour, days = GameDaysPassed (day of week derived offline).}
     GlobalVariable hr = Game.GetFormFromFile(0x38, "Skyrim.esm") as GlobalVariable
     GlobalVariable dp = Game.GetFormFromFile(0x39, "Skyrim.esm") as GlobalVariable
-    Actor a = Game.GetForm(aiFormId) as Actor
+    Actor a = GF(aiFormId) as Actor
     String s = "CRASHCTX hour=" + hr.GetValue() + " days=" + dp.GetValue()
     If a
         s += " actor=" + a.GetDisplayName() + " pkg=" + Watcher().Hex(a.GetCurrentPackage()) + " loaded=" + a.Is3DLoaded() \
@@ -366,7 +366,7 @@ Function MarasHouse(Int aiFormId, Int aiLocationId)
      natives + StorageUtil only (no TTM_ script is compiled in). Refuses when the house has no MARAS marker yet.
      Logs T0M_HOUSE <actor> ok=<0|1> house=<location> marker=<ref>.}
     Actor a = A(aiFormId)
-    Location home = Game.GetForm(aiLocationId) as Location
+    Location home = GF(aiLocationId) as Location
     If a == None || home == None
         Log("T0M_HOUSE none " + PO3_SKSEFunctions.IntToString(aiFormId, True))
         Return
@@ -460,7 +460,7 @@ Function U3MarasProbe(Int aiFormId)
     {U3 MA/EN/K-M/RS/DA: MARAS status (enum, -1 = not registered, and its name), MARAS's housed faction rank (TT_MARAS.esp
      0x6C, -2 = not a member), tenant house, MARAS log level, teammate, current package, child flag. The display name
      comes LAST (host regex use only). Logs U3MARASPROBE <actor> ... name=<name>.}
-    Actor a = Game.GetForm(aiFormId) as Actor
+    Actor a = GF(aiFormId) as Actor
     If a == None
         Log("U3MARASPROBE none " + PO3_SKSEFunctions.IntToString(aiFormId, True))
         Return
@@ -1297,7 +1297,7 @@ EndFunction
 
 Function FastTravelTo(Int aiRefFormId)
     {B-16: Game.FastTravel (sdk/skse/Game.psc:42) to a map marker, e.g. WhiterunStablesMapMarker 0x72879.}
-    ObjectReference dest = Game.GetForm(aiRefFormId) as ObjectReference
+    ObjectReference dest = GF(aiRefFormId) as ObjectReference
     If dest == None
         Log("FastTravelTo: no ref")
         Return
@@ -1532,7 +1532,7 @@ Event OnIEBDoor(Int aiDoorFormId)
     Actor pl = Game.GetPlayer()
     ObjectReference d = None
     If aiDoorFormId != 0
-        d = Game.GetForm(aiDoorFormId) as ObjectReference
+        d = GF(aiDoorFormId) as ObjectReference
     Else
         ObjectReference[] refs = PO3_SKSEFunctions.FindAllReferencesOfFormType(pl, 29, 3000.0)
         Float best = 3001.0
@@ -1622,7 +1622,7 @@ Function NFFCombatAware(Int aiValue)
 EndFunction
 
 Function SpawnHostile(Int aiBaseFormId)
-    Form b = Game.GetForm(aiBaseFormId)
+    Form b = GF(aiBaseFormId)
     If b == None
         Log("SpawnHostile: no base form")
         Return
@@ -1866,7 +1866,7 @@ EndFunction
 Function QAlias(Int aiQuestFormId)
     {Q-2: one quest by numbers only: running, completed, stage, displayed/completed objective indices, and the
      FormID of each reference alias's actor.}
-    Quest q = Game.GetForm(aiQuestFormId) as Quest
+    Quest q = GF(aiQuestFormId) as Quest
     If q == None
         Log("QALIAS none")
         Return
@@ -2016,7 +2016,7 @@ EndFunction
 Function PlaceRel(Int aiFormId, Int aiRefFormId, Float afDX, Float afDY, Float afDZ)
     {Move an actor to an offset from a reference (X-7 line-of-sight case; also usable for B-21).}
     Actor a = A(aiFormId)
-    ObjectReference t = Game.GetForm(aiRefFormId) as ObjectReference
+    ObjectReference t = GF(aiRefFormId) as ObjectReference
     If a == None || t == None
         Return
     EndIf
@@ -2027,7 +2027,7 @@ EndFunction
 Int Function Spawn(Int aiBaseFormId, Float afDist)
     {X-8: place one actor from a base record, then move it afDist units from the player on X.}
     Actor pl = Game.GetPlayer()
-    Form b = Game.GetForm(aiBaseFormId)
+    Form b = GF(aiBaseFormId)
     If b == None
         Log("SPAWN none")
         Return 0
@@ -2177,7 +2177,7 @@ Function MenuProbe()
 EndFunction
 
 Function DespawnRef(Int aiRefFormId)
-    ObjectReference r = Game.GetForm(aiRefFormId) as ObjectReference
+    ObjectReference r = GF(aiRefFormId) as ObjectReference
     If r != None
         r.Disable(False)
         r.Delete()
@@ -2288,7 +2288,7 @@ EndFunction
 
 Function RefPos(Int aiFormId)
     {Logs REFPOS <ref> cell=<hex> ws=<hex> x= y= z= dis=<0/1> loaded=<0/1>.}
-    ObjectReference r = Game.GetForm(aiFormId) as ObjectReference
+    ObjectReference r = GF(aiFormId) as ObjectReference
     If r == None
         Log("REFPOS " + PO3_SKSEFunctions.IntToString(aiFormId, True) + " none")
         Return
@@ -2308,7 +2308,7 @@ EndFunction
 
 Function OwnerProbe(Int aiFormId)
     {Logs OWNER <ref> actorOwner=<hex> factionOwner=<hex> isPlayer=<0/1>.}
-    ObjectReference r = Game.GetForm(aiFormId) as ObjectReference
+    ObjectReference r = GF(aiFormId) as ObjectReference
     If r == None
         Log("OWNER " + PO3_SKSEFunctions.IntToString(aiFormId, True) + " none")
         Return
@@ -2332,7 +2332,7 @@ EndFunction
 
 Function DespawnProbe(Int aiFormId)
     {Logs DESPAWN <ref> dis=<0/1> dead=<0/1> deleted-or-none.}
-    ObjectReference r = Game.GetForm(aiFormId) as ObjectReference
+    ObjectReference r = GF(aiFormId) as ObjectReference
     If r == None
         Log("DESPAWN " + PO3_SKSEFunctions.IntToString(aiFormId, True) + " none")
         Return
@@ -2428,7 +2428,7 @@ EndFunction
 
 Function HealthProbe(Int aiFormId)
     {RV-142: FF_HP <ref> cur max pct dead bleed ess combat. Works for spawned refs (signed Int FormIDs).}
-    Actor a = Game.GetForm(aiFormId) as Actor
+    Actor a = GF(aiFormId) as Actor
     If a == None
         Log("FF_HP " + PO3_SKSEFunctions.IntToString(aiFormId, True) + " none")
         Return
@@ -2440,7 +2440,7 @@ EndFunction
 
 Function SetHealthPct(Int aiFormId, Float afPct)
     {RV-142: current health -> afPct of the max (floor 1.0) with Damage/RestoreActorValue; a dead actor is refused. Ends with HealthProbe.}
-    Actor a = Game.GetForm(aiFormId) as Actor
+    Actor a = GF(aiFormId) as Actor
     If a == None
         Log("FF_SETHP " + PO3_SKSEFunctions.IntToString(aiFormId, True) + " none")
         Return
@@ -2467,7 +2467,7 @@ EndFunction
 Function FFCalm(Int aiFormId)
     {RV-142 between cases: revive a dead actor (Actor.Resurrect), end combat, health back to the max. Ends with HealthProbe.
      INFERRED: NFF may react to a death before the revive; the test reloads afterwards.}
-    Actor a = Game.GetForm(aiFormId) as Actor
+    Actor a = GF(aiFormId) as Actor
     If a == None
         Log("FF_CALM " + PO3_SKSEFunctions.IntToString(aiFormId, True) + " none")
         Return
@@ -2492,7 +2492,7 @@ Function FacePlace(Int aiTargetFid, Float afDist)
     {RV-142: put the target afDist units straight ahead of the player (MoveTo with the player's yaw; the player is not rotated),
      then log FF_FACE <ref> dist heading (GetHeadingAngle, 0 = dead ahead).}
     Actor pl = Game.GetPlayer()
-    ObjectReference t = Game.GetForm(aiTargetFid) as ObjectReference
+    ObjectReference t = GF(aiTargetFid) as ObjectReference
     If t == None
         Log("FF_FACE " + PO3_SKSEFunctions.IntToString(aiTargetFid, True) + " none")
         Return
@@ -2507,7 +2507,7 @@ Int Function SpawnDummy(Int aiBaseFormId, Float afDist)
     {RV-142 cosmetic control: place one actor afDist ahead of the player with its AI disabled (it neither attacks nor flees).
      Logs FF_SPAWN base=<hex> ref=<hex>. Remove it with DespawnRef.}
     Actor pl = Game.GetPlayer()
-    Form b = Game.GetForm(aiBaseFormId)
+    Form b = GF(aiBaseFormId)
     If b == None
         Log("FF_SPAWN none")
         Return 0
@@ -2548,7 +2548,7 @@ Function CastAt(Int aiSpellLocalId, String asPlugin, Int aiTargetFid)
     {RV-142: the player casts the spell at the target with Spell.Cast(player, target) (a Touch-delivery spell goes through
      Actor.DoCombatSpellApply instead: Cast would need a touch). Logs FF_CAST spell= target= delivery= how= dist=.}
     Spell sp = Game.GetFormFromFile(aiSpellLocalId, asPlugin) as Spell
-    ObjectReference t = Game.GetForm(aiTargetFid) as ObjectReference
+    ObjectReference t = GF(aiTargetFid) as ObjectReference
     If sp == None || t == None
         Log("FF_CAST refused: spell=" + ((sp != None) as Int) + " target=" + ((t != None) as Int) + " plugin=" + asPlugin)
         Return
@@ -2560,7 +2560,7 @@ Function ShoutAt(Int aiShoutLocalId, String asPlugin, Int aiWord, Int aiTargetFi
     {RV-142: the player's shout spell for word aiWord (1-3; SKSE Shout.GetNthSpell) cast with Spell.Cast(player, target). The
      cooldown and the player's knowledge of the word do not apply (no shout is "used"). Logs FF_SHOUT ... like FF_CAST.}
     Shout sh = Game.GetFormFromFile(aiShoutLocalId, asPlugin) as Shout
-    ObjectReference t = Game.GetForm(aiTargetFid) as ObjectReference
+    ObjectReference t = GF(aiTargetFid) as ObjectReference
     If sh == None || t == None || aiWord < 1 || aiWord > 3
         Log("FF_SHOUT refused: shout=" + ((sh != None) as Int) + " target=" + ((t != None) as Int) + " word=" + aiWord)
         Return
@@ -2577,7 +2577,7 @@ Function FireArrow(Int aiTargetFid)
     {RV-142: turn the player to the target (SetAngle: yaw = own + GetHeadingAngle, level pitch) and Weapon.Fire(player, iron arrow) with a
      Long Bow (Skyrim.esm 0x3B562, 0x1397D; VERIFIED in gamedata/Skyrim.esm). Logs FF_ARROW target= heading= dist= (heading AFTER the turn).}
     Actor pl = Game.GetPlayer()
-    ObjectReference t = Game.GetForm(aiTargetFid) as ObjectReference
+    ObjectReference t = GF(aiTargetFid) as ObjectReference
     Weapon bow = Game.GetFormFromFile(0x0003B562, "Skyrim.esm") as Weapon
     Ammo am = Game.GetFormFromFile(0x0001397D, "Skyrim.esm") as Ammo
     If t == None || bow == None || am == None
@@ -2633,7 +2633,7 @@ EndFunction
 
 Function StoryHeldProbe(Int aiFormId)
     {Logs STORYHELD <actor> held=<0|1> scene=<scene> sq=<scene quest> for IEB_EssLib.StoryAliasHeld.}
-    Actor a = Game.GetForm(aiFormId) as Actor
+    Actor a = GF(aiFormId) as Actor
     If a == None
         Log("STORYHELD none " + PO3_SKSEFunctions.IntToString(aiFormId, True))
         Return
@@ -2651,7 +2651,7 @@ Function QIStoryQuest(Int aiQuestFormId, Bool abAdd)
     {Test control only: add or remove a quest in quest_integrity's story_quests in memory (JsonUtil), so a known ambient
      scene can stand in for a story scene. The caller removes it again. Logs QISTORY <quest> has=<0|1>.}
     String qi = "../ErrandBridge/quest_integrity"
-    Quest q = Game.GetForm(aiQuestFormId) as Quest
+    Quest q = GF(aiQuestFormId) as Quest
     If q == None
         Log("QISTORY none")
         Return
@@ -2707,7 +2707,7 @@ Function ResolveProbe(Int aiActor, String asPhrase)
     {RES-1 (spec §17b, REVIEW_LOG RV-210): one phrase from one NPC, by numbers. IntelEngine's raw pick, the guarded pick
      (Core.IEB_GuardedResolve, site=probe; its own "IEB RESOLVE" line carries the deciding rule), the holds of both and
      of the NPC, and inexact = 1/0 when the phrase exactly names a Location (guarded pick inside it), -1 otherwise.}
-    Actor a = Game.GetForm(aiActor) as Actor
+    Actor a = GF(aiActor) as Actor
     IntelEngine_Core core = IEB_IELib.IEQuest() as IntelEngine_Core
     If a == None || core == None
         Log("RESPROBE none")
