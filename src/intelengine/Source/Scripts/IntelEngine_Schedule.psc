@@ -161,7 +161,7 @@ Bool Function ScheduleMeeting(Actor akNPC, String destination, String timeCondit
     ; and never later than the meeting itself.
     Float currentGameTime = Utility.GetCurrentGameTime()
     Float hoursUntilMeeting = (meetingGameTime - currentGameTime) * 24.0
-    ObjectReference destRef = IntelEngine.ResolveAnyDestination(akNPC, destination)
+    ObjectReference destRef = Core.IEB_GuardedResolve(akNPC, destination, "schedule")   ; IEB resguard (spec §17b)
     Float travelHoursEstimate = DEPARTURE_BUFFER_HOURS
     If destRef != None
         Float travelDeadline = IntelEngine.CalculateDeadlineFromDistance(akNPC, destRef, false, 1.0, 12.0)

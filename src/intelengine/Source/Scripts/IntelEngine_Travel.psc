@@ -307,7 +307,7 @@ ObjectReference Function ResolveDestination(Actor akNPC, String destination)
     {Resolve any destination string to a travel target. All intelligence is in C++.}
 
     Core.DebugMsg("Resolving: " + destination)
-    ObjectReference result = IntelEngine.ResolveAnyDestination(akNPC, destination)
+    ObjectReference result = Core.IEB_GuardedResolve(akNPC, destination, "travel")   ; IEB resguard (spec §17b)
     If result != None
         Core.DebugMsg("Resolved to: " + result)
     Else

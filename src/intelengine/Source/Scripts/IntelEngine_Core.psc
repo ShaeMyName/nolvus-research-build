@@ -3011,3 +3011,357 @@ Function IEB_ReleaseSkyrimNetPackages(Actor npc)
         SkyrimNetApi.UnregisterPackage(npc, "TalkToNPC")
     EndIf
 EndFunction
+
+; =============================================================================
+; IEB patch group resguard: destination guard for player/NPC errands
+; Spec §17b (locality, "<city> + phrase" retry), REVIEW_LOG R42-plan (named place first, RESOLVE logging),
+; RV-170 (5) false-arrival floor, RV-210 (kill switches). Used by Travel.ResolveDestination, NPCTasks.EscortTarget and
+; Schedule.ScheduleMeeting only; homes and semantic intents pass through unchanged; a reject returns None, which takes
+; each caller's stock "could not resolve" path.
+; Switches: Data/SKSE/Plugins/ErrandBridge/resguard.json, int keys read at use, file missing = defaults:
+;   floor (1), named (1), locality (1), radius (16384 units, used only when no hold is known).
+; Place names: ../ErrandBridge/place_names (build/tools/gen_place_names.py; data only, never printed).
+; =============================================================================
+
+; (script variables added mid-save start at None; the generic word list is a function, not an initialised variable)
+ObjectReference IEB_ResHitMarker
+Location IEB_ResHitLoc
+
+String Function IEB_ResGeneric()
+    {Generic place nouns, articles and semantic words (spec §17b list plus gen_place_names.GENERIC's common ones): never a distinctive word.}
+    Return " the a an of at in on to by and near market marketplace stables stable inn tavern gate gates temple shop store square docks dock mine farm camp tower college meadery keep fort city town village hold house home room hall cave river lake sea road bridge outside inside upstairs downstairs back front here there tree well smithy forge mill barracks jail palace castle courtyard garden shrine chapel cemetery hut cabin ruins ruin tomb barrow mountain hill pass bay coast beach shore woods wood forest field marsh swamp lighthouse estate manor lodge outpost watchtower wall district quarter bathhouse bath warehouse cellar kitchen bedroom trader goods general "
+EndFunction
+
+Int Function IEB_ResSwitch(String key, Int def)
+    String f = "../ErrandBridge/resguard"
+    If JsonUtil.JsonExists(f)
+        Return JsonUtil.GetIntValue(f, key, def)
+    EndIf
+    Return def
+EndFunction
+
+ObjectReference Function IEB_GuardedResolve(Actor akNPC, String destination, String site)
+    {IEB resguard: IntelEngine.ResolveAnyDestination plus the destination guard. Returns None to reject.}
+    ObjectReference r = IntelEngine.ResolveAnyDestination(akNPC, destination)
+    If !akNPC || destination == ""
+        Return r
+    EndIf
+    ; actor-relative intents stay IntelEngine's: a home (incl. an NPC name resolved to that NPC's home) or a semantic term
+    If IntelEngine.GetLastResolvedHomeCellId() != 0
+        IEB_ResLog(site, destination, r, "home")
+        Return r
+    EndIf
+    If IntelEngine.IsSemanticTerm(destination)
+        IEB_ResLog(site, destination, r, "semantic")
+        Return r
+    EndIf
+    ; R42: a phrase that names a place goes to that place (IntelEngine's own pick is kept when it lies inside it)
+    If IEB_ResSwitch("named", 1) == 1 && IEB_NamedPlace(akNPC, destination)
+        If r && IEB_RefInLocation(r, IEB_ResHitLoc)
+            IEB_ResLog(site, destination, r, "named-ie")
+            Return r
+        EndIf
+        IEB_ResLog(site, destination, IEB_ResHitMarker, "named")
+        Return IEB_ResHitMarker
+    EndIf
+    If r == None
+        IEB_ResLog(site, destination, None, "unresolved")
+        Return None
+    EndIf
+    ; RV-170 (5) floor: a phrase that exactly names a Location must resolve inside it
+    If IEB_ResSwitch("floor", 1) == 1
+        Location exact = IntelEngine.ResolveLocationToBGSLocation(destination)
+        If exact && IEB_SamePhrase(destination, exact.GetName()) && !IEB_RefInLocation(r, exact)
+            IEB_ResLog(site, destination, r, "floor-reject")
+            Return None
+        EndIf
+    EndIf
+    If IEB_ResSwitch("locality", 1) != 1
+        IEB_ResLog(site, destination, r, "ie")
+        Return r
+    EndIf
+    ; §17b rule 1: accept a target in the NPC's area, or one the phrase names
+    String rule = IEB_InNpcArea(akNPC, r)
+    If rule == "" && IEB_PhraseNamesRef(destination, r)
+        rule = "phrase"
+    EndIf
+    If rule != ""
+        IEB_ResLog(site, destination, r, rule)
+        Return r
+    EndIf
+    ; rule 2: one retry with the NPC's city/hold name in front of the phrase, accepted only if local
+    String place = IEB_NpcPlaceName(akNPC)
+    If place != ""
+        ObjectReference r2 = IntelEngine.ResolveAnyDestination(akNPC, place + " " + destination)
+        If r2 && IntelEngine.GetLastResolvedHomeCellId() == 0
+            String rule2 = IEB_InNpcArea(akNPC, r2)
+            If rule2 != ""
+                IEB_ResLog(site, destination, r2, "retry-" + rule2)
+                Return r2
+            EndIf
+        EndIf
+    EndIf
+    ; rule 3: reject (the caller's stock could-not-resolve path; no departure)
+    IEB_ResLog(site, destination, r, "reject")
+    Return None
+EndFunction
+
+Function IEB_ResLog(String site, String destination, ObjectReference r, String rule)
+    {R42-plan (4): one line per resolution, so the soak can count non-door / non-marker targets.}
+    String t = "none"
+    String ty = "-"
+    If r
+        t = PO3_SKSEFunctions.IntToString(r.GetFormID(), true)
+        Form b = r.GetBaseObject()
+        If b
+            ty = b.GetType() as String
+        EndIf
+    EndIf
+    Debug.Trace("IntelEngine: IEB RESOLVE site=" + site + " rule=" + rule + " target=" + t + " type=" + ty + " dest='" + destination + "'")
+EndFunction
+
+Location Function IEB_RefLocation(ObjectReference r)
+    If !r
+        Return None
+    EndIf
+    Location l = r.GetCurrentLocation()
+    If !l
+        l = r.GetEditorLocation()
+    EndIf
+    Return l
+EndFunction
+
+Bool Function IEB_LocIn(Location l, Location outer)
+    {l is outer or a child of it.}
+    Return l && outer && (l == outer || outer.IsChild(l))
+EndFunction
+
+Bool Function IEB_RefInLocation(ObjectReference r, Location L)
+    {r lies in L (or a child); a door also counts by its other side (a building's name resolves to its exterior door).}
+    If !r || !L
+        Return false
+    EndIf
+    If IEB_LocIn(IEB_RefLocation(r), L)
+        Return true
+    EndIf
+    If r.GetBaseObject() as Door
+        Return IEB_LocIn(IEB_RefLocation(IntelEngine.GetDoorDestinationRef(r)), L)
+    EndIf
+    Return false
+EndFunction
+
+Location Function IEB_HoldOf(Location l)
+    Keyword kh = Game.GetFormFromFile(0x00016771, "Skyrim.esm") as Keyword   ; LocTypeHold
+    Int guard = 0
+    While l && guard < 12
+        If l.HasKeyword(kh)
+            Return l
+        EndIf
+        l = PO3_SKSEFunctions.GetParentLocation(l)
+        guard += 1
+    EndWhile
+    Return None
+EndFunction
+
+String Function IEB_InNpcArea(Actor akNPC, ObjectReference r)
+    {§17b "current hold" (amended 2026-10-10): the NPC's own location's hold (current, else editor), then the player's;
+     with no hold, same worldspace within the radius from the NPC. "" = outside; else the deciding rule.}
+    Location h = IEB_HoldOf(IEB_RefLocation(akNPC))
+    String src = "hold-npc"
+    If !h
+        h = IEB_HoldOf(Game.GetPlayer().GetCurrentLocation())
+        src = "hold-player"
+    EndIf
+    If h
+        If IEB_RefInLocation(r, h)
+            Return src
+        EndIf
+        Return ""
+    EndIf
+    Worldspace ws = akNPC.GetWorldSpace()
+    If ws && r.GetWorldSpace() == ws && akNPC.GetDistance(r) <= IEB_ResSwitch("radius", 16384) as Float
+        Return "radius"
+    EndIf
+    Return ""
+EndFunction
+
+String Function IEB_NpcPlaceName(Actor akNPC)
+    {The NPC's city / town / settlement name, else its hold's name, else "".}
+    Keyword kc = Game.GetFormFromFile(0x00013168, "Skyrim.esm") as Keyword   ; LocTypeCity
+    Keyword kt = Game.GetFormFromFile(0x00013166, "Skyrim.esm") as Keyword   ; LocTypeTown
+    Keyword ks = Game.GetFormFromFile(0x00013167, "Skyrim.esm") as Keyword   ; LocTypeSettlement
+    Location l = IEB_RefLocation(akNPC)
+    Int guard = 0
+    While l && guard < 12
+        If l.HasKeyword(kc) || l.HasKeyword(kt) || l.HasKeyword(ks)
+            Return l.GetName()
+        EndIf
+        l = PO3_SKSEFunctions.GetParentLocation(l)
+        guard += 1
+    EndWhile
+    Location h = IEB_HoldOf(IEB_RefLocation(akNPC))
+    If h
+        Return h.GetName()
+    EndIf
+    Return ""
+EndFunction
+
+String Function IEB_ResClean(String s)
+    {Lower-risk word form: letters, digits, ' and - kept, everything else a space (comparisons are case-insensitive).}
+    String out = ""
+    Int n = StringUtil.GetLength(s)
+    Int i = 0
+    While i < n
+        String c = StringUtil.GetNthChar(s, i)
+        If StringUtil.IsLetter(c) || StringUtil.IsDigit(c) || c == "'" || c == "-"
+            out += c
+        Else
+            out += " "
+        EndIf
+        i += 1
+    EndWhile
+    Return out
+EndFunction
+
+String[] Function IEB_ResWords(String s)
+    Return PapyrusUtil.RemoveString(PapyrusUtil.StringSplit(IEB_ResClean(s), " "), "")
+EndFunction
+
+Bool Function IEB_SamePhrase(String a, String b)
+    {a and b are the same name, ignoring case, punctuation and a leading "the".}
+    String[] wa = IEB_ResWords(a)
+    String[] wb = IEB_ResWords(b)
+    Int ia = 0
+    Int ib = 0
+    If wa.Length > 0 && wa[0] == "the"
+        ia = 1
+    EndIf
+    If wb.Length > 0 && wb[0] == "the"
+        ib = 1
+    EndIf
+    If wa.Length - ia != wb.Length - ib || wa.Length - ia == 0
+        Return false
+    EndIf
+    While ia < wa.Length
+        If wa[ia] != wb[ib]
+            Return false
+        EndIf
+        ia += 1
+        ib += 1
+    EndWhile
+    Return true
+EndFunction
+
+Bool Function IEB_NameInPhrase(String paddedPhrase, String name)
+    {The phrase holds the full name, or a distinctive (non-generic, 4+ letters) word of it.}
+    If name == ""
+        Return false
+    EndIf
+    String[] w = IEB_ResWords(name)
+    Int i0 = 0
+    If w.Length > 0 && w[0] == "the"
+        i0 = 1
+    EndIf
+    If w.Length <= i0
+        Return false
+    EndIf
+    String full = w[i0]
+    Int i = i0 + 1
+    While i < w.Length
+        full += " " + w[i]
+        i += 1
+    EndWhile
+    If IntelEngine.StringContains(paddedPhrase, " " + full + " ")
+        Return true
+    EndIf
+    i = i0
+    While i < w.Length
+        If StringUtil.GetLength(w[i]) >= 4 && !IntelEngine.StringContains(IEB_ResGeneric(), " " + w[i] + " ") && IntelEngine.StringContains(paddedPhrase, " " + w[i] + " ")
+            Return true
+        EndIf
+        i += 1
+    EndWhile
+    Return false
+EndFunction
+
+Bool Function IEB_PhraseNamesRef(String destination, ObjectReference r)
+    {§17b rule 1b: the phrase names the target's location (or a parent: its city, its hold) or its cell.}
+    String p = " " + IEB_ResClean(destination) + " "
+    ObjectReference side = r
+    Int pass = 0
+    While pass < 2 && side
+        Cell c = side.GetParentCell()
+        If c && IEB_NameInPhrase(p, c.GetName())
+            Return true
+        EndIf
+        Location l = IEB_RefLocation(side)
+        Int guard = 0
+        While l && guard < 12
+            If IEB_NameInPhrase(p, l.GetName())
+                Return true
+            EndIf
+            l = PO3_SKSEFunctions.GetParentLocation(l)
+            guard += 1
+        EndWhile
+        side = None
+        If pass == 0 && r.GetBaseObject() as Door
+            side = IntelEngine.GetDoorDestinationRef(r)
+        EndIf
+        pass += 1
+    EndWhile
+    Return false
+EndFunction
+
+Bool Function IEB_NamedPlace(Actor akNPC, String destination)
+    {R42: longest whole-word n-gram of the phrase that is a place name in the offline table. Sets IEB_ResHitMarker /
+     IEB_ResHitLoc. Among several places of that name the one in the NPC's area wins, else the first that loads.}
+    String f = "../ErrandBridge/place_names"
+    IEB_ResHitMarker = None
+    IEB_ResHitLoc = None
+    If !JsonUtil.JsonExists(f)
+        Return false
+    EndIf
+    String[] w = IEB_ResWords(destination)
+    Int n = w.Length
+    Int len = JsonUtil.GetIntValue(f, "maxwords", 8)
+    If len > n
+        len = n
+    EndIf
+    While len > 0
+        Int i = 0
+        While i + len <= n
+            If w[i] != "the" && w[i] != "a" && w[i] != "an"
+                String key = w[i]
+                Int j = 1
+                While j < len
+                    key += " " + w[i + j]
+                    j += 1
+                EndWhile
+                Int c = JsonUtil.FormListCount(f, "m:" + key)
+                If c > 0
+                    Int k = 0
+                    While k < c
+                        ObjectReference mk = JsonUtil.FormListGet(f, "m:" + key, k) as ObjectReference
+                        If mk
+                            Location lk = JsonUtil.FormListGet(f, "l:" + key, k) as Location
+                            If !lk
+                                lk = IEB_RefLocation(mk)
+                            EndIf
+                            If !IEB_ResHitMarker || (IEB_InNpcArea(akNPC, mk) != "" && IEB_InNpcArea(akNPC, IEB_ResHitMarker) == "")
+                                IEB_ResHitMarker = mk
+                                IEB_ResHitLoc = lk
+                            EndIf
+                        EndIf
+                        k += 1
+                    EndWhile
+                    If IEB_ResHitMarker
+                        Return true
+                    EndIf
+                EndIf
+            EndIf
+            i += 1
+        EndWhile
+        len -= 1
+    EndWhile
+    Return false
+EndFunction

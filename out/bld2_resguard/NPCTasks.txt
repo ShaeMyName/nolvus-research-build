@@ -1,0 +1,5 @@
+functions: installed 49, resguard 49
+call sites: installed 1140, resguard 1140
+  escorttarget                       ieb_guardedresolve                             0 -> 1
+  escorttarget                       intelengine.resolveanydestination              2 -> 1
+DIFFERENT

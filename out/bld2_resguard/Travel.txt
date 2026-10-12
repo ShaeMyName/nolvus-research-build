@@ -1,0 +1,5 @@
+functions: installed 32, resguard 32
+call sites: installed 545, resguard 545
+  resolvedestination                 ieb_guardedresolve                             0 -> 1
+  resolvedestination                 intelengine.resolveanydestination              1 -> 0
+DIFFERENT

@@ -1,0 +1,92 @@
+functions: installed 107, resguard 123
+  FUNC only in resguard: <auto>.ieb_guardedresolve(('actor', 'string', 'string'), 'objectreference')
+  FUNC only in resguard: <auto>.ieb_holdof(('location',), 'location')
+  FUNC only in resguard: <auto>.ieb_innpcarea(('actor', 'objectreference'), 'string')
+  FUNC only in resguard: <auto>.ieb_locin(('location', 'location'), 'bool')
+  FUNC only in resguard: <auto>.ieb_namedplace(('actor', 'string'), 'bool')
+  FUNC only in resguard: <auto>.ieb_nameinphrase(('string', 'string'), 'bool')
+  FUNC only in resguard: <auto>.ieb_npcplacename(('actor',), 'string')
+  FUNC only in resguard: <auto>.ieb_phrasenamesref(('string', 'objectreference'), 'bool')
+  FUNC only in resguard: <auto>.ieb_refinlocation(('objectreference', 'location'), 'bool')
+  FUNC only in resguard: <auto>.ieb_reflocation(('objectreference',), 'location')
+  FUNC only in resguard: <auto>.ieb_resclean(('string',), 'string')
+  FUNC only in resguard: <auto>.ieb_resgeneric((), 'string')
+  FUNC only in resguard: <auto>.ieb_reslog(('string', 'string', 'objectreference', 'string'), 'none')
+  FUNC only in resguard: <auto>.ieb_resswitch(('string', 'int'), 'int')
+  FUNC only in resguard: <auto>.ieb_reswords(('string',), 'string[]')
+  FUNC only in resguard: <auto>.ieb_samephrase(('string', 'string'), 'bool')
+  VARIABLES only in resguard: ('ieb_reshitloc', 'location')
+  VARIABLES only in resguard: ('ieb_reshitmarker', 'objectreference')
+call sites: installed 901, resguard 1004
+  ieb_guardedresolve                 getname                                        0 -> 1
+  ieb_guardedresolve                 ieb_innpcarea                                  0 -> 2
+  ieb_guardedresolve                 ieb_namedplace                                 0 -> 1
+  ieb_guardedresolve                 ieb_npcplacename                               0 -> 1
+  ieb_guardedresolve                 ieb_phrasenamesref                             0 -> 1
+  ieb_guardedresolve                 ieb_refinlocation                              0 -> 2
+  ieb_guardedresolve                 ieb_reslog                                     0 -> 10
+  ieb_guardedresolve                 ieb_resswitch                                  0 -> 3
+  ieb_guardedresolve                 ieb_samephrase                                 0 -> 1
+  ieb_guardedresolve                 intelengine.getlastresolvedhomecellid          0 -> 2
+  ieb_guardedresolve                 intelengine.issemanticterm                     0 -> 1
+  ieb_guardedresolve                 intelengine.resolveanydestination              0 -> 2
+  ieb_guardedresolve                 intelengine.resolvelocationtobgslocation       0 -> 1
+  ieb_holdof                         game.getformfromfile                           0 -> 1
+  ieb_holdof                         haskeyword                                     0 -> 1
+  ieb_holdof                         po3_sksefunctions.getparentlocation            0 -> 1
+  ieb_innpcarea                      game.getplayer                                 0 -> 1
+  ieb_innpcarea                      getcurrentlocation                             0 -> 1
+  ieb_innpcarea                      getdistance                                    0 -> 1
+  ieb_innpcarea                      getworldspace                                  0 -> 2
+  ieb_innpcarea                      ieb_holdof                                     0 -> 2
+  ieb_innpcarea                      ieb_refinlocation                              0 -> 1
+  ieb_innpcarea                      ieb_reflocation                                0 -> 1
+  ieb_innpcarea                      ieb_resswitch                                  0 -> 1
+  ieb_locin                          ischild                                        0 -> 1
+  ieb_namedplace                     ieb_innpcarea                                  0 -> 2
+  ieb_namedplace                     ieb_reflocation                                0 -> 1
+  ieb_namedplace                     ieb_reswords                                   0 -> 1
+  ieb_namedplace                     jsonutil.formlistcount                         0 -> 1
+  ieb_namedplace                     jsonutil.formlistget                           0 -> 2
+  ieb_namedplace                     jsonutil.getintvalue                           0 -> 1
+  ieb_namedplace                     jsonutil.jsonexists                            0 -> 1
+  ieb_nameinphrase                   ieb_resgeneric                                 0 -> 1
+  ieb_nameinphrase                   ieb_reswords                                   0 -> 1
+  ieb_nameinphrase                   intelengine.stringcontains                     0 -> 3
+  ieb_nameinphrase                   stringutil.getlength                           0 -> 1
+  ieb_npcplacename                   game.getformfromfile                           0 -> 3
+  ieb_npcplacename                   getname                                        0 -> 2
+  ieb_npcplacename                   haskeyword                                     0 -> 3
+  ieb_npcplacename                   ieb_holdof                                     0 -> 1
+  ieb_npcplacename                   ieb_reflocation                                0 -> 2
+  ieb_npcplacename                   po3_sksefunctions.getparentlocation            0 -> 1
+  ieb_phrasenamesref                 getbaseobject                                  0 -> 1
+  ieb_phrasenamesref                 getname                                        0 -> 2
+  ieb_phrasenamesref                 getparentcell                                  0 -> 1
+  ieb_phrasenamesref                 ieb_nameinphrase                               0 -> 2
+  ieb_phrasenamesref                 ieb_reflocation                                0 -> 1
+  ieb_phrasenamesref                 ieb_resclean                                   0 -> 1
+  ieb_phrasenamesref                 intelengine.getdoordestinationref              0 -> 1
+  ieb_phrasenamesref                 po3_sksefunctions.getparentlocation            0 -> 1
+  ieb_refinlocation                  getbaseobject                                  0 -> 1
+  ieb_refinlocation                  ieb_locin                                      0 -> 2
+  ieb_refinlocation                  ieb_reflocation                                0 -> 2
+  ieb_refinlocation                  intelengine.getdoordestinationref              0 -> 1
+  ieb_reflocation                    getcurrentlocation                             0 -> 1
+  ieb_reflocation                    geteditorlocation                              0 -> 1
+  ieb_resclean                       stringutil.getlength                           0 -> 1
+  ieb_resclean                       stringutil.getnthchar                          0 -> 1
+  ieb_resclean                       stringutil.isdigit                             0 -> 1
+  ieb_resclean                       stringutil.isletter                            0 -> 1
+  ieb_reslog                         debug.trace                                    0 -> 1
+  ieb_reslog                         getbaseobject                                  0 -> 1
+  ieb_reslog                         getformid                                      0 -> 1
+  ieb_reslog                         gettype                                        0 -> 1
+  ieb_reslog                         po3_sksefunctions.inttostring                  0 -> 1
+  ieb_resswitch                      jsonutil.getintvalue                           0 -> 1
+  ieb_resswitch                      jsonutil.jsonexists                            0 -> 1
+  ieb_reswords                       ieb_resclean                                   0 -> 1
+  ieb_reswords                       papyrusutil.removestring                       0 -> 1
+  ieb_reswords                       papyrusutil.stringsplit                        0 -> 1
+  ieb_samephrase                     ieb_reswords                                   0 -> 2
+DIFFERENT
