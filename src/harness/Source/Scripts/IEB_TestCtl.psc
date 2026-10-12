@@ -1933,6 +1933,16 @@ Function SUGetInt(Int aiFormId, String asKey, Int aiDefault)
     Log("SU " + Watcher().Hex(a) + " " + asKey + " get=" + StorageUtil.GetIntValue(a, asKey, aiDefault))
 EndFunction
 
+Function SUGetFloat(Int aiFormId, String asKey)
+    {RV-227b (2): read a StorageUtil float on the actor (B-22c's IEB_IEOverrideAt precondition). Logs SUF <ref> <key>=<v>.}
+    Actor a = A(aiFormId)
+    If a == None
+        Log("SUF none " + asKey + "=none")
+        Return
+    EndIf
+    Log("SUF " + Watcher().Hex(a) + " " + asKey + "=" + StorageUtil.GetFloatValue(a, asKey, -1.0))
+EndFunction
+
 Function SUUnset(Int aiFormId, String asKey)
     Actor a = A(aiFormId)
     If a == None

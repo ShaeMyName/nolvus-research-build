@@ -36,9 +36,45 @@ EndEvent
 Function OnGameLoad()
     {IEB_PlayerAlias.OnPlayerLoadGame. Settle delay longer than IntelEngine's 2 s maintenance dedupe (R7).}
     Setup()
+    ClearRTStamps()
     _reconcileAt = -1
     _reconcileSecond = False
     RegisterForSingleUpdate(5.0)
+EndFunction
+
+Function ClearRTStamps()
+    {REVIEW_LOG RV-227b (1): Utility.GetCurrentRealTime() restarts at every game launch while StorageUtil keeps these
+     stamps in the cosave; drop them at each load for the held actors and every IntelEngine agent (RTStamp() also treats
+     any stamp later than now as absent, for actors outside both lists).}
+    Int i = StorageUtil.FormListCount(None, "IEB_HeldList") - 1
+    While i >= 0
+        DropRT(StorageUtil.FormListGet(None, "IEB_HeldList", i) as Actor)
+        i -= 1
+    EndWhile
+    Int s = 0
+    While s < _agents.Length
+        If _agents[s] != None
+            DropRT(_agents[s].GetActorReference())
+        EndIf
+        s += 1
+    EndWhile
+EndFunction
+
+Function DropRT(Actor a)
+    If a != None
+        StorageUtil.UnsetFloatValue(a, "IEB_StartedRT")
+        StorageUtil.UnsetFloatValue(a, "IEB_EndedRT")
+        StorageUtil.UnsetFloatValue(a, "IEB_IEOverrideAt")
+    EndIf
+EndFunction
+
+Float Function RTStamp(Actor a, String asKey)
+    {A this-session real-time stamp, or -1000 when unset or later than now (a stamp from an earlier launch).}
+    Float v = StorageUtil.GetFloatValue(a, asKey, -1000.0)
+    If v > Utility.GetCurrentRealTime()
+        Return -1000.0
+    EndIf
+    Return v
 EndFunction
 
 Function Setup()
@@ -74,6 +110,7 @@ Event OnIETaskStarted(String asEventName, String asTaskType, Float afSlot, Form 
         StorageUtil.SetFloatValue(a, "IEB_StartedRT", Utility.GetCurrentRealTime())
         StorageUtil.UnsetIntValue(a, "IEB_EndedEvt")
         StorageUtil.UnsetIntValue(a, "IEB_PkgGoneN")
+        StorageUtil.UnsetFloatValue(a, "IEB_IEOverrideAt")       ; the override it marked is complete
     EndIf
     RegisterForSingleUpdate(0.1)
 EndEvent
@@ -230,7 +267,7 @@ Function Discover()
                 StorageUtil.SetIntValue(a, "IEB_InSlot", _tick)
                 ; RV-227: still in the alias is NOT a re-task while IntelEngine's ClearSlot runs (it sends TaskEnded first and
                 ; clears the alias last, seconds later); only a TaskStarted after the TaskEnded is (OnIETaskStarted unsets)
-                If StorageUtil.GetFloatValue(a, "IEB_StartedRT", -1.0) > StorageUtil.GetFloatValue(a, "IEB_EndedRT", -1.0)
+                If RTStamp(a, "IEB_StartedRT") > RTStamp(a, "IEB_EndedRT")
                     StorageUtil.UnsetIntValue(a, "IEB_EndedEvt")
                 EndIf
                 Int gate = StorageUtil.GetIntValue(a, "IEB_Gate", 0)
@@ -486,8 +523,8 @@ Function ReleaseScan()
                     Else
                         StorageUtil.AdjustIntValue(a, "IEB_PkgGoneN", 1)
                     EndIf
-                    Float ov = StorageUtil.GetFloatValue(a, "IEB_IEOverrideAt", -1000.0)
-                    Bool overriding = Utility.GetCurrentRealTime() - ov < 15.0
+                    Float ov = RTStamp(a, "IEB_IEOverrideAt")
+                    Bool overriding = ov >= 0.0 && ov >= RTStamp(a, "IEB_EndedRT") - 30.0 && Utility.GetCurrentRealTime() - ov < 15.0
                     If StorageUtil.GetIntValue(a, "IEB_InSlot", -1) != _tick
                         why = "alias_cleared"
                     ElseIf StorageUtil.GetIntValue(a, "IEB_PkgGoneN", 0) >= 2 && !overriding
@@ -505,7 +542,7 @@ Function ReleaseScan()
                 If why != ""
                     If pend
                         Log(1, "END_RESOLVED actor=" + a.GetDisplayName() + " why=" + why + " lagS=" \
-                            + (Utility.GetCurrentRealTime() - StorageUtil.GetFloatValue(a, "IEB_EndedRT", 0.0)))
+                            + (Utility.GetCurrentRealTime() - RTStamp(a, "IEB_EndedRT")))
                     EndIf
                     StorageUtil.UnsetIntValue(a, "IEB_EndedEvt")
                     StorageUtil.UnsetIntValue(a, "IEB_PkgGoneN")

@@ -2005,8 +2005,16 @@ def b22c(r):
         time.sleep(8)
         t2 = fresh()
         r.ctl("StartTask", [F1, "GoToLocation", DEST_NEAR, "1", "1"])       # the second errand: an override, not a new TAKE
-        ov = t2.wait(r"IntelEngine: %s overriding active task" % re.escape(nm), 20)
-        if not need(r, ov, "IntelEngine did not override F1's task (no 'overriding active task' line)"):
+        # RV-227b (2): the precondition is the IE patch's own stamp (any DebugLevel), read back via the controller
+        ovm = None
+        for _ in range(10):
+            ovm = ctl_line(r, "SUGetFloat", [F1, "IEB_IEOverrideAt"],
+                           r"\[IEB-TEST\] SUF \S+ IEB_IEOverrideAt=(-?[\d.]+)", 8)
+            if ovm and float(ovm.group(1)) > 0:
+                break
+            time.sleep(2)
+        if not need(r, ovm and float(ovm.group(1)) > 0, "IntelEngine did not override F1's task (IEB_IEOverrideAt unset: %s)"
+                    % (ovm.group(1) if ovm else "no SUF line")):
             return
         time.sleep(20)
         txt = t2.read()
