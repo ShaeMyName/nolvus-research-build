@@ -48,6 +48,7 @@ from fidnorm import fid_any_rx, fid_norm
 from tests_misc import (CHILD, WR_GUARDS, YSOLDA, FRALIA, KV, con, ctl_line, inc, hx, s32, who, rval, iv, tail, rank, rel, ah,
                         dm, ensure_child_enrolled, su_set, su_unset, near_player, player_pos, player_moved)
 from tests_tm_l import sa_call, hexarg
+from tests_misc import se
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PAPYRUS = game.LOGS["papyrus"]
@@ -1300,8 +1301,11 @@ def e_ie1(r):
 @test("E-IE2", "E", reload=True)
 def e_ie2(r):
     """(a) Bridge fallback: NFF-confirmed (IEB_EssKeep = 1); set Intel_WasEssential (the IE hold), clear the base flag, 2
-    sweeps: no write, IEB_EssIEHeld = 1; unset the key: ESS_REASSERT why=ie_restore, essential again. (b) the IE-side restore
-    with the handshake needs the IE section-11 fix: BLOCKED, logged as PARTIAL."""
+    sweeps: no write, IEB_EssIEHeld = 1; unset the key: ESS_REASSERT why=ie_restore, essential again. (b) IE side (patch
+    group esskeep, 8b81744, REVIEW_LOG RV-225): StoryEngine.IEB_SetEssentialKeep(npc, false, site) - the helper all 7
+    clear/restore sites now call - with IEB_EssKeep = 1 keeps the base flag and logs IEB ESSKEEP; control with
+    IEB_EssKeep = 0 clears it. A DIRECT CALL of the restore helper, NOT a natural ambush/victim restore (RV-225: never
+    reported as a natural PASS; the natural path needs a live DM ambush/victim story on demand)."""
     if not require_table(r, "rows0"):
         return
     pool = pick_npcs(r)
@@ -1336,7 +1340,27 @@ def e_ie2(r):
         d2 = ex(r, n["fid"])
         if d2:
             r.check(g(d2, "baseess") == 1, "essential again")
-        r.log("PARTIAL E-IE2 (b) BLOCKED until the IE section-11 fix with the handshake ships")
+        # (b) IE side, DIRECT CALL (RV-225): kept with IEB_EssKeep = 1, cleared in the control with IEB_EssKeep = 0
+        r.log("NOTE E-IE2 (b): direct call of StoryEngine.IEB_SetEssentialKeep, not natural ambush")
+        tb = tail("papyrus")
+        se(r, "IEB_SetEssentialKeep", [hexarg(n["fid"]), False, "e_ie2b_kept"])
+        time.sleep(2)
+        dk = ex(r, n["fid"])
+        kept_line = re.search(r"IEB ESSKEEP kept site=e_ie2b_kept actor=%s" % fid_any_rx(n["fid"]), tb.read())
+        if not dk:
+            return inc(r, "(b) direct call, not natural ambush: no state read after the kept call")
+        r.check(g(dk, "baseess") == 1 and bool(kept_line),
+                "(b) direct call, not natural ambush: IEB_EssKeep=1 keeps the base flag (baseess=%s, ESSKEEP line %s)"
+                % (g(dk, "baseess"), "yes" if kept_line else "no"))
+        su_set(r, n["fid"], "IEB_EssKeep", 0)
+        se(r, "IEB_SetEssentialKeep", [hexarg(n["fid"]), False, "e_ie2b_control"])
+        time.sleep(2)
+        dc = ex(r, n["fid"])
+        ctl_line_seen = re.search(r"IEB ESSKEEP kept site=e_ie2b_control", tb.read())
+        if not dc:
+            return inc(r, "(b) direct call, not natural ambush: no state read after the control call")
+        r.check(g(dc, "baseess") == 0 and not ctl_line_seen,
+                "(b) direct call, not natural ambush: control IEB_EssKeep=0 clears the flag (baseess=%s)" % g(dc, "baseess"))
     finally:
         quiet(su_unset, r, n["fid"], "Intel_WasEssential")
         common_cleanup(r, n, nff=True)
