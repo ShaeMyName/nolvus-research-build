@@ -1611,11 +1611,22 @@ UNDERWEAR = re.compile(r"underwear|smallclothes|panties|loincloth|briefs|\bbra\b
 def _strip_body(r, fid, uuid):
     rows = worn_rows(r, uuid) or []
     body = [x for x in rows if x[0].lower() == "torso"]
-    for b in body:
-        f = to_formid(b[1])
-        if f:
-            con(r, "%s.unequipitem %08X" % (hx(fid), f))
-    time.sleep(2)
+    # U1 setup-only: one plain unequipitem left a body garment worn on F1, H and F2 (X-1/X-7). Likely cause (INFERRED, not
+    # observed): the NPC's default outfit AI re-equips the item. So: re-read the torso rows each pass (a multi-slot item
+    # or a re-equipped one is a fresh row) and, from the 2nd pass on, add the console's PreventEquip argument
+    # (`unequipitem <item> <PreventEquip>`, INFERRED syntax). Stop as soon as body_flag reads 0; the callers still read back.
+    for attempt in range(3):
+        cur = [x for x in (worn_rows(r, uuid) or rows) if x[0].lower() == "torso"] if attempt else body
+        if attempt and not cur:
+            break
+        for b in cur:
+            f = to_formid(b[1])
+            if f:
+                con(r, "%s.unequipitem %08X%s" % (hx(fid), f, " 1" if attempt else ""))
+        time.sleep(2)
+        if body_flag(r, uuid) == 0:
+            break
+        r.log("  strip: %s still wears a torso item after pass %d (%s)" % (hx(fid), attempt + 1, ",".join(x[2] for x in cur)))
     if not body:    # RV-58 audit: with the old 'body' key nothing was ever stripped, so every "stripped" check was vacuous
         r.log("  strip: no torso (slot 32) item found on %s; the 'stripped' checks below would be vacuous" % hx(fid))
     return rows, body
