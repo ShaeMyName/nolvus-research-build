@@ -898,6 +898,7 @@ def family_logs(ctl, fam, since, summary):
     summary.append("| check_logs %s | %s | | I5/I7/I8 |" % (fam, "PASS" if res.returncode == 0 else "%d FAIL" % len(fails)))
 
 
+PAUSE_FLAG = "C:/nolvus-research/test_runs/PAUSE_QUEUE"
 FLAGS_VALUE = ("--only", "--from")
 FLAGS_BARE = ("--no-launch", "--keep-open", "--list", "--setup-only")
 
@@ -934,6 +935,10 @@ def main(a):
     if why:
         print("USAGE ERROR: %s. Nothing was changed.\n%s" % (why, __doc__.splitlines()[1] if __doc__ else ""), flush=True)
         return 2
+    if os.path.exists(PAUSE_FLAG):               # a planned pause (RAM install 2026-10-12): queued blocks skip cleanly
+        print("BLOCK SKIPPED: pause flag %s present (%s). Nothing was changed."
+              % (PAUSE_FLAG, open(PAUSE_FLAG, encoding="utf-8", errors="replace").read().strip()), flush=True)
+        return 3
     ok_rec, why_rec = game.recordings_ok()     # REVIEW_LOG RV-213: before any side effect
     if not ok_rec:
         print("BLOCK REFUSED: %s. Nothing was changed." % why_rec, flush=True)
