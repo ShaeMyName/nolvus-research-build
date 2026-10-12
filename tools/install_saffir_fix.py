@@ -1,12 +1,12 @@
 """REVIEW_LOG RV-195 / RV-196 trigger (crash 2026-10-12 08:04:19 names Saffir + 0xCF001957): TEST-only install of
-build/out/IEB_SaffirPackageFix.esl into a new mod folder "IEB Saffir Package Fix (TEST)", enabled in the TEST profile's
+build/out/IEB_SaffirPackageFix.esp (ESL-flagged .esp, RV-214b: never a .esl file, which loads in the master block) into a new mod folder "IEB Saffir Package Fix (TEST)", enabled in the TEST profile's
 modlist.txt and placed LAST in its plugins.txt + loadorder.txt. Backups of the three lists first; byte-safe line endings;
 read-back. MO2 and the game must be closed. Never touches the "Nolvus Awakening" profile. Usage: install_saffir_fix.py [--dry]"""
 import hashlib, os, shutil, subprocess, sys, time
 
-SRC = "C:/nolvus-research/build/out/IEB_SaffirPackageFix.esl"
+SRC = "C:/nolvus-research/build/out/IEB_SaffirPackageFix.esp"
 MOD = "IEB Saffir Package Fix (TEST)"
-ESL = "IEB_SaffirPackageFix.esl"
+ESL = "IEB_SaffirPackageFix.esp"
 DEST = "C:/Nolvus/Instances/Nolvus Awakening/MODS/mods/%s/%s" % (MOD, ESL)
 PROF = "C:/Nolvus/Instances/Nolvus Awakening/MODS/profiles/SkyrimNet Test/"
 BACKUP = "C:/nolvus-research/backups/saffir_fix_%s/" % time.strftime("%Y%m%d-%H%M%S")

@@ -1,13 +1,13 @@
-"""Build IEB_SaffirPackageFix.esl (REVIEW_LOG RV-194-dec; crash_table.md watch item: 3 Saffir-context crashes).
+"""Build IEB_SaffirPackageFix.esp, ESL-flagged (ESPFE) (REVIEW_LOG RV-194-dec; RV-214b: a .esl FILE is implicitly a master and would load before the .esp it overrides; crash_table.md watch item: 3 Saffir-context crashes).
 Override ESL: Saffir's winning NPC_ record (Skyrim.esm 0x013B98, last override in the TEST load order) copied byte for byte,
 minus the one PKID entry for AI Overhaul.esp:0x001957 (AIOWRSaffirRandom11x3). Masters = the winner's masters in order + the
 winner itself, so every FormID in the copied record keeps its meaning without remapping. No new forms (valid ESL).
-Writes build/out/IEB_SaffirPackageFix.esl and re-parses it. Read-only on C:\\Nolvus. Usage: gen_saffir_fix.py"""
+Writes build/out/IEB_SaffirPackageFix.esp and re-parses it. Read-only on C:\\Nolvus. Usage: gen_saffir_fix.py"""
 import struct, sys, zlib
 
 WIN_DIR = "C:/Nolvus/Instances/Nolvus Awakening/MODS/mods/Nolvus Awakening Combat Scaling Overhaul - Milk Drinker/"
 WIN = "Nolvus Awakening Combat Scaling Overhaul - Enemy Level Mult.esp"
-OUT = "C:/nolvus-research/build/out/IEB_SaffirPackageFix.esl"
+OUT = "C:/nolvus-research/build/out/IEB_SaffirPackageFix.esp"
 SAFFIR = ("Skyrim.esm", 0x013B98)
 DROP = ("AI Overhaul.esp", 0x001957)
 
@@ -85,7 +85,7 @@ def main():
     h2 = find_record(chk, b"NPC_", fid)
     d2 = chk[h2[0] + 24:h2[0] + 24 + h2[1]]
     pk2 = [struct.unpack_from("<I", d)[0] for t, d in subrecords(d2) if t == b"PKID"]
-    print("written %s (%d bytes), ESL flag=%s, masters=%d (last=%s), Saffir PKID now:" % (OUT, len(chk),
+    print("written %s (%d bytes), header flags=0x%X, ESL flag=%s, masters=%d (last=%s), Saffir PKID now:" % (OUT, len(chk), struct.unpack_from("<I", chk, 8)[0],
           bool(struct.unpack_from("<I", chk, 8)[0] & 0x200), len(m2), m2[-1]), ["%08X" % x for x in pk2])
     print("OK" if pk2 == [x for x in pk if x != drop] else "FAIL: list mismatch")
 
