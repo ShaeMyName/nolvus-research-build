@@ -1960,6 +1960,12 @@ def b28(r):
         player_to(r, MARKET)
 
 
+def mark(r, label):
+    """REVIEW_LOG RV-205 (3): a timestamped step marker (harness log + Papyrus via TestCtl's GlobalProbe-free Log path is
+    not exposed, so the harness log carries the wall-clock time; compare with the crash log's CRASH TIME)."""
+    r.log("  MARK %s %s %s" % (r.name, label, time.strftime("%H:%M:%S")))
+
+
 @test("B-31", "B")
 def b31(r):
     """F1 seated by SA's AI action SitOrLayDown (proposed SitNearest wrapper: SkyrimNetApi.ExecuteAction, b25
@@ -1971,14 +1977,17 @@ def b31(r):
     try:
         watch_on(r)
         w0 = player_pos(r)
+        mark(r, "coc#1 WhiterunBanneredMare")
         con(r, "coc WhiterunBanneredMare")          # cell EditorID VERIFIED (t0_setup_research.md :82)
         time.sleep(20)
         if not player_moved(r, w0, "coc WhiterunBanneredMare"):        # RV-123 (3)
             return
         mare = (player_pos(r) or {}).get("cell")
+        mark(r, "bring F1")
         bring(r, F1)
         nm = name(r, F1)
         time.sleep(3)
+        mark(r, "SitNearest")
         m = ctl_line(r, "SitNearest", [F1, 1500.0], r"\[IEB-TEST\] SitNearest .* furn=(\S+) .* rc=(-?\d+)", 15)
         if not need(r, m and m.group(2) == "0", "SitNearest wrapper missing, no furniture, or ExecuteAction failed (%s)"
                     % (m.group(0) if m else "no line")):
@@ -1994,6 +2003,7 @@ def b31(r):
         t = fresh()
         p0 = probe(r, F1) or {}
         t0 = time.time()
+        mark(r, "errand TAKE")
         if not took(r, go(r, F1, DEST_MARKET, t), nm):
             return
         stood = until(lambda: (lambda s: s if s and s["sit"] == 0 else None)(fstate()), 20, 1)
@@ -2004,15 +2014,19 @@ def b31(r):
             d = dist2(p.get("xyz"), p0.get("xyz"))
             return p if (d is not None and d > 200) or p.get("cellid") != p0.get("cellid") else None
         r.check(until(left, 30, 2) is not None, "F1 left the furniture on the errand")
+        mark(r, "wait arrival")
         if not need(r, t.wait(arrived_rx(nm), 180), "F1 did not arrive at %s" % DEST_MARKET):
             return
+        mark(r, "player_to F1")
         player_to(r, F1, wait=10)
+        mark(r, "coc#2 WhiterunBanneredMare")
         con(r, "coc WhiterunBanneredMare")
         time.sleep(3)
         wm = player_pos(r) or {}                    # RV-123 (3) read-back: the player is in the inn cell again
         if not need(r, mare and wm.get("cell") == mare, "read-back coc WhiterunBanneredMare: cell %s, want %s"
                     % (wm.get("cell"), mare)):
             return
+        mark(r, "wait release")
         end = wait_ieb(t, REL_KW, nm, 90)
         r.check(end is not None, "errand completed and released (%s)" % (end,))
         time.sleep(8)
@@ -2020,6 +2034,7 @@ def b31(r):
         cleanup = re.findall(r"\[SeverActions_FurnitureLib\] %s (stopping furniture use)" % re.escape(nm), t.read())
         r.log("  RECORD after %s: IsUsing=%s, SA stop/cleanup lines=%d" % (end and end[0], s.get("using"), len(cleanup)))
         r.check(s.get("using") is False or bool(cleanup), "IsUsing false or SA's auto-stand cleanup ran")
+        mark(r, "re-sit loop")
         sits, dmin = [], None
         for _ in range(10):
             s = fstate() or {}
