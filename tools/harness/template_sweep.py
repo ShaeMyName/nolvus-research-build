@@ -16,11 +16,13 @@ sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import game
 from runner import Run
-from tests_misc import PLAYER, F1, CHILD, FRALIA, render, who, worn_rows, to_formid, con, ctl_line, su_get, qr, iv
+from tests_misc import PLAYER, F1, CHILD, FRALIA, render, who, worn_rows, to_formid, con, ctl_line, su_get, qr, iv, _strip_body
 
 LAYERS = "C:/nolvus-research/build/layers/"
 MODS = "C:/Nolvus/Instances/Nolvus Awakening/MODS/mods/"
 OUT = "C:/nolvus-research/investigation/round10/template_live_sweep.md"
+if any(x.startswith("--states=") for x in sys.argv):
+    OUT = OUT.replace(".md", "_states.md")
 # layer folder -> installed mod folder (install_step7 PLAN names; INFERRED where marked)
 MOD_OF = {"scene-text": "SkyrimNet - Scene Text", "privacy-overrides": "SkyrimNet - Privacy Overrides",
           "dialogue-actions": "SkyrimNet - Dialogue Actions Conduct", "discretion": "SkyrimNet - Discretion",
@@ -39,9 +41,8 @@ EXPECT = {
     "0990_ieb_sectest.prompt": {("npc", "base"): "empty", ("bystander", "base"): "nonempty"},
     "0955_luc_princes.prompt": {("npc", "base"): "empty"},
     "0956_luc_azura_priestess.prompt": {("npc", "base"): "empty"},
-    "0957_luc_teldryn.prompt": {("npc", "base"): "empty"},        # RV-113: F1 is not Teldryn
-    "0958_luc_brelyna.prompt": {("npc", "base"): "empty"},        # RV-113: F1 is not Brelyna
-    "0959_luc_orc_sense.prompt": {("npc", "base"): "empty", ("player", "base"): "empty", ("child", "base"): "empty"},
+    # B items, out of the pre-start sweep (re-add when installed): 0957 Teldryn, 0958 Brelyna, 0959 orc sense
+    # ("npc"/"player"/"child" base empty, RV-113)
     "0960_luc_dusk_identity.prompt": {("npc", "base"): "empty"},
     "0965_luc_dusk.prompt": {("npc", "base"): "empty"},
 }
@@ -51,11 +52,17 @@ def sha(p):
     return hashlib.sha256(open(p, "rb").read()).hexdigest()[:16]
 
 
+B_LAYERS = {"festival", "followerbios"}                                     # post-start B items
+B_FILES = {"0957_luc_teldryn.prompt", "0958_luc_brelyna.prompt", "0959_luc_orc_sense.prompt"}
+
+
 def files():
     out = []
     for p in sorted(glob.glob(LAYERS + "*/SKSE/Plugins/SkyrimNet/external/*/prompts/**/*.prompt", recursive=True)):
         rel = p.replace("\\", "/")[len(LAYERS):]
         layer = rel.split("/")[0]
+        if layer in B_LAYERS or os.path.basename(p) in B_FILES:
+            continue                           # B item: not swept before the start
         inst = MODS + MOD_OF.get(layer, "?") + "/" + rel[len(layer) + 1:]
         out.append(dict(path=p, rel=rel, layer=layer, base=os.path.basename(p),
                         installed=("STALE" if os.path.exists(inst) and sha(inst) != sha(p) else
@@ -93,14 +100,27 @@ def main():
     def torso(fid):
         return fid in [to_formid(x[1]) for x in (worn_rows(run, u["player"]) or []) if x[0].lower() == "torso"]
 
-    sweep("base")
+    import block                               # RV-190 (2): T0 carries IE skip-follower ON; apply the block settings
+    block.ie_test_settings(run)
+    ONLY = next((x.split("=", 1)[1].split(",") for x in sys.argv if x.startswith("--states=")), None)
+    if ONLY is None or "base" in ONLY:
+        sweep("base")
     ctl_line(run, "SceneOn", [F1], r"\[IEB-TEST\] SCENE on partner=")
     time.sleep(6)
     # RV-123 (3): each state's write is read back before its sweep; a miss leaves that state unrun ('-' = FAIL below)
     sp = su_get(run, u["F1"], "IEB_IsScenePartner", fid=F1)
     sm = su_get(run, u["player"], "IEB_SceneMode", fid=PLAYER)
     if sp == 1 and sm == 1:
-        sweep("scene")
+        # RV-190 (3): which 9900 condition holds in this render context (numbers/booleans only)
+        diag = render(run, u["F1"], "{{ render_mode }}|{{ is_narration_enabled() }}|"
+                      "{{ papyrus_util(\"GetIntValue\", player.UUID, \"IEB_SceneMode\", 0) }}|"
+                      "{{ papyrus_util(\"GetIntValue\", npc.UUID, \"IEB_IsScenePartner\", 0) }}|"
+                      "{{ decnpc(npc.UUID).isInCombat }}|{{ decnpc(npc.UUID).isChild }}|{{ decnpc(npc.UUID).isVirtual }}",
+                      u["player"])
+        print("SCENE DIAG render_mode|narration|SceneMode|IsScenePartner|inCombat|isChild|isVirtual = %s (SU read-back: partner=%s mode=%s)"
+              % (diag, sp, sm))
+        if ONLY is None or "scene" in ONLY:
+            sweep("scene")
     else:
         print("READBACK FAIL SceneOn: IEB_IsScenePartner=%s IEB_SceneMode=%s; scene state not swept" % (sp, sm))
     ctl_line(run, "SceneOff", [], r"\[IEB-TEST\] SCENE off")
@@ -109,9 +129,9 @@ def main():
         print("READBACK FAIL SceneOff: IEB_SceneMode=%s" % sm)
     body = [to_formid(x[1]) for x in (worn_rows(run, u["player"]) or []) if x[0].lower() == "torso"]
     if body and body[0]:
-        con(run, "player.unequipitem %08X" % body[0])
-        time.sleep(3)
-        if not torso(body[0]):
+        _strip_body(run, PLAYER, u["player"])     # RV-190 (2): the robust strip (re-read rows, PreventEquip from pass 2)
+        time.sleep(1)
+        if not torso(body[0]) and (ONLY is None or "exposed" in ONLY):
             sweep("exposed")
         else:
             print("READBACK FAIL unequipitem %08X: still worn; exposed state not swept" % body[0])
@@ -123,7 +143,8 @@ def main():
     time.sleep(20)
     q = qr(run, F1)
     if q and iv(q, "slot") >= 0:
-        sweep("errand")
+        if ONLY is None or "errand" in ONLY:
+            sweep("errand")
     else:
         print("READBACK FAIL StartTask: F1 holds no IE slot (%s); errand state not swept" % q)
     run.ctl("Cancel", [F1])
@@ -142,6 +163,8 @@ def main():
         cells = ["%s/%s=%s" % (c, s, r.get((c, s), "-")) for s in ("base", "scene", "exposed", "errand") for c in ctx]
         lines.append("- " + ", ".join(cells))
         for (c, s), want in EXPECT.get(f["base"], {}).items():
+            if ONLY is not None and s not in ONLY:     # --states=...: only the re-swept states are graded
+                continue
             got = r.get((c, s))
             ok = (got is not None) and (want == "any" or (want == "empty") == (got == 0))
             fails += 0 if ok else 1
