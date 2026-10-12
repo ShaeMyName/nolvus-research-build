@@ -897,6 +897,8 @@ def az11(r):
     if not chatted:
         return inc(r, "no target answered an AI chat")
     r.check(fired == 0, "no blacklisted-quest dialogue script fired (%d target(s))" % chatted)
+    if unavailable:     # REVIEW_LOG RV-216: a PASS on part of the target list is partial coverage, never a full PASS
+        inc(r, "coverage: %d of %d target(s) unavailable (not reached or not loaded)" % (unavailable, chatted + unavailable))
 
 
 # ============================================================================ AZ-13 silent thoughts
