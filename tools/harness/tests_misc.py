@@ -1875,9 +1875,17 @@ def x8(r):
             continue
         ref = fid_norm(m.group(1))
         try:
-            time.sleep(2)
-            au, _, _ = who(r, ref)
+            # U1 setup-only: "no UUID" at once after PlaceAtMe. A fresh actor may need frames before SkyrimNet assigns a
+            # UUID (INFERRED): retry the lookup for up to 10 s, and on a miss log what the ref is (DespawnProbe).
+            au = ""
+            for _try in range(5):
+                time.sleep(2)
+                au, _, _ = who(r, ref)
+                if au:
+                    break
             if not au:
+                ds = despawn_state(r, ref)
+                r.log("  %s: no UUID after 10 s; ref state %s" % (label, ds if ds is not None else "no DESPAWN line"))
                 inc(r, "%s: no UUID" % label)
                 continue
             if setup_skip(r):
@@ -1889,7 +1897,12 @@ def x8(r):
             r.log("  %s: ActorTypeNPC=%s body=%s" % (label, a["npcType"], body_flag(r, au)))
             r.check(not a["npcType"] and not a["mark"], "%s: excluded (no ActorTypeNPC, no attire line)" % label)
         finally:
-            ctl_line(r, "DespawnRef", [s32(ref)], r"\[IEB-TEST\] (?i:DESPAWN(?:REF)?) ")
+            # DespawnRef logs only when the ref resolves (IEB_TestCtl.psc:2161-2167), so silence is not an error: call it
+            # unsynchronized and confirm by read-back (DespawnProbe: "none" = gone, or dis=1), as tests_ff.despawn.
+            r.ctl("DespawnRef", [s32(ref)], sync=False)
+            ds = despawn_state(r, ref)
+            if ds is None or (ds and ds.get("dis") != "1"):     # {} = "DESPAWN <ref> none" (parse_kv of no k=v): gone
+                r.log("  WARN %s %s not confirmed gone (%s); X-8 reloads T0 anyway" % (label, hx(ref), ds))
     checkpoint(r)
     # werewolf (player): reload restores the race
     pu, _, _ = who(r, PLAYER)
