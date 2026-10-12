@@ -225,15 +225,23 @@ def arrived_rx(nm):
 PLAY_TIMESCALE = 20.0   # the recorded play value every block asserts (ASSERT PASS TIMESCALE 20.000000, 2026-10-12)
 
 
-def arrival_wait(t, nm, base=180, cap=600):
+def arrival_wait(t, nm, base=180, cap=600, r=None):
     """REVIEW_LOG RV-223 (4), B-1 10-11/10-12: once F1 leaves the loaded area (the city gate), IntelEngine delivers her
     on its off-screen clock: 'NAME off-screen tracking: est. arrival in X H' (Core.InitOffScreenTracking, 0.5-18 h).
-    1.61 h at timescale 20 = 290 s > the old fixed 180 s. Wait max(base, ETA real seconds x 1.25 + 30), capped."""
-    m = re.search(r"%s off-screen tracking: est\. arrival in ([\d.]+)H" % re.escape(nm), t.read())
-    budget = base
-    if m:
-        budget = int(min(cap, max(base, float(m.group(1)) * 3600.0 / PLAY_TIMESCALE * 1.25 + 30)))
-    return t.wait(arrived_rx(nm), budget), budget
+    1.61 h at timescale 20 = 290 s > the old fixed 180 s. Wait max(base, ETA real seconds x 1.25 + 30), capped.
+    RV-223-rev: the ETA is THIS dispatch's: `t` is the tail opened just before go() (it holds nothing older), and the
+    LAST matching line for this actor wins. Returns (arrival match, budget s, why); `why` says the source and, when
+    the arrival is missing, is the INCONCLUSIVE reason ("ETA beyond cap" when the ETA needed more than `cap`)."""
+    etas = re.findall(r"%s off-screen tracking: est\. arrival in ([\d.]+)H" % re.escape(nm), t.read())
+    budget, why = base, "no ETA line for this dispatch: base %d s" % base
+    if etas:
+        need_s = float(etas[-1]) * 3600.0 / PLAY_TIMESCALE * 1.25 + 30
+        budget = int(min(cap, max(base, need_s)))
+        why = ("ETA %sH this dispatch -> %d s" % (etas[-1], budget) if need_s <= cap else
+               "ETA beyond cap: %sH needs %d s > cap %d s" % (etas[-1], need_s, cap))
+    if r is not None:
+        r.log("  arrival wait %d s (%s)" % (budget, why))
+    return t.wait(arrived_rx(nm), budget), budget, why
 
 
 def ieb_errors(text):
@@ -483,8 +491,8 @@ def rejoin_setup(r, label):
     ww = fresh("watch")
     if not took(r, go(r, F1, DEST_MARKET, t), nm):
         return None
-    arr, arr_budget = arrival_wait(t, nm)
-    if not need(r, arr, "%s: F1 did not arrive at %s within %d s" % (label, DEST_MARKET, arr_budget)):
+    arr, arr_budget, arr_why = arrival_wait(t, nm, r=r)
+    if not need(r, arr, "%s: F1 did not arrive at %s within %d s (%s)" % (label, DEST_MARKET, arr_budget, arr_why)):
         return None
     held = wsamples(ww.read(), F1)
     jumps = warps(held)
@@ -601,13 +609,13 @@ def b1(r):
         if not took(r, ev, nm):
             return
         r.check(ev[1].startswith("mode=1"), "TAKE is an NFF park (mode=1): %s" % ev[1])
-        arr, arr_budget = arrival_wait(t, nm)
+        arr, arr_budget, arr_why = arrival_wait(t, nm, r=r)
         held = wsamples(ww.read(), F1)
         dmax = max([num(s.get("dPlayer")) or 0 for s in held] or [0])
         r.check(dmax > 2560, "dPlayer grew beyond 2560 while held (max %.0f)" % dmax)
         jumps = warps(held)
         r.check(not jumps, "no NFF warp, no jump back (%s)" % ("; ".join(jumps) or "none"))
-        if not need(r, arr, "F1 did not arrive within %d s (IE off-screen ETA-based wait)" % arr_budget):
+        if not need(r, arr, "F1 did not arrive within %d s (%s)" % (arr_budget, arr_why)):
             return
         end = finish_by_visit(r, F1, t)
         r.check(end is not None, "errand ended after the player visited and left (IE T1): %s" % (end,))
@@ -797,7 +805,7 @@ def b4(r):
             r.inconclusive += 1
             r.log("INCONCLUSIVE B-4 precondition: F1 never entered combat within 60 s (see the bandit/F1 CombatProbe "
                   "lines: target, aggression, dead)")
-        arr, _ = arrival_wait(t, nm, base=240)
+        arr = arrival_wait(t, nm, base=240, r=r)[0]
         smp = wsamples(ww.read(), F1)
         r.check(all(s.get("iebHeld") == "1" for s in smp), "still held through the fight (%d samples)" % len(smp))
         r.check(not [e for e in ieb_events(t.read(), nm) if e[0] in REL_KW], "no release during the fight")
@@ -2032,7 +2040,8 @@ def b31(r):
             return p if (d is not None and d > 200) or p.get("cellid") != p0.get("cellid") else None
         r.check(until(left, 30, 2) is not None, "F1 left the furniture on the errand")
         mark(r, "wait arrival")
-        if not need(r, arrival_wait(t, nm)[0], "F1 did not arrive at %s" % DEST_MARKET):
+        arr_m, _, arr_why = arrival_wait(t, nm, r=r)
+        if not need(r, arr_m, "F1 did not arrive at %s (%s)" % (DEST_MARKET, arr_why)):
             return
         mark(r, "player_to F1")
         player_to(r, F1, wait=10)
