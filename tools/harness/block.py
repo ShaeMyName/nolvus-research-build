@@ -10,7 +10,7 @@ checkpoint(r) call, which sits after its setup and precondition checks and befor
 Dispatch, kill, Accelerate, LLM wait), and stops there. One source: the real run executes the same lines (checkpoint
 is a no-op then). Reloads, relaunches, family log checks run as in the real block. Summary: one SETUP OK / SETUP FAIL
 (reason) line per test in test_runs/<BLOCK>_setup_<stamp>.md."""
-import importlib, os, re, subprocess, sys, time
+import importlib, os, re, shutil, subprocess, sys, time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.dirname(__file__))
 import game
@@ -540,6 +540,11 @@ def run_block(name, only=None, start=None, launch=True, keep_open=False, setup_o
             family_logs(ctl, fam, fam_start, summary)
             fam_start = time.strftime("%Y-%m-%d %H:%M:%S")
         fam = meta["family"]
+        free_gb = shutil.disk_usage("C:/").free / 2 ** 30   # REVIEW_LOG RV-206 note 2: catch a mid-block disk fill
+        if free_gb < game.MIN_FREE_GB:
+            print("BLOCK HALT %s before %s: only %.1f GB free on C: (< %d GB)" % (name, tid, free_gb, game.MIN_FREE_GB), flush=True)
+            summary.append("| HALT | disk %.1f GB free before %s | | |" % (free_gb, tid))
+            break
         if not game.sampler_alive():                    # REVIEW_LOG RV-180 (2): the memory guard died
             print("BLOCK HALT %s before %s: memory guard heartbeat stale (> 30 s)" % (name, tid), flush=True)
             summary.append("| HALT | memory guard heartbeat stale before %s | | |" % tid)
