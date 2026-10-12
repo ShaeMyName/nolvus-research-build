@@ -350,8 +350,7 @@ SAMPLER = os.path.join(os.path.dirname(__file__), "mem_sampler.py")
 
 MIN_FREE_GB = 50                         # REVIEW_LOG RV-206 (4): LAUNCH refuses below this much free space on C:
 SAMPLER_HB = "C:/nolvus-research/test_runs/mem_sampler.hb"
-MO2_INI = "C:/Nolvus/Instances/Nolvus Awakening/MO2/ModOrganizer.ini"
-TEST_PROFILE = "C:/Nolvus/Instances/Nolvus Awakening/MODS/profiles/SkyrimNet Test/"
+TEST_PROFILE = PROFILE_DIR
 
 
 def mo2_config_ok():
