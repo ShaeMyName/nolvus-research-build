@@ -2,6 +2,8 @@
 it to U2/U4/CF); REL-1 -> U2 (a modal question box would pause the game and stall U1; harness dismiss-ui there); B-17, B-30, TM-6, TM-7, TM-9, L-5, L-8 -> S-A (Shae); TM-3 -> CF block; EX-5/EX-6 -> U3 (need T0-M); D-4 -> soak (SK-10)."""
 from block import block
 
+# 2026-10-12 (Shae, relayed RV-220): voices ON for every block from now on (real config, 64 GB). U4/U4G stay
+# voices=False until she confirms (they speak the spoiler-guarded answers aloud; AZ-10's away-from-sound rule).
 block("U1", "T0", ["tests_b", "tests_tm_l", "tests_misc", "tests_ie"], [
     # harness smoke first (consumer proof (c)): the test mod events must arrive
     "H-1",
@@ -26,7 +28,7 @@ block("U1", "T0", ["tests_b", "tests_tm_l", "tests_misc", "tests_ie"], [
     # churns saves: always last
     "B-20",
 ], est={"B": 80, "TM/L": 72, "D/Q/REL/CS/RS/K/X/EX": 72}, fixed={"B-20": 70},
-   harness=True, voices=False, gamemaster=False)  # GM off (Shae 2026-10-10): no GM test in U1 (gamemaster_tests.md)   # no voices: text/state block (Shae 2026-10-10); D1 extended to U1 (Shae 2026-10-10): auto-clears the Timeline Mismatch box on every reload
+   harness=True, voices=True, gamemaster=False)  # GM off (Shae 2026-10-10): no GM test in U1 (gamemaster_tests.md)   # no voices: text/state block (Shae 2026-10-10); D1 extended to U1 (Shae 2026-10-10): auto-clears the Timeline Mismatch box on every reload
 # Unpadded estimates (time plan §5, re-tier §5): B ~2.5 h incl. B-20's 70 min; TM/L ~1.2 h; the rest ~1.2 h
 # (D-4's 29 min moved to the soak). Used only for the live ETA; the pace factor corrects them as tests finish.
 
@@ -56,7 +58,7 @@ block("U2", "T0", ["tests_u2", "tests_u2_e", "tests_u2_wh", "tests_u2_len", "tes
     # saves/reloads last before the block's end
     "IP-5", "T10-2", "LEN-4",
 ], est={"W/WE/E/RE": 45, "DA": 30, "WH/PV": 75, "LEN/SEC": 60, "SC": 70, "IP": 40, "H": 2},
-   harness=True, voices=False, gamemaster=True,  # GameMaster stays on (several U2 checks are reaction-based; Shae 2026-10-10 'if unsure, keep it on')
+   harness=True, voices=True, gamemaster=True,  # GameMaster stays on (several U2 checks are reaction-based; Shae 2026-10-10 'if unsure, keep it on')
    early_stop=(8, 0.4))   # REVIEW_LOG RV-153 (2): >= 40% of the first 8 counted tests INCONCLUSIVE -> HALT ("EARLY STOP: k of N INCONCLUSIVE"); by-design stubs/judgement tests are not counted (block.early_stop_class)
 # REVIEW_LOG RV-90 (5): the two voice-dependent tests run in a short voiced sub-block after U2, started only with
 # >= 12 GB available (the voice server pushed the 31 GB machine to the edge on 10-10); memory gates stay on.
@@ -98,7 +100,7 @@ block("U2SMOKE", "T0", ["tests_u2", "tests_u2_da", "tests_u2_wh", "tests_u2_len"
     "NT-4",
 ], fixed={"H-2": 2, "DA-1": 3.75, "DA-3": 3.75, "SEC-3": 5.45, "SEC-2": 5.45, "WE-1": 3.46, "X-6": 2, "CS-2": 4,
           "SC-9": 5.38, "W-3": 3.46, "PV-3": 5.36, "PV-4": 5.36, "NT-4": 8},
-      harness=True, voices=False, gamemaster=False, no_reload=True, reload_keep=("SEC-3", "SEC-2", "WE-1", "SC-9", "PV-4"), rescan=True)   # RV-199 (5): reload before the LOS tests SEC-2, WE-1, X-6, W-3
+      harness=True, voices=True, gamemaster=False, no_reload=True, reload_keep=("SEC-3", "SEC-2", "WE-1", "SC-9", "PV-4"), rescan=True)   # RV-199 (5): reload before the LOS tests SEC-2, WE-1, X-6, W-3
 
 # U3 "restarts + watches" (time plan §5 :380), written 2026-10-11 (tests_u3*.py). One time-plan block, five sub-blocks,
 # run in U3_SEQUENCE order:
@@ -115,9 +117,9 @@ block("U2SMOKE", "T0", ["tests_u2", "tests_u2_da", "tests_u2_wh", "tests_u2_len"
 # RE-2 (RE2_WRITE_APPROVED); see the module docstrings.
 U3_SEQUENCE = ["U3R", "U3MR", "U3M", "U3G", "U3E"]
 block("U3R", "T0", ["tests_u3"], ["D-3", "EN-4", "CS-27", "Q-10"],
-      fixed={"D-3": 14, "EN-4": 20, "CS-27": 1, "Q-10": 2}, harness=True, voices=False, gamemaster=False)
+      fixed={"D-3": 14, "EN-4": 20, "CS-27": 1, "Q-10": 2}, harness=True, voices=True, gamemaster=False)
 block("U3MR", "T0-M", ["tests_u3"], ["MA-7", "K-M2"],
-      fixed={"MA-7": 15, "K-M2": 1}, harness=True, voices=False, gamemaster=False)
+      fixed={"MA-7": 15, "K-M2": 1}, harness=True, voices=True, gamemaster=False)
 block("U3M", "T0-M", ["tests_u3", "tests_u3_m", "tests_u3_gate"], [
     "GATE-1", "GATE-1b", "GATE-2", "GATE-3", "GATE-4",        # RV-98 gate (tests_u3_gate.py); each reloads T0-M
     "MA-3", "MA-4", "MA-5",              # MA-4/MA-5: one x100 window of 24 game hours; reload after MA-5
@@ -127,12 +129,12 @@ block("U3M", "T0-M", ["tests_u3", "tests_u3_m", "tests_u3_gate"], [
     "MA-2a", "MA-2b",                    # the boxes are the pass, never dismissed: last, each followed by a reload
 ], fixed={"MA-3": 5, "MA-4": 17, "MA-5": 1, "MA-6": 8, "K-M3": 6, "RS-2": 2, "RS-5": 3, "RS-8d": 3, "RS-10be": 4,
           "DA-9": 5, "MA-2a": 4, "MA-2b": 4,
-          "GATE-1": 3, "GATE-1b": 3, "GATE-2": 3, "GATE-3": 3, "GATE-4": 3}, harness=True, voices=False, gamemaster=False)
+          "GATE-1": 3, "GATE-1b": 3, "GATE-2": 3, "GATE-3": 3, "GATE-4": 3}, harness=True, voices=True, gamemaster=False)
 # U3G runs with GameMaster ON (X-9 and RE-2 are GameMaster-dependent): allowed under DECISIONS:412(2), REVIEW_LOG RV-100 (2)
 block("U3G", "T0", ["tests_u3", "tests_u3_g"], ["X-9", "X-10", "RE-2"],
-      fixed={"X-9": 30, "X-10": 1, "RE-2": 1}, harness=True, voices=False, gamemaster=True)
+      fixed={"X-9": 30, "X-10": 1, "RE-2": 1}, harness=True, voices=True, gamemaster=True)
 block("U3E", "T0-ENT4", ["tests_u3", "tests_u3_m"], ["ENT-4"],
-      fixed={"ENT-4": 70}, harness=True, voices=False, gamemaster=False)
+      fixed={"ENT-4": 70}, harness=True, voices=True, gamemaster=False)
 
 # Block E: essential followers (investigation/round10/essential_followers_tests.md; tests_ess.py, written 2026-10-11).
 # The order is grouped by window table (ess_windows.json), and a table install needs the game and MO2 closed, so block E is
@@ -153,8 +155,8 @@ block("E", "T0", ["tests_ess"], [
     "E-TBLb",                                                                                    # BAD
 ], est={"E": 110}, fixed={"E-IMP": 3, "E-IMP-F": 5, "E-SA2": 4, "E-SAOPT1": 5, "E-DIS1": 4, "E-DIS2": 5, "E-OPT": 5,
                           "E-CASUAL-ENROLLED": 6, "E-K3": 3, "E-TBL": 6, "E-TBLb": 6, "E-RDO": 1, "E-WIN": 1, "E-CF": 1},
-      harness=True, voices=False, gamemaster=False)
-block("E_CF", "T0-CF", ["tests_ess"], ["E-CF"], fixed={"E-CF": 45}, harness=True, voices=False, gamemaster=False)
+      harness=True, voices=True, gamemaster=False)
+block("E_CF", "T0-CF", ["tests_ess"], ["E-CF"], fixed={"E-CF": 45}, harness=True, voices=True, gamemaster=False)
 
 # U4 "Azura" (time plan §3.7 and §5 :381; tests_azura.py, written 2026-10-11). SHAE AWAY FROM THE SCREEN AND THE SOUND for
 # the whole of U4 (AZ-10: her answers must never reach Shae; the overlay shows them even without voices). Save T0; every
@@ -178,5 +180,5 @@ block("U4", "T0", ["tests_azura"], [
 block("U4G", "T0", ["tests_azura"], ["AZ-6", "AZ-4", "AZ-9", "AZ-12"],
       fixed={"AZ-6": 6, "AZ-4": 1, "AZ-9": 1, "AZ-12": 1}, harness=True, voices=False, gamemaster=True)
 # FF: friendly-fire coverage (REVIEW_LOG RV-142; tests_ff.py, aa0d40c). NFF No Player Damage to Teammates OFF vs ON.
-block("FF", "T0", ["tests_ff"], ["FF-0", "FF-1", "FF-3", "FF-4"], est={"FF": 50}, harness=True, voices=False,
+block("FF", "T0", ["tests_ff"], ["FF-0", "FF-1", "FF-3", "FF-4"], est={"FF": 50}, harness=True, voices=True,
       gamemaster=False)
